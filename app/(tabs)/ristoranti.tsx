@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, TextInput, ScrollView } from "react-native";
 import { useColorScheme } from "react-native";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { Link } from "expo-router";
 import { FontAwesome, MaterialIcons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";

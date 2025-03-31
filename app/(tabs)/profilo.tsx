@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Switch } from "react-native";
 import { useColorScheme } from "react-native";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { useState } from "react";
 import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";

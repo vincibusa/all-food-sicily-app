@@ -1,61 +1,44 @@
 import React from "react";
-import { Tabs } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { Pressable, useColorScheme } from "react-native";
-import Colors from "../constants/Colors";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <>
       <StatusBar style="auto" />
       
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-          tabBarStyle: {
-            backgroundColor: Colors[colorScheme ?? "light"].background,
-            borderTopWidth: 1,
-            borderTopColor: Colors[colorScheme ?? "light"].border,
-          },
-          headerStyle: {
-            backgroundColor: Colors[colorScheme ?? "light"].background,
-          },
-          headerTintColor: Colors[colorScheme ?? "light"].text,
-        }}
-      >
-        <Tabs.Screen
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen 
           name="index"
-          options={{
-            title: "Home",
-            tabBarIcon: ({ color }) => <FontAwesome name="home" size={24} color={color} />,
+          options={{ 
+            headerShown: false,
+            animation: 'fade',
+            gestureEnabled: false
           }}
         />
-        <Tabs.Screen
-          name="ristoranti"
-          options={{
-            title: "Ristoranti",
-            tabBarIcon: ({ color }) => <MaterialIcons name="restaurant" size={24} color={color} />,
+        
+        <Stack.Screen 
+          name="(tabs)" 
+          options={{ headerShown: false }}
+        />
+        
+        {/* Pagine di dettaglio fuori dalla tab bar */}
+        <Stack.Screen 
+          name="articoli/[id]" 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
           }}
         />
-        <Tabs.Screen
-          name="articoli"
-          options={{
-            title: "Articoli",
-            tabBarIcon: ({ color }) => <FontAwesome name="newspaper-o" size={24} color={color} />,
+        
+        <Stack.Screen 
+          name="ristoranti/[id]" 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
           }}
         />
-        <Tabs.Screen
-          name="profilo"
-          options={{
-            title: "Profilo",
-            tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
-          }}
-        />
-      </Tabs>
+      </Stack>
     </>
   );
 }
