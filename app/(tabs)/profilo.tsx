@@ -4,10 +4,12 @@ import Colors from "../../constants/Colors";
 import { useState } from "react";
 import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 export default function ProfiloScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const router = useRouter();
   
   // Stati per le preferenze utente
   const [notificheAttive, setNotificheAttive] = useState(true);
@@ -101,7 +103,10 @@ export default function ProfiloScreen() {
       <View style={styles.menuSection}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Account</Text>
         
-        <TouchableOpacity style={[styles.menuItem, { backgroundColor: colors.card }]}>
+        <TouchableOpacity 
+          style={[styles.menuItem, { backgroundColor: colors.card }]}
+          onPress={() => router.push('/account/informazioni-personali')}
+        >
           <View style={styles.menuItemLeft}>
             <Feather name="user" size={24} color={colors.primary} style={styles.menuIcon} />
             <Text style={[styles.menuItemText, { color: colors.text }]}>Informazioni Personali</Text>
@@ -109,7 +114,10 @@ export default function ProfiloScreen() {
           <MaterialIcons name="chevron-right" size={24} color={colors.text} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={[styles.menuItem, { backgroundColor: colors.card }]}>
+        <TouchableOpacity 
+          style={[styles.menuItem, { backgroundColor: colors.card }]}
+          onPress={() => router.push('/account/privacy-sicurezza')}
+        >
           <View style={styles.menuItemLeft}>
             <Feather name="shield" size={24} color={colors.primary} style={styles.menuIcon} />
             <Text style={[styles.menuItemText, { color: colors.text }]}>Privacy e Sicurezza</Text>
@@ -117,7 +125,10 @@ export default function ProfiloScreen() {
           <MaterialIcons name="chevron-right" size={24} color={colors.text} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={[styles.menuItem, { backgroundColor: colors.card }]}>
+        <TouchableOpacity 
+          style={[styles.menuItem, { backgroundColor: colors.card }]}
+          onPress={() => router.push('/account/aiuto-supporto')}
+        >
           <View style={styles.menuItemLeft}>
             <Feather name="help-circle" size={24} color={colors.primary} style={styles.menuIcon} />
             <Text style={[styles.menuItemText, { color: colors.text }]}>Aiuto e Supporto</Text>
@@ -125,7 +136,10 @@ export default function ProfiloScreen() {
           <MaterialIcons name="chevron-right" size={24} color={colors.text} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={[styles.menuItem, { backgroundColor: colors.card }]}>
+        <TouchableOpacity 
+          style={[styles.menuItem, { backgroundColor: colors.card }]}
+          onPress={() => router.push('/account/informazioni-app')}
+        >
           <View style={styles.menuItemLeft}>
             <Feather name="info" size={24} color={colors.primary} style={styles.menuIcon} />
             <Text style={[styles.menuItemText, { color: colors.text }]}>Informazioni sull'App</Text>
