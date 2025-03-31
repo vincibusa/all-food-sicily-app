@@ -145,7 +145,7 @@ export default function ArticoliScreen() {
           <Link 
             key={article.id} 
             href={{ 
-              pathname: "/articoli", 
+              pathname: "/articoli/[id]", 
               params: { id: article.id } 
             }} 
             asChild

@@ -150,7 +150,7 @@ export default function RistorantiScreen() {
           <Link 
             key={restaurant.id} 
             href={{ 
-              pathname: '/ristoranti', 
+              pathname: '/ristoranti/[id]', 
               params: { id: restaurant.id } 
             }} 
             asChild
