@@ -1,39 +1,61 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+import React from "react";
+import { Tabs } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { Pressable, useColorScheme } from "react-native";
+import Colors from "../constants/Colors";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+    <>
       <StatusBar style="auto" />
-    </ThemeProvider>
+      
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+          tabBarStyle: {
+            backgroundColor: Colors[colorScheme ?? "light"].background,
+            borderTopWidth: 1,
+            borderTopColor: Colors[colorScheme ?? "light"].border,
+          },
+          headerStyle: {
+            backgroundColor: Colors[colorScheme ?? "light"].background,
+          },
+          headerTintColor: Colors[colorScheme ?? "light"].text,
+        }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color }) => <FontAwesome name="home" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="ristoranti"
+          options={{
+            title: "Ristoranti",
+            tabBarIcon: ({ color }) => <MaterialIcons name="restaurant" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="articoli"
+          options={{
+            title: "Articoli",
+            tabBarIcon: ({ color }) => <FontAwesome name="newspaper-o" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profilo"
+          options={{
+            title: "Profilo",
+            tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
+          }}
+        />
+      </Tabs>
+    </>
   );
 }

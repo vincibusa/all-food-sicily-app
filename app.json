@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "expo-app",
-    "slug": "expo-app",
+    "name": "AllFoodSicily",
+    "slug": "allfoodsicily",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "allfoodsicily",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

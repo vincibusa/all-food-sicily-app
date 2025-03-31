@@ -1,26 +1,31 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+const tintColorLight = '#d83027'; // Rosso siciliano
+const tintColorDark = '#ff6347';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
-export const Colors = {
+export default {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#000000',
+    background: '#ffffff',
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    tabIconDefault: '#cccccc',
     tabIconSelected: tintColorLight,
+    border: '#eeeeee',
+    card: '#f9f9f9',
+    cardShadow: 'rgba(0, 0, 0, 0.1)',
+    primary: tintColorLight,
+    secondary: '#ffab40', // Arancione siciliano
+    accent: '#4caf50',    // Verde per elementi naturali/cibo
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#ffffff',
+    background: '#121212',
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    tabIconDefault: '#666666',
     tabIconSelected: tintColorDark,
+    border: '#333333',
+    card: '#1e1e1e',
+    cardShadow: 'rgba(0, 0, 0, 0.5)',
+    primary: tintColorDark,
+    secondary: '#ffcc80',
+    accent: '#81c784',
   },
-};
+}; 
