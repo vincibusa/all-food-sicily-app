@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, SafeAreaView } from "react-native";
-import { useColorScheme } from "react-native";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome, Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -60,8 +59,7 @@ type ArticleData = typeof ARTICLES_DATA[keyof typeof ARTICLES_DATA];
 export default function ArticleScreen() {
   const { id } = useLocalSearchParams();
   const article = ARTICLES_DATA[id as keyof typeof ARTICLES_DATA];
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
   
   if (!article) {

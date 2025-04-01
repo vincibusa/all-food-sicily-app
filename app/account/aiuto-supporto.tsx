@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 // Dati delle FAQ
 const FAQs = [
@@ -37,8 +36,7 @@ const FAQs = [
 ];
 
 export default function AiutoSupporto() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
   
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);

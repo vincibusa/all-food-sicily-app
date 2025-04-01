@@ -2,14 +2,12 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import Colors from '../../constants/Colors';
+import { Feather, FontAwesome } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 export default function InformazioniApp() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
 
   // Apre link esterni

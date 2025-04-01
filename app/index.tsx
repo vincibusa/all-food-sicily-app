@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, ImageBackground, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
-import Colors from '../constants/Colors';
+import { useTheme } from './context/ThemeContext';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,8 +11,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (

@@ -1,11 +1,18 @@
 import React from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
+
+// Componente wrapper per StatusBar che usa il tema
+function ThemedStatusBar() {
+  const { colorScheme } = useTheme();
+  return <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />;
+}
 
 export default function RootLayout() {
   return (
-    <>
-      <StatusBar style="auto" />
+    <ThemeProvider>
+      <ThemedStatusBar />
       
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen 
@@ -72,6 +79,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 }

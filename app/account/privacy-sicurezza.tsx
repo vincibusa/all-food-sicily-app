@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Switch, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
-import Colors from '../../constants/Colors';
+import { FontAwesome, Feather } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 export default function PrivacySicurezza() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
 
   // Stati per le impostazioni di privacy
@@ -56,7 +54,7 @@ export default function PrivacySicurezza() {
           
           <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
             <View style={styles.settingInfo}>
-              <MaterialIcons name="location-on" size={22} color={colors.primary} />
+              <FontAwesome name="location-arrow" size={22} color={colors.primary} />
               <Text style={[styles.settingText, { color: colors.text }]}>Condivisione posizione</Text>
             </View>
             <Switch
@@ -69,7 +67,7 @@ export default function PrivacySicurezza() {
           
           <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
             <View style={styles.settingInfo}>
-              <MaterialIcons name="data-usage" size={22} color={colors.primary} />
+              <FontAwesome name="bar-chart" size={22} color={colors.primary} />
               <Text style={[styles.settingText, { color: colors.text }]}>Raccolta dati di utilizzo</Text>
             </View>
             <Switch
@@ -82,7 +80,7 @@ export default function PrivacySicurezza() {
           
           <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
             <View style={styles.settingInfo}>
-              <MaterialIcons name="cookie" size={22} color={colors.primary} />
+              <FontAwesome name="gear" size={22} color={colors.primary} />
               <Text style={[styles.settingText, { color: colors.text }]}>Cookie per marketing</Text>
             </View>
             <Switch
@@ -100,15 +98,15 @@ export default function PrivacySicurezza() {
           
           <TouchableOpacity style={[styles.settingButton, { backgroundColor: colors.card }]}>
             <View style={styles.settingInfo}>
-              <MaterialIcons name="lock" size={22} color={colors.primary} />
+              <FontAwesome name="lock" size={22} color={colors.primary} />
               <Text style={[styles.settingText, { color: colors.text }]}>Modifica password</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color={colors.text} />
+            <FontAwesome name="chevron-right" size={24} color={colors.text} />
           </TouchableOpacity>
           
           <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
             <View style={styles.settingInfo}>
-              <MaterialIcons name="fingerprint" size={22} color={colors.primary} />
+              <FontAwesome name="lock" size={22} color={colors.primary} />
               <Text style={[styles.settingText, { color: colors.text }]}>Autenticazione biometrica</Text>
             </View>
             <Switch
@@ -121,7 +119,7 @@ export default function PrivacySicurezza() {
           
           <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
             <View style={styles.settingInfo}>
-              <MaterialIcons name="security" size={22} color={colors.primary} />
+              <FontAwesome name="shield" size={22} color={colors.primary} />
               <Text style={[styles.settingText, { color: colors.text }]}>Autenticazione a due fattori</Text>
             </View>
             <Switch
@@ -134,10 +132,10 @@ export default function PrivacySicurezza() {
           
           <TouchableOpacity style={[styles.settingButton, { backgroundColor: colors.card }]}>
             <View style={styles.settingInfo}>
-              <MaterialIcons name="device-unknown" size={22} color={colors.primary} />
+              <FontAwesome name="mobile" size={22} color={colors.primary} />
               <Text style={[styles.settingText, { color: colors.text }]}>Dispositivi collegati</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color={colors.text} />
+            <FontAwesome name="chevron-right" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
         
@@ -147,7 +145,7 @@ export default function PrivacySicurezza() {
             style={[styles.deleteButton, { backgroundColor: 'rgba(255, 59, 48, 0.1)' }]}
             onPress={eliminaAccount}
           >
-            <MaterialIcons name="delete-forever" size={22} color="#FF3B30" />
+            <FontAwesome name="trash" size={22} color="#FF3B30" />
             <Text style={styles.deleteText}>Elimina Account</Text>
           </TouchableOpacity>
           

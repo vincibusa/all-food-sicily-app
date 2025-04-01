@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome, Feather } from '@expo/vector-icons';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 export default function InformazioniPersonali() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
 
   // Stati per i campi del form

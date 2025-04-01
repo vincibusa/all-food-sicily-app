@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, SafeAreaView, FlatList } from "react-native";
-import { useColorScheme } from "react-native";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -150,8 +149,7 @@ type PhotosArray = string[];
 export default function RestaurantScreen() {
   const { id } = useLocalSearchParams();
   const restaurant = RESTAURANTS_DATA[id as keyof typeof RESTAURANTS_DATA];
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'info' | 'menu' | 'photos'>('info');
   

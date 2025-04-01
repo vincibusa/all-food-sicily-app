@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, TextInput, ScrollView } from "react-native";
-import { useColorScheme } from "react-native";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../context/ThemeContext";
 import { Link } from "expo-router";
 import { FontAwesome, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -75,8 +74,7 @@ const CATEGORIES = [
 ];
 
 export default function ArticoliScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tutti');
   
@@ -94,7 +92,7 @@ export default function ArticoliScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header di ricerca */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-        <View style={styles.searchBar}>
+        <View style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? colors.border : '#f2f2f2' }]}>
           <Feather name="search" size={20} color={colors.text} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -194,7 +192,6 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f2f2',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,

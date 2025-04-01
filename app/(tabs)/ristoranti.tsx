@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, TextInput, ScrollView } from "react-native";
-import { useColorScheme } from "react-native";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../context/ThemeContext";
 import { Link } from "expo-router";
 import { FontAwesome, MaterialIcons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -82,8 +81,7 @@ const CATEGORIES = [
 ];
 
 export default function RistorantiScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tutti');
   
@@ -100,7 +98,7 @@ export default function RistorantiScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header di ricerca */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-        <View style={styles.searchBar}>
+        <View style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? colors.border : '#f2f2f2' }]}>
           <Feather name="search" size={20} color={colors.text} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -155,34 +153,32 @@ export default function RistorantiScreen() {
             }} 
             asChild
           >
-            <TouchableOpacity
-              style={[styles.restaurantCard, { backgroundColor: colors.card }]}
-            >
+            <TouchableOpacity style={styles.restaurantCard}>
               <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
-              <View style={styles.restaurantInfo}>
-                <View style={styles.nameContainer}>
-                  <Text style={[styles.restaurantName, { color: colors.text }]}>{restaurant.name}</Text>
+              <View style={[styles.restaurantInfo, { backgroundColor: colors.card }]}>
+                <View style={styles.categoryRow}>
+                  <View style={[styles.categoryPill, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.categoryPillText}>{restaurant.cuisine}</Text>
+                  </View>
                   <View style={styles.ratingContainer}>
                     <FontAwesome name="star" size={14} color="#FFD700" />
                     <Text style={[styles.ratingText, { color: colors.text }]}>{restaurant.rating}</Text>
                   </View>
                 </View>
                 
+                <Text style={[styles.restaurantName, { color: colors.text }]}>{restaurant.name}</Text>
+                
+                <Text style={[styles.description, { color: colors.text }]} numberOfLines={2}>
+                  {restaurant.description}
+                </Text>
+                
                 <View style={styles.detailsContainer}>
                   <View style={styles.locationContainer}>
                     <MaterialIcons name="location-on" size={14} color={colors.primary} />
                     <Text style={[styles.locationText, { color: colors.text }]}>{restaurant.location}</Text>
                   </View>
-                  <View style={styles.cuisineContainer}>
-                    <MaterialIcons name="restaurant" size={14} color={colors.primary} />
-                    <Text style={[styles.cuisineText, { color: colors.text }]}>{restaurant.cuisine}</Text>
-                  </View>
                   <Text style={[styles.priceRange, { color: colors.text }]}>{restaurant.priceRange}</Text>
                 </View>
-                
-                <Text style={[styles.description, { color: colors.text }]} numberOfLines={2}>
-                  {restaurant.description}
-                </Text>
               </View>
             </TouchableOpacity>
           </Link>
@@ -205,7 +201,6 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f2f2',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -246,7 +241,7 @@ const styles = StyleSheet.create({
   restaurantCard: {
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 20,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -258,19 +253,25 @@ const styles = StyleSheet.create({
   },
   restaurantImage: {
     width: '100%',
-    height: 180,
+    height: 200,
   },
   restaurantInfo: {
     padding: 16,
   },
-  nameContainer: {
+  categoryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  restaurantName: {
-    fontSize: 18,
+  categoryPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  categoryPillText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   ratingContainer: {
@@ -286,34 +287,31 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 4,
   },
+  restaurantName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
   detailsContainer: {
     flexDirection: 'row',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
   },
   locationText: {
-    fontSize: 14,
-    marginLeft: 4,
-  },
-  cuisineContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  cuisineText: {
     fontSize: 14,
     marginLeft: 4,
   },
   priceRange: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 20,
   },
 }); 

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, ImageBackground, FlatList, Dimensions } from "react-native";
 import { BlurView } from "expo-blur";
-import { useColorScheme } from "react-native";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../context/ThemeContext";
 import { Link } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
@@ -59,8 +58,7 @@ const FEATURED_RESTAURANTS = [
 ];
 
 export default function Index() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme } = useTheme();
   const scrollY = useSharedValue(0);
   const fadeAnim = useSharedValue(0);
   

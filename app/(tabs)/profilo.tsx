@@ -1,20 +1,28 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Switch } from "react-native";
-import { useColorScheme } from "react-native";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../context/ThemeContext";
 import { useState } from "react";
 import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 export default function ProfiloScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, colorScheme, toggleColorScheme, useSystemTheme, setUseSystemTheme } = useTheme();
   const router = useRouter();
   
   // Stati per le preferenze utente
   const [notificheAttive, setNotificheAttive] = useState(true);
-  const [darkModeAttivo, setDarkModeAttivo] = useState(colorScheme === 'dark');
   const [newsletterAttiva, setNewsletterAttiva] = useState(true);
+  
+  // Gestire il cambiamento modalità scura
+  const handleDarkModeToggle = () => {
+    if (useSystemTheme) {
+      // Se attualmente sta usando il tema di sistema, disattivarlo e impostare manualmente
+      setUseSystemTheme(false);
+    } else {
+      // Altrimenti cambia tra light e dark mode
+      toggleColorScheme();
+    }
+  };
   
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -78,8 +86,21 @@ export default function ProfiloScreen() {
             <Text style={[styles.menuItemText, { color: colors.text }]}>Modalità Scura</Text>
           </View>
           <Switch
-            value={darkModeAttivo}
-            onValueChange={setDarkModeAttivo}
+            value={colorScheme === 'dark'}
+            onValueChange={handleDarkModeToggle}
+            trackColor={{ false: '#767577', true: colors.primary }}
+            thumbColor={'#f4f3f4'}
+          />
+        </View>
+        
+        <View style={[styles.menuItem, { backgroundColor: colors.card }]}>
+          <View style={styles.menuItemLeft}>
+            <MaterialIcons name="smartphone" size={24} color={colors.primary} style={styles.menuIcon} />
+            <Text style={[styles.menuItemText, { color: colors.text }]}>Usa Tema del Sistema</Text>
+          </View>
+          <Switch
+            value={useSystemTheme}
+            onValueChange={setUseSystemTheme}
             trackColor={{ false: '#767577', true: colors.primary }}
             thumbColor={'#f4f3f4'}
           />
