@@ -1,0 +1,20 @@
+{
+    "cli": {
+      "version": ">=0.78.0"
+    },
+    "build": {
+      "production": {
+        "distribution": "store",
+        "ios": {
+          "buildConfiguration": "Release"
+        }
+      }
+    },
+    "submit": {
+      "production": {
+        "ios": {
+          "appleId": "vincibusa@gmail.com"
+        }
+      }
+    }
+  }
