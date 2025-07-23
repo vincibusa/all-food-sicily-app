@@ -1,317 +1,565 @@
-import { useState } from "react";
-import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, TextInput, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, RefreshControl, Alert } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Link } from "expo-router";
-import { FontAwesome, MaterialIcons, Feather } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiClient } from "../../services/api";
+import ListCard from '../../components/ListCard';
+import { ListItem } from '../../components/ListCard';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import ListCardSkeleton from '../../components/ListCardSkeleton';
+import AdvancedFilters from '../../components/AdvancedFilters';
 
-// Dati di esempio per i ristoranti
-const RESTAURANTS = [
-  {
-    id: '1',
-    name: 'Trattoria Siciliana',
-    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Palermo',
-    rating: 4.8,
-    cuisine: 'Tradizionale',
-    priceRange: '€€',
-    description: 'Autentica cucina siciliana in un ambiente rustico e accogliente.',
-  },
-  {
-    id: '2',
-    name: 'Osteria del Mare',
-    image: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Catania',
-    rating: 4.6,
-    cuisine: 'Pesce',
-    priceRange: '€€€',
-    description: 'Specialità di pesce fresco con vista sul mare.',
-  },
-  {
-    id: '3',
-    name: 'Villa Mediterranea',
-    image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Taormina',
-    rating: 4.9,
-    cuisine: 'Gourmet',
-    priceRange: '€€€€',
-    description: 'Cucina raffinata con influenze mediterranee in una location esclusiva.',
-  },
-  {
-    id: '4',
-    name: 'Antica Focacceria',
-    image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Siracusa',
-    rating: 4.5,
-    cuisine: 'Street Food',
-    priceRange: '€',
-    description: 'Il miglior street food siciliano, specializzato in panelle e arancini.',
-  },
-  {
-    id: '5',
-    name: 'Vini e Sapori',
-    image: 'https://images.unsplash.com/photo-1536782376847-5c9d14d97cc0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Marsala',
-    rating: 4.7,
-    cuisine: 'Enoteca',
-    priceRange: '€€€',
-    description: 'Enoteca con piatti tradizionali siciliani abbinati a vini locali pregiati.',
-  },
-  {
-    id: '6',
-    name: 'Pizzeria Etna',
-    image: 'https://images.unsplash.com/photo-1604974342503-32ec223ee55e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Catania',
-    rating: 4.4,
-    cuisine: 'Pizzeria',
-    priceRange: '€€',
-    description: 'Pizze cotte in forno a legna con ingredienti genuini del territorio.',
-  }
-];
+interface Restaurant extends ListItem {
+  description: string;
+  rating: string | number;
+  price_range: number;
+  cuisine_type: string[];
+  category_name: string;
+  category_id: string;
+}
 
-// Categorie di cucina
-const CATEGORIES = [
-  { id: '1', name: 'Tutti' },
-  { id: '2', name: 'Tradizionale' },
-  { id: '3', name: 'Pesce' },
-  { id: '4', name: 'Gourmet' },
-  { id: '5', name: 'Street Food' },
-  { id: '6', name: 'Pizzeria' },
-  { id: '7', name: 'Enoteca' },
-];
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface FilterOption {
+  id: string;
+  name: string;
+  count?: number;
+}
 
 export default function RistorantiScreen() {
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tutti');
+  const [selectedCity, setSelectedCity] = useState('Tutte');
+  const [restaurants, setRestaurants] = useState<ListItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [cities, setCities] = useState<FilterOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedCuisine, setSelectedCuisine] = useState('Tutte');
+  const [cuisineTypes, setCuisineTypes] = useState<FilterOption[]>([]);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async (categoryId?: string) => {
+    try {
+      setLoading(true);
+      // Use API-based filtering when a specific category is selected
+      const restaurantsUrl = categoryId && categoryId !== 'all' 
+        ? `/restaurants/?category_id=${categoryId}` 
+        : '/restaurants/';
+      const [restaurantsResponse, categoriesResponse] = await Promise.all([
+        apiClient.get<any>(restaurantsUrl),
+        apiClient.get<any>('/categories/')
+      ]);
+      const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.items || []);
+      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.items || []);
+      // Transform data to match ListItem interface
+      const transformedRestaurants = restaurantsData.map((restaurant: any) => ({
+        id: restaurant.id,
+        title: restaurant.name, // Use name as title for restaurants
+        name: restaurant.name,
+        featured_image: restaurant.featured_image,
+        category: restaurant.category_name ? {
+          id: restaurant.category_id || 'unknown',
+          name: restaurant.category_name,
+          color: categoriesData.find((cat: any) => cat.id === restaurant.category_id)?.color || colors.primary
+        } : null,
+        city: restaurant.city,
+        province: restaurant.province,
+        cuisine_type: restaurant.cuisine_type || [],
+        rating: restaurant.rating,
+        price_range: restaurant.price_range
+      }));
+      setRestaurants(transformedRestaurants);
+      // Add "Tutti" category at the beginning
+      const allCategories = [
+        { id: 'all', name: 'Tutti', color: colors.primary },
+        ...categoriesData
+      ];
+      setCategories(allCategories);
+
+      // Extract unique cities and cuisine types from restaurants data
+      const uniqueCities = [...new Set(restaurantsData.map((r: any) => r.city).filter(Boolean))].sort() as string[];
+      const allCuisineTypes = restaurantsData.flatMap((r: any) => r.cuisine_type || []);
+      const uniqueCuisineTypes = [...new Set(allCuisineTypes.filter(Boolean))].sort() as string[];
+
+      setCities([
+        { id: 'all', name: 'Tutte' },
+        ...uniqueCities.map((city) => ({ id: city, name: city }))
+      ]);
+
+      setCuisineTypes([
+        { id: 'all', name: 'Tutte' },
+        ...uniqueCuisineTypes.map((cuisine) => ({ 
+          id: cuisine, 
+          name: cuisine.charAt(0).toUpperCase() + cuisine.slice(1).replace('-', ' ')
+        }))
+      ]);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      Alert.alert('Errore', 'Impossibile caricare i ristoranti');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    const currentCategoryId = categories.find(cat => cat.name === selectedCategory)?.id;
+    await loadData(currentCategoryId);
+    setRefreshing(false);
+  };
+
+  const handleCategorySelect = async (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    const categoryId = categories.find(cat => cat.name === categoryName)?.id;
+    await loadData(categoryId);
+  };
+
+  const handleCuisineSelect = (cuisineName: string) => {
+    setSelectedCuisine(cuisineName);
+  };
+
+  const getPriceRangeSymbol = (priceRange: number) => {
+    return '€'.repeat(Math.max(1, Math.min(4, priceRange)));
+  };
   
-  // Filtra i ristoranti in base alla ricerca e alla categoria selezionata
-  const filteredRestaurants = RESTAURANTS.filter(restaurant => {
-    const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         restaurant.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'Tutti' || restaurant.cuisine === selectedCategory;
-    return matchesSearch && matchesCategory;
+  // Filtro client-side per search query, città e tipo di cucina
+  const filteredRestaurants = restaurants.filter(restaurant => {
+    // Search query filter
+    const matchesSearch = !searchQuery.trim() || (
+      restaurant.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      restaurant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      restaurant.province?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      restaurant.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      restaurant.cuisine_type?.some((cuisine: string) => cuisine?.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    // City filter
+    const matchesCity = selectedCity === 'Tutte' || restaurant.city === selectedCity;
+
+    // Cuisine type filter
+    const matchesCuisine = selectedCuisine === 'Tutte' || 
+      restaurant.cuisine_type?.some((cuisine: string) => {
+        const formattedCuisine = cuisine.charAt(0).toUpperCase() + cuisine.slice(1).replace('-', ' ');
+        return formattedCuisine === selectedCuisine;
+      });
+    
+    return matchesSearch && matchesCity && matchesCuisine;
   });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header di ricerca */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-        <View style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? colors.border : '#f2f2f2' }]}>
-          <Feather name="search" size={20} color={colors.text} style={styles.searchIcon} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
+          <FontAwesome name="search" size={16} color={colors.text + '60'} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Cerca ristoranti..."
-            placeholderTextColor={colorScheme === 'dark' ? '#888' : '#999'}
+            placeholder="Cerca ristoranti, città, categorie..."
+            placeholderTextColor={colors.text + '60'}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-        </View>
-      </View>
-
-      {/* Categorie */}
-      <View style={styles.categoriesContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={CATEGORIES}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.categoryButton,
-                selectedCategory === item.name && { backgroundColor: colors.primary }
-              ]}
-              onPress={() => setSelectedCategory(item.name)}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === item.name ? { color: 'white' } : { color: colors.text }
-                ]}
-              >
-                {item.name}
-              </Text>
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <FontAwesome name="times" size={16} color={colors.text + '60'} />
             </TouchableOpacity>
           )}
-          contentContainerStyle={styles.categoriesList}
+        </View>
+
+        {/* Filtri */}
+        <AdvancedFilters
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategorySelect={handleCategorySelect}
+          cities={cities}
+          selectedCity={selectedCity}
+          onCitySelect={setSelectedCity}
+          onResetFilters={() => {
+            setSelectedCity('Tutte');
+            setSelectedCategory('Tutti');
+          }}
+          colors={colors}
+        />
+
+        {/* Results Count e Filtri Attivi */}
+        <View style={styles.resultsSection}>
+          <Text style={[styles.resultsText, { color: colors.text + '80' }]}> 
+            {filteredRestaurants.length} ristorante{filteredRestaurants.length === 1 ? '' : 'i'} trovato{filteredRestaurants.length === 1 ? '' : 'i'}
+          </Text>
+          
+          {/* Indicatori Filtri Attivi */}
+          <View style={styles.activeFiltersContainer}>
+            {selectedCity !== 'Tutte' && (
+              <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
+                <TouchableOpacity onPress={() => setSelectedCity('Tutte')}>
+                  <MaterialIcons name="close" size={14} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+            {selectedCategory !== 'Tutti' && (
+              <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCategory}</Text>
+                <TouchableOpacity onPress={() => setSelectedCategory('Tutti')}>
+                  <MaterialIcons name="close" size={14} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Lista Ristoranti */}
+        <FlatList
+          data={filteredRestaurants}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            loading ? (
+              <View style={styles.listContainer}>
+                {[1, 2, 3].map((_, index) => (
+                  <ListCardSkeleton key={`skeleton-${index}`} />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.centerContainer}>
+                <FontAwesome name="search" size={48} color={colors.text + '40'} />
+                <Text style={[styles.emptyText, { color: colors.text + '60' }]}> 
+                  {searchQuery ? 'Nessun ristorante trovato' : 'Nessun ristorante disponibile'}
+                </Text>
+                {searchQuery && (
+                  <Text style={[styles.emptySubtext, { color: colors.text + '40' }]}> 
+                    Prova a modificare i criteri di ricerca
+                  </Text>
+                )}
+              </View>
+            )
+          }
+          renderItem={({ item: restaurant, index }) => (
+            <Link 
+              href={{ 
+                pathname: '/ristoranti/[id]', 
+                params: { id: restaurant.id } 
+              }} 
+              asChild
+            >
+              <ListCard
+                item={restaurant}
+                delay={index * 100}
+              />
+            </Link>
+          )}
         />
       </View>
-
-      {/* Lista Ristoranti */}
-      <View style={styles.listContainer}>
-        <Text style={[styles.listTitle, { color: colors.text }]}>
-          {filteredRestaurants.length} ristoranti trovati
-        </Text>
-        {filteredRestaurants.map((restaurant) => (
-          <Link 
-            key={restaurant.id} 
-            href={{ 
-              pathname: '/ristoranti/[id]', 
-              params: { id: restaurant.id } 
-            }} 
-            asChild
-          >
-            <TouchableOpacity style={styles.restaurantCard}>
-              <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
-              <View style={[styles.restaurantInfo, { backgroundColor: colors.card }]}>
-                <View style={styles.categoryRow}>
-                  <View style={[styles.categoryPill, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.categoryPillText}>{restaurant.cuisine}</Text>
-                  </View>
-                  <View style={styles.ratingContainer}>
-                    <FontAwesome name="star" size={14} color="#FFD700" />
-                    <Text style={[styles.ratingText, { color: colors.text }]}>{restaurant.rating}</Text>
-                  </View>
-                </View>
-                
-                <Text style={[styles.restaurantName, { color: colors.text }]}>{restaurant.name}</Text>
-                
-                <Text style={[styles.description, { color: colors.text }]} numberOfLines={2}>
-                  {restaurant.description}
-                </Text>
-                
-                <View style={styles.detailsContainer}>
-                  <View style={styles.locationContainer}>
-                    <MaterialIcons name="location-on" size={14} color={colors.primary} />
-                    <Text style={[styles.locationText, { color: colors.text }]}>{restaurant.location}</Text>
-                  </View>
-                  <Text style={[styles.priceRange, { color: colors.text }]}>{restaurant.priceRange}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </Link>
-        ))}
-      </View>
-    </ScrollView>
     </SafeAreaView>
   );
 }
 
+// Aggiorno gli stili per essere identici a guide.tsx
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  searchContainer: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+  filtersSection: {
+    marginBottom: 8,
   },
-  searchBar: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  searchIcon: {
-    marginRight: 8,
+    margin: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   searchInput: {
     flex: 1,
+    marginLeft: 12,
     fontSize: 16,
-    height: 40,
   },
-  categoriesContainer: {
-    marginTop: 16,
-  },
-  categoriesList: {
+  additionalFiltersContainer: {
     paddingHorizontal: 16,
+    marginBottom: 8,
   },
-  categoryButton: {
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterToggleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  filterBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  filterToggleText: {
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
+  },
+  expandedFilters: {
+    marginHorizontal: 16,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  filterRow: {
+    marginBottom: 20,
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  filterButtonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 4,
+  },
+  filterButton: {
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    marginBottom: 8,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  categoryText: {
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  resetContainer: {
+    alignItems: 'center',
+    paddingTop: 8,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+  },
+  resetFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  resetFiltersText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  resultsSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  activeFiltersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  activeFilter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginLeft: 6,
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  activeFilterText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginRight: 6,
+  },
+  resultsText: {
     fontSize: 14,
-    fontWeight: '500',
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   listContainer: {
     padding: 16,
   },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
   restaurantCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: 16,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden',
   },
   restaurantImage: {
-    width: '100%',
-    height: 200,
+    width: 120,
+    height: 140,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
-  restaurantInfo: {
+  restaurantContent: {
+    flex: 1,
     padding: 16,
-  },
-  categoryRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
   },
-  categoryPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  categoryPillText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+  categoryBadge: {
+    alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    marginBottom: 8,
   },
-  ratingText: {
-    fontSize: 14,
+  categoryText: {
+    fontSize: 10,
     fontWeight: 'bold',
-    marginLeft: 4,
+    color: 'white',
   },
-  restaurantName: {
+  restaurantTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  detailsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    lineHeight: 24,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
   locationText: {
-    fontSize: 14,
+    fontSize: 12,
     marginLeft: 4,
   },
-  priceRange: {
+  tagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 6,
+  },
+  tagText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  moreTagsText: {
+    fontSize: 10,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  priceText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: 'bold',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
   },
 }); 

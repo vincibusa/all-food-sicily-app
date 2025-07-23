@@ -1,13 +1,47 @@
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Switch } from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Switch, Alert, ActivityIndicator } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { apiClient } from "../../services/api";
+
+interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  avatar_url?: string;
+  privacy_consent: boolean;
+  marketing_consent: boolean;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  city?: string;
+}
+
+interface UserStats {
+  saved_articles: number;
+  favorite_restaurants: number;
+  reviews_count: number;
+}
 
 export default function ProfiloScreen() {
   const { colors, colorScheme, toggleColorScheme, useSystemTheme, setUseSystemTheme } = useTheme();
   const router = useRouter();
+  
+  // Stati per i dati utente
+  const [user, setUser] = useState<User | null>(null);
+  const [userStats, setUserStats] = useState<UserStats>({
+    saved_articles: 0,
+    favorite_restaurants: 0,
+    reviews_count: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Stati per le preferenze utente
   const [notificheAttive, setNotificheAttive] = useState(true);
@@ -16,11 +50,83 @@ export default function ProfiloScreen() {
   // Gestire il cambiamento modalità scura
   const handleDarkModeToggle = () => {
     if (useSystemTheme) {
-      // Se attualmente sta usando il tema di sistema, disattivarlo e impostare manualmente
       setUseSystemTheme(false);
     } else {
-      // Altrimenti cambia tra light e dark mode
       toggleColorScheme();
+    }
+  };
+
+  // Carica dati utente
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get current user profile
+      const userData = await apiClient.get<User>('/auth/me');
+      setUser(userData);
+      
+      // Set user preferences from API
+      setNotificheAttive(true); // Default, potrebbe essere gestito lato backend
+      setNewsletterAttiva(userData.marketing_consent || false);
+      
+      // Load user statistics (mock data per ora, endpoints da implementare)
+      await loadUserStats();
+      
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      Alert.alert('Errore', 'Impossibile caricare i dati utente');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUserStats = async () => {
+    try {
+      // Placeholder per statistiche utente - endpoints da implementare nel backend
+      // Per ora usiamo dati mock
+      setUserStats({
+        saved_articles: 12,
+        favorite_restaurants: 8,
+        reviews_count: 5
+      });
+      
+      // Quando saranno disponibili gli endpoint:
+      // const stats = await apiClient.get('/users/stats');
+      // setUserStats(stats);
+    } catch (error) {
+      console.log('User stats not available yet, using mock data');
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadUserData();
+    setRefreshing(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.post('/auth/logout');
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Errore', 'Impossibile effettuare il logout');
+    }
+  };
+
+  const updateUserPreferences = async (marketing: boolean) => {
+    try {
+      // Placeholder per aggiornare le preferenze utente
+      // Quando sarà disponibile l'endpoint:
+      // await apiClient.put('/users/preferences', { marketing_consent: marketing });
+      setNewsletterAttiva(marketing);
+    } catch (error) {
+      console.error('Error updating preferences:', error);
+      Alert.alert('Errore', 'Impossibile aggiornare le preferenze');
     }
   };
   

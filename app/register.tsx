@@ -42,6 +42,8 @@ export default function RegisterScreen() {
   const router = useRouter();
   const { colorScheme } = useTheme();
   const colors = Colors[colorScheme];
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
 
   useEffect(() => {
     loadCities();
@@ -129,6 +131,13 @@ export default function RegisterScreen() {
     setSelectedCity(city);
     setFormData({ ...formData, cityId: city.id });
     setShowCityPicker(false);
+  };
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
+  const toggleConfirmPasswordVisibility = () => {
+    setIsConfirmPasswordVisible(!isConfirmPasswordVisible);
   };
 
   return (
@@ -235,28 +244,54 @@ export default function RegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Password *</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="Inserisci la password"
-              placeholderTextColor={colors.text + '60'}
-              value={formData.password}
-              onChangeText={(text) => setFormData({ ...formData, password: text })}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View style={[styles.passwordInputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderColor: 'transparent',
+                    flex: 1,
+                  },
+                ]}
+                placeholder="Inserisci la password"
+                placeholderTextColor={colors.text + '60'}
+                value={formData.password}
+                onChangeText={(text) => setFormData({ ...formData, password: text })}
+                secureTextEntry={!isPasswordVisible}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
+                <Text style={{ color: colors.text }}>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Conferma Password *</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="Conferma la password"
-              placeholderTextColor={colors.text + '60'}
-              value={formData.confirmPassword}
-              onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View style={[styles.passwordInputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderColor: 'transparent',
+                    flex: 1,
+                  },
+                ]}
+                placeholder="Conferma la password"
+                placeholderTextColor={colors.text + '60'}
+                value={formData.confirmPassword}
+                onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
+                secureTextEntry={!isConfirmPasswordVisible}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={toggleConfirmPasswordVisibility} style={styles.eyeIcon}>
+                <Text style={{ color: colors.text }}>{isConfirmPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.checkboxContainer}>
@@ -447,5 +482,15 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+  },
+  eyeIcon: {
+    padding: 10,
   },
 });

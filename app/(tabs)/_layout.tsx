@@ -55,10 +55,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="articoli"
+        name="guide"
         options={{
-          title: "Articoli",
-          tabBarIcon: ({ color }) => <FontAwesome name="newspaper-o" size={24} color={color} />,
+          title: "Guide",
+          tabBarIcon: ({ color }) => <FontAwesome name="book" size={24} color={color} />,
         }}
       />
       <Tabs.Screen

@@ -1,163 +1,198 @@
-import { useState } from "react";
-import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, SafeAreaView, FlatList } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Share, Linking, Platform, ActionSheetIOS } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeIn } from "react-native-reanimated";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import { apiClient } from "../../services/api";
 
 const { width } = Dimensions.get('window');
 
-// Dati di esempio per i ristoranti
-const RESTAURANTS_DATA = {
-  '1': {
-    id: '1',
-    name: 'Trattoria Siciliana',
-    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Via Roma 123, Palermo',
-    rating: 4.8,
-    phone: '+39 091 1234567',
-    website: 'www.trattoriasiciliana.it',
-    openingHours: 'Lun-Dom: 12:00-15:00, 19:00-23:00',
-    description: 'Situata nel cuore di Palermo, la Trattoria Siciliana offre autentici piatti della tradizione culinaria siciliana in un\'atmosfera calda e accogliente. Il ristorante è ospitato in un edificio storico del XVII secolo, con un magnifico cortile interno dove è possibile cenare durante la stagione estiva. Lo chef Giuseppe Rossi, con oltre 30 anni di esperienza, prepara con passione ricette tramandate di generazione in generazione, utilizzando ingredienti freschi e locali.',
-    menu: [
-      {
-        category: 'Antipasti',
-        dishes: [
-          { name: 'Caponata Siciliana', price: '€9' },
-          { name: 'Parmigiana di Melanzane', price: '€10' },
-          { name: 'Arancini Misti', price: '€8' }
-        ]
-      },
-      {
-        category: 'Primi Piatti',
-        dishes: [
-          { name: 'Pasta alla Norma', price: '€12' },
-          { name: 'Busiate al Pesto Trapanese', price: '€14' },
-          { name: 'Spaghetti con le Sarde', price: '€15' }
-        ]
-      },
-      {
-        category: 'Secondi Piatti',
-        dishes: [
-          { name: 'Involtini di Pesce Spada', price: '€22' },
-          { name: 'Baccalà alla Messinese', price: '€20' },
-          { name: 'Falsomagro', price: '€18' }
-        ]
-      }
-    ],
-    photos: [
-      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    ]
-  },
-  '2': {
-    id: '2',
-    name: 'Osteria del Mare',
-    image: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Lungomare 45, Catania',
-    rating: 4.6,
-    phone: '+39 095 7654321',
-    website: 'www.osteriadelmare.it',
-    openingHours: 'Mar-Dom: 12:30-15:30, 19:30-23:30. Lunedì chiuso',
-    description: 'L\'Osteria del Mare è un ristorante specializzato in cucina di pesce, situato sul pittoresco lungomare di Catania. Con una vista mozzafiato sull\'Etna e sul Mare Ionio, il locale offre un\'esperienza gastronomica unica che combina la freschezza del pescato locale con la tradizione culinaria siciliana. Il ristorante collabora direttamente con i pescatori locali per garantire che solo il pesce più fresco arrivi sulla tavola dei clienti.',
-    menu: [
-      {
-        category: 'Antipasti di Mare',
-        dishes: [
-          { name: 'Insalata di Mare', price: '€14' },
-          { name: 'Crudo di Pesce', price: '€18' },
-          { name: 'Polpo alla Griglia', price: '€12' }
-        ]
-      },
-      {
-        category: 'Primi di Mare',
-        dishes: [
-          { name: 'Linguine allo Scoglio', price: '€16' },
-          { name: 'Risotto ai Frutti di Mare', price: '€18' },
-          { name: 'Spaghetti alle Vongole', price: '€15' }
-        ]
-      },
-      {
-        category: 'Secondi di Mare',
-        dishes: [
-          { name: 'Pesce del Giorno alla Griglia', price: '€24' },
-          { name: 'Frittura Mista di Pesce', price: '€22' },
-          { name: 'Calamari Ripieni', price: '€20' }
-        ]
-      }
-    ],
-    photos: [
-      'https://images.unsplash.com/photo-1544148103-0773bf10d330?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1484980972926-edee96e0960d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1576007473739-61e2b3fdeaeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    ]
-  },
-  '3': {
-    id: '3',
-    name: 'Villa Mediterranea',
-    image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    location: 'Via Teatro Greco 90, Taormina',
-    rating: 4.9,
-    phone: '+39 0942 123456',
-    website: 'www.villamediterranea.it',
-    openingHours: 'Tutti i giorni: 12:00-23:00',
-    description: 'Villa Mediterranea è un elegante ristorante situato in una posizione panoramica a Taormina, con una vista spettacolare sul mare e sull\'Etna. Il locale è ospitato in una villa storica del XIX secolo, circondata da un rigoglioso giardino mediterraneo. Lo chef stellato Marco Bianchi propone una cucina raffinata che unisce tradizione siciliana e tecniche moderne, creando piatti che sono vere opere d\'arte gastronomiche.',
-    menu: [
-      {
-        category: 'Menu Degustazione',
-        dishes: [
-          { name: 'Percorso Mare (5 portate)', price: '€65' },
-          { name: 'Percorso Terra (5 portate)', price: '€60' },
-          { name: 'Degustazione Completa (8 portate)', price: '€85' }
-        ]
-      },
-      {
-        category: 'Primi Piatti',
-        dishes: [
-          { name: 'Ravioli di Ricotta con Pistacchio', price: '€18' },
-          { name: 'Tagliolini al Tartufo Nero', price: '€22' },
-          { name: 'Risotto ai Gamberi Rossi', price: '€24' }
-        ]
-      },
-      {
-        category: 'Secondi Piatti',
-        dishes: [
-          { name: 'Branzino in Crosta di Sale', price: '€28' },
-          { name: 'Filetto di Manzo con Riduzione al Nero d\'Avola', price: '€30' },
-          { name: 'Agnello con Erbe Aromatiche', price: '€26' }
-        ]
-      }
-    ],
-    photos: [
-      'https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1515669097368-22e68427d265?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1559339352-11d035aa65de?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    ]
-  }
-};
-
-type RestaurantData = typeof RESTAURANTS_DATA[keyof typeof RESTAURANTS_DATA];
-type MenuCategory = RestaurantData['menu'][number];
-type Dish = MenuCategory['dishes'][number];
-type PhotosArray = string[];
+interface RestaurantDetail {
+  id: string;
+  name: string;
+  description: string;
+  featured_image: string;
+  gallery: string[];
+  city: string;
+  province: string;
+  address: string;
+  phone: string;
+  website: string;
+  opening_hours: string;
+  rating: string | number;
+  price_range: number;
+  cuisine_type: string[];
+  category_name: string;
+  category_id: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function RestaurantScreen() {
-  const { id } = useLocalSearchParams();
-  const restaurant = RESTAURANTS_DATA[id as keyof typeof RESTAURANTS_DATA];
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, colorScheme } = useTheme();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'info' | 'menu' | 'photos'>('info');
+  const [restaurant, setRestaurant] = useState<RestaurantDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'info' | 'photos'>('info');
+
+  useEffect(() => {
+    if (id) {
+      loadRestaurantDetail();
+    }
+  }, [id]);
+
+  const loadRestaurantDetail = async () => {
+    try {
+      setLoading(true);
+      const restaurantData = await apiClient.get<RestaurantDetail>(`/restaurants/${id}`);
+      setRestaurant(restaurantData);
+    } catch (error) {
+      console.error('Error loading restaurant detail:', error);
+      Alert.alert('Errore', 'Impossibile caricare i dettagli del ristorante');
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!restaurant) return;
+    
+    try {
+      await Share.share({
+        message: `Scopri questo ristorante su AllFood Sicily: ${restaurant.name}`,
+        title: restaurant.name,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const getPriceRangeSymbol = (priceRange: number) => {
+    return '€'.repeat(Math.max(1, Math.min(4, priceRange)));
+  };
+
+  const handlePhoneCall = () => {
+    if (!restaurant?.phone) {
+      Alert.alert('Errore', 'Numero di telefono non disponibile');
+      return;
+    }
+    
+    const phoneNumber = restaurant.phone.replace(/\D/g, ''); // Remove non-digits
+    const phoneUrl = `tel:${phoneNumber}`;
+    
+    Linking.canOpenURL(phoneUrl)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(phoneUrl);
+        } else {
+          Alert.alert('Errore', 'Impossibile effettuare la chiamata');
+        }
+      })
+      .catch((err) => {
+        console.error('Error making phone call:', err);
+        Alert.alert('Errore', 'Impossibile effettuare la chiamata');
+      });
+  };
+
+  const handleOpenMaps = () => {
+    if (!restaurant) return;
+    const latitude = restaurant.latitude;
+    const longitude = restaurant.longitude;
+    const label = encodeURIComponent(restaurant.name);
+    const addressQuery = restaurant.address && restaurant.city
+      ? encodeURIComponent(`${restaurant.address}, ${restaurant.city}, ${restaurant.province || 'Sicilia'}`)
+      : '';
+
+    const openAppleMaps = () => {
+      if (latitude && longitude) {
+        Linking.openURL(`maps:${latitude},${longitude}?q=${label}`);
+      } else if (addressQuery) {
+        Linking.openURL(`maps:0,0?q=${addressQuery}`);
+      }
+    };
+    const openGoogleMaps = () => {
+      if (latitude && longitude) {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
+      } else if (addressQuery) {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${addressQuery}`);
+      }
+    };
+    const openBrowser = () => {
+      if (latitude && longitude) {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
+      } else if (addressQuery) {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${addressQuery}`);
+      }
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Annulla', 'Apple Maps', 'Google Maps', 'Browser'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) openAppleMaps();
+          else if (buttonIndex === 2) openGoogleMaps();
+          else if (buttonIndex === 3) openBrowser();
+        }
+      );
+    } else {
+      Alert.alert(
+        'Apri con',
+        'Scegli l\'app per aprire la posizione',
+        [
+          { text: 'Google Maps', onPress: openGoogleMaps },
+          { text: 'Browser', onPress: openBrowser },
+          { text: 'Annulla', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  const handleOpenWebsite = () => {
+    if (!restaurant?.website) {
+      Alert.alert('Errore', 'Sito web non disponibile');
+      return;
+    }
+    let url = restaurant.website;
+    if (!/^https?:\/\//i.test(url)) {
+      url = 'https://' + url;
+    }
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          Alert.alert('Errore', 'Impossibile aprire il sito web');
+        }
+      })
+      .catch((err) => {
+        console.error('Error opening website:', err);
+        Alert.alert('Errore', 'Impossibile aprire il sito web');
+      });
+  };
   
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContent, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>Caricamento...</Text>
+      </SafeAreaView>
+    );
+  }
+
   if (!restaurant) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.text, marginTop: 16 }}>Caricamento ristorante...</Text>
+      <SafeAreaView style={[styles.container, styles.centerContent, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.text }]}>Ristorante non trovato</Text>
       </SafeAreaView>
     );
   }
@@ -178,42 +213,49 @@ export default function RestaurantScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Informazioni</Text>
             <View style={styles.infoItem}>
               <MaterialIcons name="location-on" size={20} color={colors.primary} />
-              <Text style={[styles.infoText, { color: colors.text }]}>{restaurant.location}</Text>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                {restaurant.address}, {restaurant.city}, {restaurant.province}
+              </Text>
             </View>
-            <View style={styles.infoItem}>
-              <MaterialIcons name="access-time" size={20} color={colors.primary} />
-              <Text style={[styles.infoText, { color: colors.text }]}>{restaurant.openingHours}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <MaterialIcons name="phone" size={20} color={colors.primary} />
-              <Text style={[styles.infoText, { color: colors.text }]}>{restaurant.phone}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <MaterialIcons name="language" size={20} color={colors.primary} />
-              <Text style={[styles.infoText, { color: colors.text }]}>{restaurant.website}</Text>
-            </View>
-          </Animated.View>
-        );
-      
-      case 'menu':
-        return (
-          <Animated.View 
-            style={styles.contentContainer}
-            entering={FadeIn.duration(500)}
-          >
-            {restaurant.menu.map((category: MenuCategory, index: number) => (
-              <View key={index} style={styles.menuSection}>
-                <Text style={[styles.menuCategoryTitle, { color: colors.text }]}>
-                  {category.category}
-                </Text>
-                {category.dishes.map((dish: Dish, dishIndex: number) => (
-                  <View key={dishIndex} style={styles.dishItem}>
-                    <Text style={[styles.dishName, { color: colors.text }]}>{dish.name}</Text>
-                    <Text style={[styles.dishPrice, { color: colors.primary }]}>{dish.price}</Text>
-                  </View>
-                ))}
+            {restaurant.opening_hours && (
+              <View style={styles.infoItem}>
+                <MaterialIcons name="access-time" size={20} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.text }]}>{restaurant.opening_hours}</Text>
               </View>
-            ))}
+            )}
+            {restaurant.phone && (
+              <View style={styles.infoItem}>
+                <MaterialIcons name="phone" size={20} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.text }]}>{restaurant.phone}</Text>
+              </View>
+            )}
+            {restaurant.website && (
+              <View style={styles.infoItem}>
+                <MaterialIcons name="language" size={20} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.text }]}>{restaurant.website}</Text>
+              </View>
+            )}
+            
+            {/* Cuisine Type */}
+            {restaurant.cuisine_type && restaurant.cuisine_type.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Tipo di Cucina</Text>
+                <View style={styles.tagsContainer}>
+                  {restaurant.cuisine_type.map((cuisine, index) => (
+                    <View key={index} style={[styles.tag, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.tagText, { color: colors.primary }]}>{cuisine}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Date Info */}
+            <View style={styles.dateContainer}>
+              <Text style={[styles.dateText, { color: colors.text + '60' }]}>
+                Aggiunto il {new Date(restaurant.created_at).toLocaleDateString('it-IT')}
+              </Text>
+            </View>
           </Animated.View>
         );
       
@@ -223,127 +265,152 @@ export default function RestaurantScreen() {
             style={styles.contentContainer}
             entering={FadeIn.duration(500)}
           >
-            <FlatList 
-              data={restaurant.photos}
-              numColumns={2}
-              keyExtractor={(item: string, index: number) => index.toString()}
-              renderItem={({ item }: { item: string }) => (
-                <View style={styles.photoContainer}>
-                  <Image source={{ uri: item }} style={styles.photoItem} />
-                </View>
-              )}
-              columnWrapperStyle={styles.photoGrid}
-            />
+            {restaurant.gallery && restaurant.gallery.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {restaurant.gallery.map((image, index) => (
+                  <Image
+                    key={index}
+                    source={{ uri: image }}
+                    style={styles.galleryImage}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={[styles.emptyText, { color: colors.text + '60' }]}>
+                Nessuna foto disponibile
+              </Text>
+            )}
           </Animated.View>
         );
     }
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    <>
+      <Stack.Screen 
+        options={{
+          title: restaurant.name,
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.text,
+          headerRight: () => (
+            <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+              <FontAwesome name="share" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        }} 
+      />
       
-      {/* Immagine di copertina */}
-      <View style={styles.coverImageContainer}>
-        <Image source={{ uri: restaurant.image }} style={styles.coverImage} />
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
         >
-          <Feather name="arrow-left" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Intestazione ristorante */}
-      <Animated.View 
-        style={[styles.restaurantHeader, { backgroundColor: colors.card }]}
-        entering={FadeIn.duration(500)}
-      >
-        <View style={styles.ratingContainer}>
-          <Text style={[styles.restaurantName, { color: colors.text }]}>{restaurant.name}</Text>
-          <View style={styles.ratingBadge}>
-            <FontAwesome name="star" size={14} color="#FFD700" />
-            <Text style={styles.ratingText}>{restaurant.rating}</Text>
+          {/* Featured Image */}
+          <Animated.View entering={FadeInUp.duration(800)}>
+            <Image
+              source={{ 
+                uri: restaurant.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
+              }}
+              style={styles.featuredImage}
+            />
+            
+            {/* Category Badge */}
+            <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
+              <Text style={styles.categoryBadgeText}>{restaurant.category_name || 'Ristorante'}</Text>
+            </View>
+          </Animated.View>
+
+          <View style={styles.content}>
+            {/* Title and Location */}
+            <Animated.View entering={FadeInDown.delay(200)}>
+              <View style={styles.titleRow}>
+                <Text style={[styles.title, { color: colors.text }]}>{restaurant.name}</Text>
+                <View style={styles.ratingContainer}>
+                  <FontAwesome name="star" size={16} color="#FFD700" />
+                  <Text style={[styles.ratingText, { color: colors.text }]}>
+                    {restaurant.rating ? parseFloat(restaurant.rating.toString()).toFixed(1) : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.locationRow}>
+                <MaterialIcons name="location-on" size={16} color={colors.primary} />
+                <Text style={[styles.locationText, { color: colors.text + '80' }]}>
+                  {restaurant.city}, {restaurant.province}
+                </Text>
+                <Text style={[styles.priceText, { color: colors.primary }]}>
+                  {getPriceRangeSymbol(restaurant.price_range || 2)}
+                </Text>
+              </View>
+            </Animated.View>
+
+            {/* Action Buttons */}
+            <Animated.View entering={FadeInDown.delay(350)} style={styles.actionButtonsContainer}>
+              {restaurant.phone && (
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.circleButton, { backgroundColor: colors.primary }]}
+                  onPress={handlePhoneCall}
+                >
+                  <MaterialIcons name="phone" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.circleButton, { backgroundColor: colors.primary }]}
+                onPress={handleOpenMaps}
+              >
+                <MaterialIcons name="map" size={24} color="white" />
+              </TouchableOpacity>
+              {restaurant.website && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.circleButton, { backgroundColor: colors.primary }]}
+                  onPress={handleOpenWebsite}
+                >
+                  <MaterialIcons name="language" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+            </Animated.View>
+
+            {/* Tab Navigation */}
+            <Animated.View entering={FadeInDown.delay(400)} style={[styles.tabBar, { backgroundColor: colors.card }]}>
+              <TouchableOpacity 
+                style={[
+                  styles.tabItem, 
+                  activeTab === 'info' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
+                ]}
+                onPress={() => setActiveTab('info')}
+              >
+                <Text 
+                  style={[
+                    styles.tabText, 
+                    { color: activeTab === 'info' ? colors.primary : colors.text }
+                  ]}
+                >
+                  Info
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.tabItem, 
+                  activeTab === 'photos' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
+                ]}
+                onPress={() => setActiveTab('photos')}
+              >
+                <Text 
+                  style={[
+                    styles.tabText, 
+                    { color: activeTab === 'photos' ? colors.primary : colors.text }
+                  ]}
+                >
+                  Foto
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+            
+            {/* Tab Content */}
+            {renderTabContent()}
           </View>
-        </View>
-        
-        <View style={styles.locationContainer}>
-          <MaterialIcons name="location-on" size={16} color={colors.primary} />
-          <Text style={[styles.locationText, { color: colors.text }]}>{restaurant.location}</Text>
-        </View>
-        
-        {/* Pulsanti di azione */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.primary }]}>
-            <MaterialIcons name="phone" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Chiama</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.primary }]}>
-            <MaterialIcons name="map" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Indicazioni</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.primary }]}>
-            <Ionicons name="share-social" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Condividi</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-      
-      {/* Tab di navigazione */}
-      <View style={[styles.tabBar, { backgroundColor: colors.card }]}>
-        <TouchableOpacity 
-          style={[
-            styles.tabItem, 
-            activeTab === 'info' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-          ]}
-          onPress={() => setActiveTab('info')}
-        >
-          <Text 
-            style={[
-              styles.tabText, 
-              { color: activeTab === 'info' ? colors.primary : colors.text }
-            ]}
-          >
-            Info
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[
-            styles.tabItem, 
-            activeTab === 'menu' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-          ]}
-          onPress={() => setActiveTab('menu')}
-        >
-          <Text 
-            style={[
-              styles.tabText, 
-              { color: activeTab === 'menu' ? colors.primary : colors.text }
-            ]}
-          >
-            Menu
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[
-            styles.tabItem, 
-            activeTab === 'photos' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-          ]}
-          onPress={() => setActiveTab('photos')}
-        >
-          <Text 
-            style={[
-              styles.tabText, 
-              { color: activeTab === 'photos' ? colors.primary : colors.text }
-            ]}
-          >
-            Foto
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Contenuto del tab attivo */}
-      {renderTabContent()}
-    </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -351,86 +418,119 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  coverImageContainer: {
-    position: 'relative',
-    height: width * 0.6,
+  scrollView: {
+    flex: 1,
   },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+  centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  restaurantHeader: {
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorText: {
+    fontSize: 16,
+  },
+  shareButton: {
+    marginRight: 16,
+  },
+  featuredImage: {
+    width: width,
+    height: width * 0.6,
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  categoryBadgeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  content: {
     padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -20,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    flex: 1,
+    marginRight: 12,
+    lineHeight: 36,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  locationText: {
+    fontSize: 16,
+    marginLeft: 4,
+    flex: 1,
   },
   ratingContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  restaurantName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   ratingText: {
-    marginLeft: 4,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  locationText: {
-    marginLeft: 6,
     fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
-  actionButtons: {
+  priceText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 12,
+  },
+  actionButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+    paddingHorizontal: 20,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
-    borderRadius: 10,
-    flex: 1,
-    marginHorizontal: 5,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  actionButtonText: {
-    color: 'white',
-    marginLeft: 5,
-    fontWeight: '500',
+  circleButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
   },
   tabBar: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tabItem: {
     flex: 1,
@@ -438,65 +538,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabText: {
-    fontWeight: '500',
+    fontWeight: '600',
     fontSize: 16,
   },
   contentContainer: {
-    padding: 20,
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 16,
   },
   description: {
     fontSize: 16,
     lineHeight: 24,
+    marginBottom: 24,
   },
   infoItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
   infoText: {
-    marginLeft: 10,
-    fontSize: 15,
-  },
-  menuSection: {
-    marginBottom: 24,
-  },
-  menuCategoryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 8,
-  },
-  dishItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  dishName: {
+    marginLeft: 12,
     fontSize: 16,
     flex: 1,
-    paddingRight: 10,
+    lineHeight: 22,
   },
-  dishPrice: {
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  dateContainer: {
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    marginTop: 20,
+  },
+  dateText: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  galleryImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  emptyText: {
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  photoGrid: {
-    justifyContent: 'space-between',
-  },
-  photoContainer: {
-    width: (width - 50) / 2,
-    marginBottom: 10,
-  },
-  photoItem: {
-    width: '100%',
-    height: (width - 50) / 2 * 0.75,
-    borderRadius: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 40,
   },
 }); 
