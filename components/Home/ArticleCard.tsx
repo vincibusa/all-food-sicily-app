@@ -19,7 +19,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ itemInfo, colors }) => {
     <Animated.View
       entering={FadeInRight.delay(index * 100).springify()}
     >
-      <Link href={{ pathname: '/articoli', params: { id: item.id } }} asChild>
+      <Link href={{ pathname: '/articoli/[id]', params: { id: item.id } }} asChild>
         <TouchableOpacity style={styles.articleCard}>
           <AnimatedImage 
             source={{ uri: item.image }} 

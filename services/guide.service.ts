@@ -17,10 +17,14 @@ export interface Guide {
 class GuideService {
   async getGuides(): Promise<Guide[]> {
     try {
-      const response = await apiClient.get<Guide[]>(
-        API_CONFIG.ENDPOINTS.GUIDES.LIST
+      const response = await apiClient.get<any>(
+        API_CONFIG.ENDPOINTS.GUIDES.LIST,
+        { skip: 0, limit: 50 }
       );
-      return response;
+      
+      // Adatta la risposta del backend al formato atteso dall'app
+      const guides = Array.isArray(response) ? response : response.guides || [];
+      return guides;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message || 'Failed to fetch guides');

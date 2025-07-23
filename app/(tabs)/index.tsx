@@ -18,6 +18,7 @@ interface Guide {
   featured_image: string;
   category: {
     name: string;
+    color?: string;
   };
   city: string;
   province: string;
@@ -32,6 +33,7 @@ interface Restaurant {
   rating: string | number;
   price_range: number;
   category_name: string;
+  category_color?: string;
 }
 
 export default function Index() {
@@ -41,6 +43,7 @@ export default function Index() {
   const [guides, setGuides] = useState<Guide[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<any[]>([]);
   
   useEffect(() => {
     fadeAnim.value = withTiming(1, { duration: 1000, easing: Easing.bezier(0.25, 0.1, 0.25, 1) });
@@ -50,18 +53,35 @@ export default function Index() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [guidesResponse, restaurantsResponse] = await Promise.all([
+      const [guidesResponse, restaurantsResponse, categoriesResponse] = await Promise.all([
         apiClient.get<any>('/guides/'),
-        apiClient.get<any>('/restaurants/')
+        apiClient.get<any>('/restaurants/'),
+        apiClient.get<any>('/categories/')
       ]);
-      
-      // Handle different response structures
-      const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.items || []);
-      const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.items || []);
-      
-      // Take first 3 guides and restaurants for featured sections
-      setGuides(guidesData.slice(0, 3));
-      setRestaurants(restaurantsData.slice(0, 3));
+      // Handle different response structures - backend returns {guides: [...], restaurants: [...], categories: [...]}
+      const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.guides || guidesResponse?.items || []);
+      const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
+      setCategories(categoriesData);
+      // Funzione per trovare il colore della categoria
+      const getCategoryColor = (catName: string) =>
+        categoriesData.find((cat: any) => cat.name === catName)?.color || colors.primary;
+      // Guides con colore categoria
+      const guidesDataTransformed = guidesData.slice(0, 3).map((g: any) => ({
+        ...g,
+        category: {
+          ...g.category,
+          name: g.category?.name || g.category_name,
+          color: getCategoryColor(g.category?.name || g.category_name)
+        }
+      }));
+      // Restaurants con colore categoria
+      const restaurantsDataTransformed = restaurantsData.slice(0, 3).map((r: any) => ({
+        ...r,
+        category_color: getCategoryColor(r.category_name)
+      }));
+      setGuides(guidesDataTransformed);
+      setRestaurants(restaurantsDataTransformed);
     } catch (error) {
       console.error('Error loading data:', error);
       Alert.alert('Errore', 'Impossibile caricare i dati. Riprova più tardi.');
@@ -95,23 +115,19 @@ export default function Index() {
         entering={FadeInRight.delay(index * 100).springify()}
       >
         <Link href={{ pathname: '/guide/[id]', params: { id: item.id } }} asChild>
-          <TouchableOpacity style={styles.articleCard}>
-            <AnimatedImage 
-              source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }} 
-              style={styles.articleImage}
-              entering={FadeInDown.delay(index * 150).springify()} 
-            />
-            <View style={[styles.articleInfo, { backgroundColor: colors.card }]}>
-              <View style={[styles.categoryPill, { backgroundColor: colors.primary }]}>
-                <Text style={styles.categoryText}>{item.category?.name || 'Guida'}</Text>
+          <TouchableOpacity style={styles.fullImageCard}>
+            <ImageBackground
+              source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
+              style={styles.fullImage}
+              imageStyle={{ borderRadius: 12 }}
+            >
+              <View style={styles.overlay} />
+              <View style={styles.textOverlay}>
+                <Text style={[styles.categoryPillOverlay, { backgroundColor: item.category?.color || colors.primary }]}>{item.category?.name || 'Guida'}</Text>
+                <Text style={styles.cardTitleOverlay} numberOfLines={2}>{item.title}</Text>
+                <Text style={styles.cardSubtitleOverlay} numberOfLines={1}>{item.city}, {item.province}</Text>
               </View>
-              <Text style={[styles.articleTitle, { color: colors.text }]} numberOfLines={2}>
-                {item.title}
-              </Text>
-              <Text style={[styles.locationText, { color: colors.text + '80' }]} numberOfLines={1}>
-                {item.city}, {item.province}
-              </Text>
-            </View>
+            </ImageBackground>
           </TouchableOpacity>
         </Link>
       </Animated.View>
@@ -125,31 +141,19 @@ export default function Index() {
         entering={FadeInRight.delay(index * 100 + 300).springify()}
       >
         <Link href={{ pathname: '/ristoranti/[id]', params: { id: item.id } }} asChild>
-          <TouchableOpacity style={styles.restaurantCard}>
-            <AnimatedImage 
-              source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }} 
-              style={styles.restaurantImage} 
-              entering={FadeInDown.delay(index * 150 + 300).springify()}
-            />
-            <View style={[styles.restaurantInfo, { backgroundColor: colors.card }]}>
-              <View style={[styles.locationPill, { backgroundColor: colors.primary }]}>
-                <Text style={styles.locationPillText}>{item.city}</Text>
+          <TouchableOpacity style={styles.fullImageCard}>
+            <ImageBackground
+              source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
+              style={styles.fullImage}
+              imageStyle={{ borderRadius: 12 }}
+            >
+              <View style={styles.overlay} />
+              <View style={styles.textOverlay}>
+                <Text style={[styles.categoryPillOverlay, { backgroundColor: item.category_color || colors.primary }]}>{item.category_name || 'Ristorante'}</Text>
+                <Text style={styles.cardTitleOverlay} numberOfLines={2}>{item.name}</Text>
+                <Text style={styles.cardSubtitleOverlay} numberOfLines={1}>{item.city}, {item.province}</Text>
               </View>
-              <Text style={[styles.restaurantName, { color: colors.text }]} numberOfLines={2}>
-                {item.name}
-              </Text>
-              <View style={styles.restaurantBottomInfo}>
-                <View style={styles.ratingContainer}>
-                  <FontAwesome name="star" size={12} color="#FFD700" />
-                  <Text style={[styles.ratingText, { color: colors.text + '80' }]}>
-                    {item.rating ? parseFloat(item.rating.toString()).toFixed(1) : 'N/A'}
-                  </Text>
-                </View>
-                <Text style={[styles.priceText, { color: colors.primary }]}>
-                  {getPriceRangeSymbol(item.price_range || 2)}
-                </Text>
-              </View>
-            </View>
+            </ImageBackground>
           </TouchableOpacity>
         </Link>
       </Animated.View>
@@ -469,5 +473,53 @@ const styles = StyleSheet.create({
   skeletonText: {
     height: 12,
     borderRadius: 4,
+  },
+  fullImageCard: {
+    width: width * 0.85 > 320 ? 320 : width * 0.85,
+    height: 260,
+    marginRight: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  textOverlay: {
+    padding: 16,
+    zIndex: 2,
+  },
+  categoryPillOverlay: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#3B82F6',
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  cardTitleOverlay: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  cardSubtitleOverlay: {
+    color: 'white',
+    fontSize: 12,
+    opacity: 0.85,
   },
 });

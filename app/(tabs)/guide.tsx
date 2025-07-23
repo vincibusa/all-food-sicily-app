@@ -88,9 +88,9 @@ export default function GuidesListScreen() {
         apiClient.get<any>('/categories/')
       ]);
       
-      // Handle different response structures
-      const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.items || []);
-      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.items || []);
+      // Handle different response structures - backend returns {guides: [...], pagination: {...}}
+      const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.guides || guidesResponse?.items || []);
+      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
       
       // Transform guides data to match expected structure
       const transformedGuides = guidesData.map((guide: any) => ({

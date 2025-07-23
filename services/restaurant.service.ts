@@ -69,7 +69,7 @@ export interface SearchFilters {
 }
 
 class RestaurantService {
-  async getRestaurants(filters?: RestaurantFilters): Promise<PaginatedResponse<Restaurant>> {
+  async getRestaurants(filters?: RestaurantFilters): Promise<{ items: Restaurant[]; total: number }> {
     try {
       const params = {
         skip: filters?.skip || 0,
@@ -79,11 +79,17 @@ class RestaurantService {
         ...(filters?.price_range && { price_range: filters.price_range }),
       };
 
-      const response = await apiClient.get<PaginatedResponse<Restaurant>>(
+      const response = await apiClient.get<any>(
         API_CONFIG.ENDPOINTS.RESTAURANTS.LIST,
         params
       );
-      return response;
+      
+      // Adatta la risposta del backend al formato atteso dall'app
+      const restaurants = Array.isArray(response) ? response : response.restaurants || [];
+      return {
+        items: restaurants,
+        total: restaurants.length
+      };
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message || 'Failed to fetch restaurants');

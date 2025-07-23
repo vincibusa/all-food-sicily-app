@@ -54,22 +54,27 @@ class AuthService {
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const params = new URLSearchParams();
-      params.append('username', credentials.email);
-      params.append('password', credentials.password);
-
-      const response = await apiClient.post<AuthResponse>(
+      const response = await apiClient.post<{ token: string; user: any }>(
         API_CONFIG.ENDPOINTS.AUTH.LOGIN,
-        params.toString(),
+        credentials,
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
           },
         }
       );
 
-      await this.setAuthData(response);
-      return response;
+      // Mappa la risposta al formato atteso
+      const authResponse: AuthResponse = {
+        access_token: response.token,
+        token_type: 'bearer',
+        expires_in: 86400,
+        refresh_token: response.token,
+        user: response.user
+      };
+
+      await this.setAuthData(authResponse);
+      return authResponse;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message || 'Login failed');

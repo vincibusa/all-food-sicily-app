@@ -61,8 +61,8 @@ export default function RistorantiScreen() {
         apiClient.get<any>(restaurantsUrl),
         apiClient.get<any>('/categories/')
       ]);
-      const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.items || []);
-      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.items || []);
+      const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
       // Transform data to match ListItem interface
       const transformedRestaurants = restaurantsData.map((restaurant: any) => ({
         id: restaurant.id,
