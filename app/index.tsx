@@ -56,9 +56,9 @@ export default function WelcomeScreen() {
           >
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.primary }]}
-              onPress={() => router.replace('/(tabs)')}
+              onPress={() => router.replace('/login')}
             >
-              <Text style={styles.buttonText}>Inizia l'esperienza</Text>
+              <Text style={styles.buttonText}>Accedi o Registrati</Text>
             </TouchableOpacity>
           </Animated.View>
           

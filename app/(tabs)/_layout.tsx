@@ -1,10 +1,28 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Tabs } from "expo-router";
 import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
+import { useRouter } from "expo-router";
+import { authService } from "../../services/auth.service";
 
 export default function TabsLayout() {
   const { colors, colorScheme } = useTheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (!user) {
+          router.replace('/login');
+        }
+      } catch (error) {
+        router.replace('/login');
+      }
+    };
+    
+    checkAuth();
+  }, []);
   
   return (
     <Tabs
