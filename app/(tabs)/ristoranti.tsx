@@ -174,7 +174,7 @@ export default function RistorantiScreen() {
 
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Search Bar */}
         <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
@@ -265,6 +265,7 @@ export default function RistorantiScreen() {
           data={filteredRestaurants}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           onScroll={refreshState.onScroll}
           onScrollEndDrag={refreshState.onScrollEndDrag}
@@ -491,7 +492,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   listContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   restaurantCard: {
     flexDirection: 'row',

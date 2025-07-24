@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  ImageBackground,
 } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -103,80 +104,91 @@ export default function ListCard({
         onTap(); // Haptic feedback
         onPress?.();
       }}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-        <Image
-          source={{ 
-            uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-          }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+      {/* Hero Image with Overlay */}
+      <ImageBackground
+        source={{ 
+          uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
+        }}
+        style={styles.heroImage}
+        imageStyle={styles.heroImageStyle}
+        resizeMode="cover"
+      >
+        {/* Gradient Overlay */}
+        <View style={styles.gradientOverlay} />
         
-        <View style={styles.content}>
-          {/* Category Badge */}
-          <View style={[styles.categoryBadge, { backgroundColor: item.category?.color || colors.primary }]}>
-            <Text style={[styles.categoryText, textStyles.label('white')]}>
-              {item.category?.name || (item.cuisine_type?.[0] || 'Elemento')}
-            </Text>
-          </View>
-          
-          <Text style={[styles.title, textStyles.subtitle(colors.text)]} numberOfLines={2}>
-            {displayTitle}
-          </Text>
-          
-          <View style={styles.locationContainer}>
-            <MaterialIcons name="location-on" size={14} color={colors.primary} />
-            <Text style={[styles.locationText, textStyles.caption(colors.text + '80')]}>
-              {item.city}{item.province && `, ${item.province}`}
-            </Text>
-          </View>
-          
-          {/* Tags - show cuisine type for restaurants, tags for guides */}
-          {formattedTags.length > 0 && (
-            <View style={styles.tagsContainer}>
-              {formattedTags.slice(0, 2).map((tag, tagIndex) => (
-                <View key={tagIndex} style={[styles.tag, { backgroundColor: colors.primary + '20' }]}>
-                  <Text style={[styles.tagText, textStyles.caption(colors.primary)]}>{tag}</Text>
-                </View>
-              ))}
-              {formattedTags.length > 2 && (
-                <Text style={[styles.moreTagsText, textStyles.caption(colors.text + '60')]}>
-                  +{formattedTags.length - 2}
-                </Text>
-              )}
+        {/* Overlay Content */}
+        <View style={styles.overlayContent}>
+          {/* Top Row: Category and Rating */}
+          <View style={styles.topRow}>
+            <View style={[styles.categoryBadge, { backgroundColor: item.category?.color || colors.primary }]}>
+              <Text style={[styles.categoryText, textStyles.label('white')]}>
+                {item.category?.name || (item.cuisine_type?.[0] || 'Elemento')}
+              </Text>
             </View>
-          )}
+            
+            {item.rating && (
+              <View style={styles.ratingBadge}>
+                <FontAwesome name="star" size={12} color="#FFD700" />
+                <Text style={[styles.ratingText, textStyles.caption('white')]}>
+                  {parseFloat(item.rating.toString()).toFixed(1)}
+                </Text>
+              </View>
+            )}
+          </View>
           
-          {/* Rating and Price for restaurants */}
-          {(item.rating || item.price_range) && (
-            <View style={styles.bottomRow}>
-              {item.rating && (
-                <View style={styles.ratingContainer}>
-                  <FontAwesome name="star" size={12} color="#FFD700" />
-                  <Text style={[styles.ratingText, textStyles.caption(colors.text + '80')]}>
-                    {parseFloat(item.rating.toString()).toFixed(1)}
-                  </Text>
+          {/* Bottom Content */}
+          <View style={styles.bottomContent}>
+            <Text style={[styles.heroTitle, textStyles.subtitle('white')]} numberOfLines={2}>
+              {displayTitle}
+            </Text>
+            
+            <View style={styles.locationContainer}>
+              <MaterialIcons name="location-on" size={14} color="white" />
+              <Text style={[styles.locationText, textStyles.caption('rgba(255,255,255,0.9)')]}>
+                {item.city}{item.province && `, ${item.province}`}
+              </Text>
+            </View>
+            
+            {/* Tags and Price Row */}
+            <View style={styles.metaRow}>
+              {/* Tags */}
+              {formattedTags.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {formattedTags.slice(0, 2).map((tag, tagIndex) => (
+                    <View key={tagIndex} style={styles.tag}>
+                      <Text style={[styles.tagText, textStyles.caption('rgba(255,255,255,0.8)')]}>
+                        #{tag}
+                      </Text>
+                    </View>
+                  ))}
+                  {formattedTags.length > 2 && (
+                    <Text style={[styles.moreTagsText, textStyles.caption('rgba(255,255,255,0.7)')]}>
+                      +{formattedTags.length - 2}
+                    </Text>
+                  )}
                 </View>
               )}
+              
+              {/* Price */}
               {item.price_range && (
-                <Text style={[styles.priceText, textStyles.body(colors.primary)]}>
+                <Text style={[styles.priceText, textStyles.body('white')]}>
                   {'€'.repeat(Math.max(1, Math.min(4, item.price_range)))}
                 </Text>
               )}
             </View>
-          )}
-          
-          {/* Date for guides */}
-          {item.created_at && (
-            <Text style={[styles.dateText, textStyles.caption(colors.text + '60')]}>
-              {new Date(item.created_at).toLocaleDateString('it-IT')}
-            </Text>
-          )}
+            
+            {/* Date for guides */}
+            {item.created_at && (
+              <Text style={[styles.dateText, textStyles.caption('rgba(255,255,255,0.8)')]}>
+                {new Date(item.created_at).toLocaleDateString('it-IT')}
+              </Text>
+            )}
+          </View>
         </View>
-        
-        <MaterialIcons name="chevron-right" size={24} color={colors.text + '40'} />
-      </TouchableOpacity>
+      </ImageBackground>
+    </TouchableOpacity>
   );
 
   return (
@@ -198,80 +210,120 @@ export default function ListCard({
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 16,
+    marginBottom: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden',
   },
-  image: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
+  heroImage: {
+    width: '100%',
+    height: 180,
+    justifyContent: 'space-between',
   },
-  content: {
+  heroImageStyle: {
+    borderRadius: 16,
+  },
+  gradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 16,
+  },
+  overlayContent: {
     flex: 1,
+    padding: 16,
+    justifyContent: 'space-between',
+    zIndex: 2,
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   categoryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
     alignSelf: 'flex-start',
+  },
+  categoryText: {
+    fontWeight: '600',
+    // Dynamic font size handled by useTextStyles
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    marginBottom: 8,
   },
-  categoryText: {
-    marginBottom: 0, // Dynamic font size handled by useTextStyles
+  ratingText: {
+    marginLeft: 4,
+    fontWeight: '600',
+    // Dynamic font size handled by useTextStyles
   },
-  title: {
-    marginBottom: 6, // Dynamic font size and line height handled by useTextStyles
+  bottomContent: {
+    gap: 6,
+  },
+  heroTitle: {
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10,
+    // Dynamic font size and line height handled by useTextStyles
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
   locationText: {
-    marginLeft: 4, // Dynamic font size handled by useTextStyles
+    marginLeft: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 5,
+    // Dynamic font size handled by useTextStyles
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   tagsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    flex: 1,
   },
   tag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginRight: 6,
+    marginRight: 8,
   },
   tagText: {
+    textShadowColor: 'rgba(0, 0, 0, 0.75)', 
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 5,
     // Dynamic font size and weight handled by useTextStyles
   },
   moreTagsText: {
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 5,
     // Dynamic font size handled by useTextStyles
   },
-  bottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    marginLeft: 4, // Dynamic font size handled by useTextStyles
-  },
   priceText: {
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10,
     // Dynamic font size and weight handled by useTextStyles
   },
   dateText: {
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 5,
+    marginTop: 2,
     // Dynamic font size handled by useTextStyles
   },
 });

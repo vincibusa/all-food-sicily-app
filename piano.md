@@ -165,6 +165,78 @@ Piano completo per migliorare l'esperienza utente e l'interfaccia dell'app AllFo
 - **24 Gen 2025**: ✅ Indicatori di scroll personalizzati con auto-hide
 - **24 Gen 2025**: ✅ **COMPLETATA FASE 1**: Tutti i miglioramenti visivi e di accessibilità (100%)
 
+### 🔧 **FASE 1.1: Risoluzione Problemi Post-Implementazione**
+**Priorità**: 🔥 Alta | **Status**: ✅ COMPLETATA | **Iniziata**: 24 Gen 2025 | **Completata**: 24 Gen 2025
+
+#### Issues risolti dopo implementazione Fase 1:
+- **24 Gen 2025**: ✅ **Refresh Indicator Semplificato**: Modificato RefreshIndicator per mostrare SOLO l'icona
+  - File modificato: `components/RefreshIndicator.tsx` - implementato modalità truly minimal
+  - Aggiornato `app/(tabs)/ristoranti.tsx`, `app/(tabs)/guide.tsx`, `app/(tabs)/index.tsx` per usare MinimalRefreshIndicator
+
+- **24 Gen 2025**: ✅ **Fix PanGestureHandler Error**: Risolto errore di navigazione tra tab
+  - File modificato: `app/_layout.tsx` - aggiunto GestureHandlerRootView come wrapper principale
+  - Eliminato errore: "PanGestureHandler must be used as a descendant of GestureHandlerRootView"
+
+- **24 Gen 2025**: ✅ **Sistema Gesture Semplificato**: Fix gesture buggate in ristoranti e guide
+  - File modificato: `app/(tabs)/ristoranti.tsx` - disabilitato swipe con `enableSwipe={false}`
+  - File modificato: `app/(tabs)/guide.tsx` - disabilitato swipe con `enableSwipe={false}`
+  - Rimossa complessità non necessaria per migliorare stabilità navigazione
+
+- **24 Gen 2025**: ✅ **Fix Navigazione Card**: Ripristinato click su card ristoranti e guide
+  - File modificato: `components/ListCard.tsx` - rimossi bottoni favorite/share che interferivano
+  - Semplificato a TouchableOpacity base con chevron per navigazione diretta
+  - Mantenuto `enableSwipe` prop per flessibilità futura
+
+- **24 Gen 2025**: ✅ **Pulizia TypeScript**: Risolti errori di compilazione
+  - Fix deprecation warnings per SharedValue types
+  - Rimozione import inutilizzati che causavano errori lint
+  - Aggiunta null checks appropriati
+
+#### Risultati della risoluzione:
+- ✅ Refresh indicator ora minimalista (solo icona) come richiesto
+- ✅ Navigazione tra tab funziona senza errori gesture handler
+- ✅ Click su card ristoranti/guide naviga correttamente alle pagine dettaglio
+- ✅ Sistema gesture semplificato e più stabile
+- ✅ Codice TypeScript clean senza errori di compilazione
+- ✅ Filtri esistenti mantenuti intatti e funzionanti
+
+### 🔧 **FASE 1.2: Redesign Card Interface**
+**Priorità**: 🔥 Alta | **Status**: ✅ COMPLETATA | **Iniziata**: 24 Gen 2025 | **Completata**: 24 Gen 2025
+
+#### Redesign Card con Layout Verticale "Hero Style":
+- **24 Gen 2025**: ✅ **Ridisegno Completo ListCard**: Trasformato da layout orizzontale a verticale Hero Style
+  - File modificato: `components/ListCard.tsx` - ridisegno completo dell'interfaccia
+  - Layout cambiato da orizzontale (immagine 80x80px) a verticale full-width
+  - Implementato design moderno simile a Instagram/Pinterest
+
+- **24 Gen 2025**: ✅ **Immagine Protagonista**: Immagine hero full-width da 180px altezza
+  - Utilizzato `ImageBackground` per sovrapporre contenuto di testo
+  - Border radius arrotondato (16px) per look moderno
+  - Rimossa immagine piccola laterale in favore di hero image
+
+- **24 Gen 2025**: ✅ **Gradient Overlay e Leggibilità**: Sistema overlay per text-on-image
+  - Overlay scuro (`rgba(0,0,0,0.4)`) per migliorare leggibilità
+  - Text shadow per tutti i testi bianchi su immagine
+  - Design più sofisticato e professionale
+
+- **24 Gen 2025**: ✅ **Layout Verticale Organizzato**: Struttura informazioni gerarchica
+  - Top Row: Category badge (sinistra) + Rating badge (destra)
+  - Bottom Content: Titolo, location, tags/prezzo, data (se presente)
+  - Spaziatura ottimizzata con `gap: 6` e `marginBottom: 28` tra card
+
+- **24 Gen 2025**: ✅ **Typography Migliorata**: Gerarchia visiva chiara
+  - Testo bianco con text-shadow per leggibilità perfetta
+  - Titolo bold, dettagli più sottili con opacity differenziata
+  - Mantenuti design tokens esistenti per accessibilità
+
+#### Risultati del redesign:
+- ✅ Card visivamente molto più impattanti e moderne
+- ✅ Immagini protagoniste del design (da 80x80px a full-width 180px)
+- ✅ Design consistente applicato automaticamente a ristoranti e guide
+- ✅ Migliorata leggibilità con gradient overlay e text shadows
+- ✅ Spazio ottimizzato tra card per respirabilità (28px margin)
+- ✅ Layout verticale trendy simile a social media apps
+
 ### 🚧 In Corso
 - **24 Gen 2025**: Pronta per iniziare Fase 2 - Funzionalità Avanzate
 

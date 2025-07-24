@@ -182,7 +182,7 @@ export default function GuidesListScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
         <FontAwesome name="search" size={16} color={colors.text + '60'} />
@@ -329,7 +329,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   listContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   centerContainer: {
     flex: 1,
