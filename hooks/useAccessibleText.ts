@@ -138,10 +138,20 @@ export function useAccessibleText(): AccessibleTextHook {
       color?: string;
     } = {}
   ) => {
-    return createTextStyle(baseFontSize, contentType, {
-      ...options,
-      userScaleLevel: scaleLevel,
-    });
+    try {
+      if (!baseFontSize || typeof baseFontSize !== 'number') {
+        console.warn('[useAccessibleText] Invalid baseFontSize:', baseFontSize);
+        return { fontSize: 16, color: options.color || '#000000' };
+      }
+      
+      return createTextStyle(baseFontSize, contentType, {
+        ...options,
+        userScaleLevel: scaleLevel,
+      });
+    } catch (error) {
+      console.error('[useAccessibleText] Error creating text style:', error);
+      return { fontSize: baseFontSize || 16, color: options.color || '#000000' };
+    }
   }, [scaleLevel]);
 
   const isAccessible = useCallback((fontSize: number, contentType: TextContentType) => {
@@ -188,38 +198,47 @@ export function useIsLargeTextEnabled(): boolean {
 export function useTextStyles() {
   const { createStyle, currentScaleLevel } = useAccessibleText();
   
+  const safeCreateStyle = useCallback((fontSize: number, contentType: TextContentType, options: any = {}) => {
+    try {
+      return createStyle(fontSize, contentType, options);
+    } catch (error) {
+      console.error('[useTextStyles] Error creating style:', error);
+      return { fontSize, color: options.color || '#000000' };
+    }
+  }, [createStyle]);
+  
   return {
     // Shortcuts per stili comuni
-    title: (color?: string) => createStyle(24, TextContentType.HEADING, { 
+    title: (color?: string) => safeCreateStyle(24, TextContentType.HEADING, { 
       fontWeight: 'bold', 
       color 
     }),
     
-    subtitle: (color?: string) => createStyle(18, TextContentType.HEADING, { 
+    subtitle: (color?: string) => safeCreateStyle(18, TextContentType.HEADING, { 
       fontWeight: 'semibold', 
       color 
     }),
     
-    body: (color?: string) => createStyle(16, TextContentType.BODY, { 
+    body: (color?: string) => safeCreateStyle(16, TextContentType.BODY, { 
       color 
     }),
     
-    caption: (color?: string) => createStyle(14, TextContentType.CAPTION, { 
+    caption: (color?: string) => safeCreateStyle(14, TextContentType.CAPTION, { 
       color 
     }),
     
-    button: (color?: string) => createStyle(16, TextContentType.BUTTON, { 
+    button: (color?: string) => safeCreateStyle(16, TextContentType.BUTTON, { 
       fontWeight: 'medium', 
       color 
     }),
     
-    label: (color?: string) => createStyle(14, TextContentType.LABEL, { 
+    label: (color?: string) => safeCreateStyle(14, TextContentType.LABEL, { 
       fontWeight: 'medium', 
       color 
     }),
     
     // Custom style creator
-    custom: createStyle,
+    custom: safeCreateStyle,
     
     // Info sul livello corrente
     scaleLevel: currentScaleLevel,

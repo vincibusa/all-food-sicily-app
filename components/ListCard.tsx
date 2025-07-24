@@ -12,6 +12,7 @@ import { useTheme } from '../app/context/ThemeContext';
 import { useHaptics } from '../utils/haptics';
 import { useTextStyles } from '../hooks/useAccessibleText';
 import { SCREEN_TRANSITIONS, createStaggeredAnimation, TransitionType } from '../utils/transitions';
+import { SwipeableCard, createFavoriteAction, createShareAction, createInfoAction, SwipeAction } from './SwipeableCard';
 
 export interface ListItem {
   id: string;
@@ -36,9 +37,23 @@ interface ListCardProps {
   item: ListItem;
   onPress?: () => void;
   delay?: number;
+  enableSwipe?: boolean;
+  onFavorite?: (item: ListItem) => void;
+  onShare?: (item: ListItem) => void;
+  onViewInfo?: (item: ListItem) => void;
+  isFavorite?: boolean;
 }
 
-export default function ListCard({ item, onPress, delay = 0 }: ListCardProps) {
+export default function ListCard({ 
+  item, 
+  onPress, 
+  delay = 0, 
+  enableSwipe = true,
+  onFavorite,
+  onShare,
+  onViewInfo,
+  isFavorite = false
+}: ListCardProps) {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const textStyles = useTextStyles();
@@ -61,16 +76,35 @@ export default function ListCard({ item, onPress, delay = 0 }: ListCardProps) {
     ? createStaggeredAnimation(TransitionType.FADE_UP, 1, delay, 0)[0]
     : SCREEN_TRANSITIONS.list.enter;
 
-  return (
-    <Animated.View entering={enterAnimation}>
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.card }]}
-        onPress={() => {
-          onTap(); // Haptic feedback
-          onPress?.();
-        }}
-        activeOpacity={0.7}
-      >
+  // Configurazione azioni di swipe
+  const leftActions: SwipeAction[] = [];
+  const rightActions: SwipeAction[] = [];
+
+  // Azione preferiti (sinistra)
+  if (onFavorite) {
+    leftActions.push(createFavoriteAction(
+      () => onFavorite(item),
+      isFavorite
+    ));
+  }
+
+  // Azioni condivisione e info (destra)
+  if (onShare) {
+    rightActions.push(createShareAction(() => onShare(item)));
+  }
+  if (onViewInfo) {
+    rightActions.push(createInfoAction(() => onViewInfo(item)));
+  }
+
+  const cardContent = (
+    <TouchableOpacity
+      style={[styles.card, { backgroundColor: colors.card }]}
+      onPress={() => {
+        onTap(); // Haptic feedback
+        onPress?.();
+      }}
+      activeOpacity={0.7}
+    >
         <Image
           source={{ 
             uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
@@ -143,6 +177,21 @@ export default function ListCard({ item, onPress, delay = 0 }: ListCardProps) {
         
         <MaterialIcons name="chevron-right" size={24} color={colors.text + '40'} />
       </TouchableOpacity>
+  );
+
+  return (
+    <Animated.View entering={enterAnimation}>
+      {enableSwipe ? (
+        <SwipeableCard
+          leftActions={leftActions}
+          rightActions={rightActions}
+          enabled={enableSwipe}
+        >
+          {cardContent}
+        </SwipeableCard>
+      ) : (
+        cardContent
+      )}
     </Animated.View>
   );
 }

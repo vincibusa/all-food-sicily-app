@@ -8,7 +8,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Animated, { 
   useAnimatedStyle,
   interpolate,
-  useSharedValue,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../app/context/ThemeContext';
@@ -33,10 +33,10 @@ interface RefreshIndicatorProps {
   text: string;
   
   // Animazioni
-  translateY: Animated.SharedValue<number>;
-  opacity: Animated.SharedValue<number>;
-  scale: Animated.SharedValue<number>;
-  rotation: Animated.SharedValue<number>;
+  translateY: SharedValue<number>;
+  opacity: SharedValue<number>;
+  scale: SharedValue<number>;
+  rotation: SharedValue<number>;
   
   // Personalizzazione
   style?: RefreshIndicatorStyle;
@@ -66,17 +66,19 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
   const textStyles = useTextStyles();
   
   const indicatorColor = color || colors.primary;
-  const bgColor = backgroundColor || (colors.card + 'F0'); // Semi-transparent
+  const bgColor = style === RefreshIndicatorStyle.MINIMAL 
+    ? 'transparent' 
+    : backgroundColor || (colors.card + 'F5'); // Trasparente per minimal
 
   // Configurazione dimensioni
   const getSizeConfig = () => {
     switch (size) {
       case 'small':
-        return { height: 60, iconSize: 20, padding: 8 };
+        return { height: 40, iconSize: 18, padding: 6 };
       case 'medium':
-        return { height: 80, iconSize: 24, padding: 12 };
+        return { height: 100, iconSize: 28, padding: 16 }; // Incrementato per migliore visibilità
       case 'large':
-        return { height: 100, iconSize: 28, padding: 16 };
+        return { height: 120, iconSize: 32, padding: 20 };
       default:
         return { height: 80, iconSize: 24, padding: 12 };
     }
@@ -157,17 +159,13 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
   const renderContent = () => {
     switch (style) {
       case RefreshIndicatorStyle.MINIMAL:
-        return (
-          <View style={styles.minimalContainer}>
-            {renderIcon()}
-          </View>
-        );
+        return renderIcon(); // Solo l'icona, niente altro
 
       case RefreshIndicatorStyle.DOTS:
         return (
           <View style={styles.dotsContainer}>
             {renderIcon()}
-            {(style === RefreshIndicatorStyle.FULL || text) && (
+            {text && (
               <Text style={[styles.text, textStyles.caption(colors.text)]}>
                 {text}
               </Text>
@@ -208,9 +206,10 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
       style={[
         styles.container,
         {
-          height: sizeConfig.height,
+          height: style === RefreshIndicatorStyle.MINIMAL ? sizeConfig.iconSize + 10 : sizeConfig.height,
           backgroundColor: bgColor,
-          paddingHorizontal: sizeConfig.padding,
+          paddingHorizontal: style === RefreshIndicatorStyle.MINIMAL ? 0 : sizeConfig.padding,
+          paddingTop: style === RefreshIndicatorStyle.MINIMAL ? 10 : 0, // Margine superiore per minimal
         },
         containerStyle
       ]}
@@ -264,13 +263,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   
   // Minimal style
@@ -309,6 +301,17 @@ const styles = StyleSheet.create({
   progressBar: {
     height: '100%',
     borderRadius: 1,
+  },
+  
+  // Refreshing state
+  refreshingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  refreshingText: {
+    marginTop: 4,
+    fontWeight: '600',
   },
 });
 

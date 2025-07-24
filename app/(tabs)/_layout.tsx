@@ -1,13 +1,12 @@
 import React, { useEffect } from "react";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
-import { useRouter } from "expo-router";
 import { authService } from "../../services/auth.service";
 import { useHaptics } from "../../utils/haptics";
 
 export default function TabsLayout() {
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const router = useRouter();
   const { onNavigation } = useHaptics();
 
@@ -24,7 +23,7 @@ export default function TabsLayout() {
     };
     
     checkAuth();
-  }, []);
+  }, [router]);
   
   return (
     <Tabs

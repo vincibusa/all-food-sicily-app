@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, RefreshControl, Alert } from "react-native";
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Alert } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiClient } from "../../services/api";
@@ -14,7 +14,7 @@ import AdvancedFilters from '../../components/AdvancedFilters';
 import { useHaptics } from "../../utils/haptics";
 import { InlineLoading, FullScreenLoading } from "../../components/LoadingStates";
 import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
-import { FullRefreshIndicator } from "../../components/RefreshIndicator";
+import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
 
 interface Restaurant extends ListItem {
   description: string;
@@ -40,6 +40,7 @@ interface FilterOption {
 export default function RistorantiScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tutti');
   const [selectedCity, setSelectedCity] = useState('Tutte');
@@ -47,7 +48,6 @@ export default function RistorantiScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [cities, setCities] = useState<FilterOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCuisine, setSelectedCuisine] = useState('Tutte');
   const [cuisineTypes, setCuisineTypes] = useState<FilterOption[]>([]);
@@ -126,10 +126,15 @@ export default function RistorantiScreen() {
 
   // Enhanced refresh hook
   const refreshState = useEnhancedRefresh({
-    onRefresh: handleRefresh,
-    threshold: 80,
+    onRefresh: async () => {
+      console.log('🔄 Refreshing restaurants...');
+      await handleRefresh();
+      console.log('✅ Restaurants refreshed');
+    },
+    threshold: 60, // Soglia ridotta per attivazione più facile
     hapticFeedback: true,
     showIndicator: true,
+    refreshDuration: 800,
   });
 
   const handleCategorySelect = async (categoryName: string) => {
@@ -142,9 +147,6 @@ export default function RistorantiScreen() {
     setSelectedCuisine(cuisineName);
   };
 
-  const getPriceRangeSymbol = (priceRange: number) => {
-    return '€'.repeat(Math.max(1, Math.min(4, priceRange)));
-  };
   
   // Filtro client-side per search query, città e tipo di cucina
   const filteredRestaurants = restaurants.filter(restaurant => {
@@ -169,6 +171,7 @@ export default function RistorantiScreen() {
     
     return matchesSearch && matchesCity && matchesCuisine;
   });
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -243,19 +246,29 @@ export default function RistorantiScreen() {
           </View>
         </View>
 
+        {/* Enhanced Refresh Indicator - Solo Icona */}
+        {refreshState.shouldShowIndicator && (
+          <MinimalRefreshIndicator
+            isRefreshing={refreshState.isRefreshing}
+            progress={refreshState.refreshProgress}
+            text=""
+            translateY={refreshState.translateY}
+            opacity={refreshState.opacity}
+            scale={refreshState.scale}
+            rotation={refreshState.rotation}
+            size="small"
+          />
+        )}
+
         {/* Lista Ristoranti */}
         <FlatList
           data={filteredRestaurants}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-            />
-          }
+          onScroll={refreshState.onScroll}
+          onScrollEndDrag={refreshState.onScrollEndDrag}
+          scrollEventThrottle={16}
           ListEmptyComponent={
             loading ? (
               <View style={styles.listContainer}>
@@ -282,18 +295,16 @@ export default function RistorantiScreen() {
             )
           }
           renderItem={({ item: restaurant, index }) => (
-            <Link 
-              href={{ 
-                pathname: '/ristoranti/[id]', 
-                params: { id: restaurant.id } 
-              }} 
-              asChild
-            >
-              <ListCard
-                item={restaurant}
-                delay={index * 100}
-              />
-            </Link>
+            <ListCard
+              item={restaurant}
+              delay={index * 100}
+              enableSwipe={false}
+              onPress={() => {
+                onTap();
+                // Navigazione al dettaglio del ristorante
+                router.push(`/ristoranti/${restaurant.id}`);
+              }}
+            />
           )}
         />
       </View>

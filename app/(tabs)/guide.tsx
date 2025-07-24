@@ -18,6 +18,7 @@ import ListCard from '../../components/ListCard';
 import { ListItem } from '../../components/ListCard';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
 import AdvancedFilters from '../../components/AdvancedFilters';
+import { useHaptics } from '../../utils/haptics';
 
 interface Category {
   id: string;
@@ -55,6 +56,7 @@ interface FilterOption {
 export default function GuidesListScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { onTap } = useHaptics();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredGuides, setFilteredGuides] = useState<Guide[]>([]);
@@ -166,14 +168,15 @@ export default function GuidesListScreen() {
     await loadGuides(categoryId);
   };
 
-  const navigateToGuide = (guideId: string) => {
-    router.push(`/guide/${guideId}`);
-  };
 
   const renderGuideItem = ({ item, index }: { item: Guide; index: number }) => (
     <ListCard
       item={item}
-      onPress={() => navigateToGuide(item.id)}
+      enableSwipe={false}
+      onPress={() => {
+        onTap();
+        router.push(`/articoli/${item.id}`);
+      }}
       delay={index * 100}
     />
   );

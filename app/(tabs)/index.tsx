@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, ImageBackground, FlatList, Dimensions, Alert } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions } from "react-native";
 import { BlurView } from "expo-blur";
 import { useTheme } from "../context/ThemeContext";
 import { Link } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import Animated, { FadeInDown, FadeInRight, useAnimatedStyle, useSharedValue, withSpring, withDelay, Easing, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, Easing, withTiming } from "react-native-reanimated";
 import { apiClient } from "../../services/api";
 import { useHaptics } from "../../utils/haptics";
-import { SkeletonHeroCard, SkeletonHeroSection } from "../../components/skeleton/SkeletonCards";
+import { SkeletonHeroCard } from "../../components/skeleton/SkeletonCards";
 import { useTextStyles } from "../../hooks/useAccessibleText";
 import { SCREEN_TRANSITIONS, createStaggeredAnimation, TransitionType } from "../../utils/transitions";
-import { FullScreenLoading, InlineLoading } from "../../components/LoadingStates";
+import { InlineLoading } from "../../components/LoadingStates";
+import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
+import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
+import { VerticalScrollIndicator, ScrollIndicatorType, ScrollIndicatorPosition } from "../../components/ScrollIndicators";
 
 const { width } = Dimensions.get('window');
-const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 
 interface Guide {
@@ -51,7 +52,21 @@ export default function Index() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  // Enhanced refresh hook per homepage
+  const refreshState = useEnhancedRefresh({
+    onRefresh: async () => {
+      console.log('🔄 Starting refresh...');
+      await loadData();
+      console.log('✅ Refresh completed');
+    },
+    threshold: 60, // Ridotto per attivazione più facile
+    hapticFeedback: true,
+    showIndicator: true,
+    refreshDuration: 800, // Durata minima più breve ma visibile
+  });
   
   useEffect(() => {
     fadeAnim.value = withTiming(1, { duration: 1000, easing: Easing.bezier(0.25, 0.1, 0.25, 1) });
@@ -60,6 +75,7 @@ export default function Index() {
 
   const loadData = async () => {
     try {
+      console.log('📥 Loading data from API...');
       setLoading(true);
       setError(null);
       const [guidesResponse, restaurantsResponse, categoriesResponse] = await Promise.all([
@@ -71,7 +87,6 @@ export default function Index() {
       const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.guides || guidesResponse?.items || []);
       const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
       const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
-      setCategories(categoriesData);
       // Funzione per trovare il colore della categoria
       const getCategoryColor = (catName: string) =>
         categoriesData.find((cat: any) => cat.name === catName)?.color || colors.primary;
@@ -91,17 +106,16 @@ export default function Index() {
       }));
       setGuides(guidesDataTransformed);
       setRestaurants(restaurantsDataTransformed);
+      console.log('✅ Data loaded successfully:', { guides: guidesDataTransformed.length, restaurants: restaurantsDataTransformed.length });
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error loading data:', error);
       setError('Impossibile caricare i dati. Riprova più tardi.');
     } finally {
       setLoading(false);
+      console.log('🏁 Loading finished');
     }
   };
 
-  const getPriceRangeSymbol = (priceRange: number) => {
-    return '€'.repeat(Math.max(1, Math.min(4, priceRange)));
-  };
   
   const heroAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -181,15 +195,37 @@ export default function Index() {
 
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      showsVerticalScrollIndicator={false}
-      onScroll={(event) => {
-        scrollY.value = event.nativeEvent.contentOffset.y;
-      }}
-      scrollEventThrottle={16}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      
+      {/* Enhanced Refresh Indicator - Solo Icona */}
+      {refreshState.shouldShowIndicator && (
+        <MinimalRefreshIndicator
+          isRefreshing={refreshState.isRefreshing}
+          progress={refreshState.refreshProgress}
+          text=""
+          translateY={refreshState.translateY}
+          opacity={refreshState.opacity}
+          scale={refreshState.scale}
+          rotation={refreshState.rotation}
+          size="small"
+        />
+      )}
+
+      <ScrollView 
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        onScroll={(event) => {
+          scrollY.value = event.nativeEvent.contentOffset.y;
+          refreshState.onScroll(event);
+        }}
+        onScrollEndDrag={refreshState.onScrollEndDrag}
+        onContentSizeChange={(_, h) => setContentHeight(h)}
+        onLayout={(event) => setContainerHeight(event.nativeEvent.layout.height)}
+        scrollEventThrottle={16}
+        bounces={true} // Assicura che il bounce sia abilitato
+        alwaysBounceVertical={true}
+      >
       
       {/* Header con Hero Image */}
       <Animated.View style={[styles.heroContainer, heroAnimatedStyle]}>
@@ -297,7 +333,20 @@ export default function Index() {
           />
         )}
       </Animated.View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* Custom Scroll Indicator - Nascosto */}
+      {false && contentHeight > containerHeight && (
+        <VerticalScrollIndicator
+          scrollY={scrollY}
+          contentHeight={contentHeight}
+          containerHeight={containerHeight}
+          type={ScrollIndicatorType.ROUNDED}
+          position={ScrollIndicatorPosition.RIGHT}
+          autoHide={false}
+        />
+      )}
+    </View>
   );
 }
 

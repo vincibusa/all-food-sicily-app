@@ -63,10 +63,11 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState(0);
   const [shouldShowIndicator, setShouldShowIndicator] = useState(false);
-  const [indicatorText, setIndicatorText] = useState('Trascina per aggiornare');
+  const [indicatorText, setIndicatorText] = useState('');
 
   // Haptic feedback
-  const { onRefreshStart, onRefreshComplete, onSelection } = useHaptics();
+  const haptics = useHaptics();
+  const { onRefreshStart, onRefreshComplete, onSelection } = haptics || {};
 
   // Valori animati
   const translateY = useSharedValue(0);
@@ -82,21 +83,21 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     setRefreshProgress(progress);
     
     if (progress === 0) {
-      setIndicatorText('Trascina per aggiornare');
+      setIndicatorText('');
       setShouldShowIndicator(false);
     } else if (progress < 1 && !isActive) {
-      setIndicatorText('Trascina per aggiornare');
+      setIndicatorText('');
       setShouldShowIndicator(true);
     } else if (progress >= 1 && !isActive) {
-      setIndicatorText('Rilascia per aggiornare');
+      setIndicatorText('');
       setShouldShowIndicator(true);
       
       // Haptic feedback quando raggiunge la soglia
-      if (hapticFeedback) {
+      if (hapticFeedback && onSelection) {
         runOnJS(onSelection)();
       }
     } else if (isActive) {
-      setIndicatorText('Aggiornamento...');
+      setIndicatorText('');
       setShouldShowIndicator(true);
     }
   }, [hapticFeedback, onSelection]);
@@ -104,31 +105,31 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
   const animateIndicator = useCallback((progress: number) => {
     'worklet';
     
-    // Animazione di translate
-    translateY.value = withSpring(Math.max(0, progress * threshold), {
+    // Animazione di translate - segue il movimento del dito
+    translateY.value = withSpring(Math.max(0, progress * threshold * 0.8), {
       damping: 15,
-      stiffness: 150,
+      stiffness: 250,
     });
     
-    // Animazione di opacity
-    opacity.value = withTiming(Math.min(1, progress * 2), {
-      duration: 200,
+    // Animazione di opacity - più rapida
+    opacity.value = withTiming(Math.min(1, progress * 1.5), {
+      duration: 150,
     });
     
-    // Animazione di scale
-    scale.value = withSpring(Math.min(1.2, 1 + progress * 0.2), {
-      damping: 20,
-      stiffness: 300,
+    // Animazione di scale - più evidente
+    scale.value = withSpring(Math.min(1.3, 1 + progress * 0.3), {
+      damping: 15,
+      stiffness: 250,
     });
     
-    // Animazione di rotazione
-    rotation.value = withTiming(progress * 180, {
-      duration: 400,
+    // Animazione di rotazione - più fluida
+    rotation.value = withTiming(progress * 360, {
+      duration: 300,
     });
     
     // Aggiorna stato indicator
     runOnJS(updateIndicatorState)(progress, false);
-  }, [threshold, updateIndicatorState]);
+  }, [threshold, updateIndicatorState, translateY, opacity, scale, rotation]);
 
   const snapBack = useCallback(() => {
     'worklet';
@@ -153,19 +154,22 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     });
     
     runOnJS(updateIndicatorState)(0, false);
-  }, [snapBackDuration, updateIndicatorState]);
+  }, [snapBackDuration, updateIndicatorState, translateY, opacity, scale, rotation]);
 
   // ==========================================
   // 🔄 REFRESH LOGIC
   // ==========================================
 
   const executeRefresh = useCallback(async () => {
-    if (isRefreshing) return;
+    if (isRefreshing || !onRefresh || typeof onRefresh !== 'function') {
+      console.warn('[useEnhancedRefresh] onRefresh is not a valid function');
+      return;
+    }
     
     setIsRefreshing(true);
     runOnJS(updateIndicatorState)(1, true);
     
-    if (hapticFeedback) {
+    if (hapticFeedback && onRefreshStart) {
       onRefreshStart();
     }
     
@@ -184,7 +188,7 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     } finally {
       setIsRefreshing(false);
       
-      if (hapticFeedback) {
+      if (hapticFeedback && onRefreshComplete) {
         onRefreshComplete();
       }
       
@@ -212,14 +216,17 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     const { contentOffset } = event.nativeEvent;
     const scrollY = contentOffset.y;
     
-    // Solo quando si scrolla oltre il top
-    if (scrollY < 0) {
+    // Solo quando si scrolla oltre il top (scrollY negativo) e siamo già in cima
+    if (scrollY <= 0) {
       const pullDistance = Math.abs(scrollY);
       const progress = Math.min(pullDistance / threshold, 1.5);
       
-      animateIndicator(progress);
+      // Mostra l'indicatore solo se stiamo effettivamente trascinando verso il basso
+      if (pullDistance > 5) { // Soglia minima per evitare flickering
+        animateIndicator(progress);
+      }
     } else {
-      // Reset quando si torna in posizione normale
+      // Reset quando si scrolla verso il basso nella pagina
       animateIndicator(0);
     }
   }, [isRefreshing, threshold, animateIndicator]);
@@ -231,7 +238,8 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     const scrollY = contentOffset.y;
     const pullDistance = Math.abs(scrollY);
     
-    if (pullDistance >= threshold) {
+    // Attiva refresh solo se siamo in cima (scrollY <= 0) e abbiamo trascinato abbastanza
+    if (scrollY <= 0 && pullDistance >= threshold) {
       // Attiva refresh
       executeRefresh();
     } else {
