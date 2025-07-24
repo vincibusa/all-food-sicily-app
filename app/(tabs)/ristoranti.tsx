@@ -9,7 +9,12 @@ import ListCard from '../../components/ListCard';
 import { ListItem } from '../../components/ListCard';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
+import { SkeletonVariant } from '../../components/skeleton/SkeletonCards';
 import AdvancedFilters from '../../components/AdvancedFilters';
+import { useHaptics } from "../../utils/haptics";
+import { InlineLoading, FullScreenLoading } from "../../components/LoadingStates";
+import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
+import { FullRefreshIndicator } from "../../components/RefreshIndicator";
 
 interface Restaurant extends ListItem {
   description: string;
@@ -34,6 +39,7 @@ interface FilterOption {
 
 export default function RistorantiScreen() {
   const { colors } = useTheme();
+  const { onTap } = useHaptics();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tutti');
   const [selectedCity, setSelectedCity] = useState('Tutte');
@@ -113,12 +119,18 @@ export default function RistorantiScreen() {
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
+  const handleRefresh = async () => {
     const currentCategoryId = categories.find(cat => cat.name === selectedCategory)?.id;
     await loadData(currentCategoryId);
-    setRefreshing(false);
   };
+
+  // Enhanced refresh hook
+  const refreshState = useEnhancedRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    hapticFeedback: true,
+    showIndicator: true,
+  });
 
   const handleCategorySelect = async (categoryName: string) => {
     setSelectedCategory(categoryName);
@@ -172,7 +184,10 @@ export default function RistorantiScreen() {
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={() => {
+              onTap();
+              setSearchQuery('');
+            }}>
               <FontAwesome name="times" size={16} color={colors.text + '60'} />
             </TouchableOpacity>
           )}
@@ -206,7 +221,10 @@ export default function RistorantiScreen() {
             {selectedCity !== 'Tutte' && (
               <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                 <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
-                <TouchableOpacity onPress={() => setSelectedCity('Tutte')}>
+                <TouchableOpacity onPress={() => {
+                  onTap();
+                  setSelectedCity('Tutte');
+                }}>
                   <MaterialIcons name="close" size={14} color={colors.primary} />
                 </TouchableOpacity>
               </View>
@@ -214,7 +232,10 @@ export default function RistorantiScreen() {
             {selectedCategory !== 'Tutti' && (
               <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                 <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCategory}</Text>
-                <TouchableOpacity onPress={() => setSelectedCategory('Tutti')}>
+                <TouchableOpacity onPress={() => {
+                  onTap();
+                  setSelectedCategory('Tutti');
+                }}>
                   <MaterialIcons name="close" size={14} color={colors.primary} />
                 </TouchableOpacity>
               </View>
@@ -239,7 +260,11 @@ export default function RistorantiScreen() {
             loading ? (
               <View style={styles.listContainer}>
                 {[1, 2, 3].map((_, index) => (
-                  <ListCardSkeleton key={`skeleton-${index}`} />
+                  <ListCardSkeleton 
+                    key={`skeleton-${index}`} 
+                    variant={SkeletonVariant.SHIMMER}
+                    showRating={true}
+                  />
                 ))}
               </View>
             ) : (

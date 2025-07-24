@@ -7,6 +7,11 @@ import { StatusBar } from "expo-status-bar";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import Animated, { FadeInDown, FadeInRight, useAnimatedStyle, useSharedValue, withSpring, withDelay, Easing, withTiming } from "react-native-reanimated";
 import { apiClient } from "../../services/api";
+import { useHaptics } from "../../utils/haptics";
+import { SkeletonHeroCard, SkeletonHeroSection } from "../../components/skeleton/SkeletonCards";
+import { useTextStyles } from "../../hooks/useAccessibleText";
+import { SCREEN_TRANSITIONS, createStaggeredAnimation, TransitionType } from "../../utils/transitions";
+import { FullScreenLoading, InlineLoading } from "../../components/LoadingStates";
 
 const { width } = Dimensions.get('window');
 const AnimatedImage = Animated.createAnimatedComponent(Image);
@@ -38,11 +43,14 @@ interface Restaurant {
 
 export default function Index() {
   const { colors, colorScheme } = useTheme();
+  const { onTap } = useHaptics();
+  const textStyles = useTextStyles();
   const scrollY = useSharedValue(0);
   const fadeAnim = useSharedValue(0);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   
   useEffect(() => {
@@ -53,6 +61,7 @@ export default function Index() {
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [guidesResponse, restaurantsResponse, categoriesResponse] = await Promise.all([
         apiClient.get<any>('/guides/'),
         apiClient.get<any>('/restaurants/'),
@@ -84,7 +93,7 @@ export default function Index() {
       setRestaurants(restaurantsDataTransformed);
     } catch (error) {
       console.error('Error loading data:', error);
-      Alert.alert('Errore', 'Impossibile caricare i dati. Riprova più tardi.');
+      setError('Impossibile caricare i dati. Riprova più tardi.');
     } finally {
       setLoading(false);
     }
@@ -110,12 +119,17 @@ export default function Index() {
 
   // Funzione per renderizzare guide con animazione
   const renderGuideItem = ({ item, index }: { item: Guide, index: number }) => {
+    const staggeredAnimations = createStaggeredAnimation(TransitionType.FADE_RIGHT, guides.length, 400, 120);
+    
     return (
       <Animated.View
-        entering={FadeInRight.delay(index * 100).springify()}
+        entering={staggeredAnimations[index] || SCREEN_TRANSITIONS.home.enter}
       >
         <Link href={{ pathname: '/guide/[id]', params: { id: item.id } }} asChild>
-          <TouchableOpacity style={styles.fullImageCard}>
+          <TouchableOpacity 
+            style={styles.fullImageCard}
+            onPress={() => onTap()}
+          >
             <ImageBackground
               source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
               style={styles.fullImage}
@@ -123,9 +137,9 @@ export default function Index() {
             >
               <View style={styles.overlay} />
               <View style={styles.textOverlay}>
-                <Text style={[styles.categoryPillOverlay, { backgroundColor: item.category?.color || colors.primary }]}>{item.category?.name || 'Guida'}</Text>
-                <Text style={styles.cardTitleOverlay} numberOfLines={2}>{item.title}</Text>
-                <Text style={styles.cardSubtitleOverlay} numberOfLines={1}>{item.city}, {item.province}</Text>
+                <Text style={[styles.categoryPillOverlay, textStyles.label('white'), { backgroundColor: item.category?.color || colors.primary }]}>{item.category?.name || 'Guida'}</Text>
+                <Text style={[styles.cardTitleOverlay, textStyles.subtitle('white')]} numberOfLines={2}>{item.title}</Text>
+                <Text style={[styles.cardSubtitleOverlay, textStyles.caption('rgba(255,255,255,0.9)')]} numberOfLines={1}>{item.city}, {item.province}</Text>
               </View>
             </ImageBackground>
           </TouchableOpacity>
@@ -136,12 +150,17 @@ export default function Index() {
 
   // Funzione per renderizzare ristoranti con animazione
   const renderRestaurantItem = ({ item, index }: { item: Restaurant, index: number }) => {
+    const staggeredAnimations = createStaggeredAnimation(TransitionType.FADE_RIGHT, restaurants.length, 800, 120);
+    
     return (
       <Animated.View
-        entering={FadeInRight.delay(index * 100 + 300).springify()}
+        entering={staggeredAnimations[index] || SCREEN_TRANSITIONS.home.enter}
       >
         <Link href={{ pathname: '/ristoranti/[id]', params: { id: item.id } }} asChild>
-          <TouchableOpacity style={styles.fullImageCard}>
+          <TouchableOpacity 
+            style={styles.fullImageCard}
+            onPress={() => onTap()}
+          >
             <ImageBackground
               source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
               style={styles.fullImage}
@@ -149,9 +168,9 @@ export default function Index() {
             >
               <View style={styles.overlay} />
               <View style={styles.textOverlay}>
-                <Text style={[styles.categoryPillOverlay, { backgroundColor: item.category_color || colors.primary }]}>{item.category_name || 'Ristorante'}</Text>
-                <Text style={styles.cardTitleOverlay} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.cardSubtitleOverlay} numberOfLines={1}>{item.city}, {item.province}</Text>
+                <Text style={[styles.categoryPillOverlay, textStyles.label('white'), { backgroundColor: item.category_color || colors.primary }]}>{item.category_name || 'Ristorante'}</Text>
+                <Text style={[styles.cardTitleOverlay, textStyles.subtitle('white')]} numberOfLines={2}>{item.name}</Text>
+                <Text style={[styles.cardSubtitleOverlay, textStyles.caption('rgba(255,255,255,0.9)')]} numberOfLines={1}>{item.city}, {item.province}</Text>
               </View>
             </ImageBackground>
           </TouchableOpacity>
@@ -160,37 +179,6 @@ export default function Index() {
     );
   };
 
-  // Skeleton Components
-  const GuideSkeleton = () => {
-    const { colors } = useTheme();
-    return (
-      <View style={styles.articleCard}>
-        <View style={[styles.articleImage, { backgroundColor: colors.card + '80' }]} />
-        <View style={[styles.articleInfo, { backgroundColor: colors.card }]}>
-          <View style={[styles.categoryPill, { backgroundColor: colors.primary + '50' }]} />
-          <View style={[styles.skeletonText, { backgroundColor: colors.text + '20', width: '80%' }]} />
-          <View style={[styles.skeletonText, { backgroundColor: colors.text + '20', width: '60%', marginTop: 8 }]} />
-        </View>
-      </View>
-    );
-  };
-
-  const RestaurantSkeleton = () => {
-    const { colors } = useTheme();
-    return (
-      <View style={styles.restaurantCard}>
-        <View style={[styles.restaurantImage, { backgroundColor: colors.card + '80' }]} />
-        <View style={[styles.restaurantInfo, { backgroundColor: colors.card }]}>
-          <View style={[styles.locationPill, { backgroundColor: colors.primary + '50' }]} />
-          <View style={[styles.skeletonText, { backgroundColor: colors.text + '20', width: '70%' }]} />
-          <View style={styles.restaurantBottomInfo}>
-            <View style={[styles.skeletonText, { backgroundColor: colors.text + '20', width: 40 }]} />
-            <View style={[styles.skeletonText, { backgroundColor: colors.text + '20', width: 30 }]} />
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   return (
     <ScrollView 
@@ -211,14 +199,14 @@ export default function Index() {
         >
           <BlurView intensity={30} style={styles.heroOverlay}>
             <Animated.Text 
-              entering={FadeInDown.duration(800).springify()} 
-              style={styles.heroTitle}
+              entering={SCREEN_TRANSITIONS.home.enter} 
+              style={[styles.heroTitle, textStyles.title('white')]}
             >
               AllFoodSicily
             </Animated.Text>
             <Animated.Text 
-              entering={FadeInDown.delay(200).duration(800).springify()} 
-              style={styles.heroSubtitle}
+              entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 200)[0]} 
+              style={[styles.heroSubtitle, textStyles.body('rgba(255,255,255,0.9)')]} 
             >
               Il gusto e la cultura della Sicilia
             </Animated.Text>
@@ -229,13 +217,13 @@ export default function Index() {
       {/* Sezione Guide in Evidenza */}
       <Animated.View 
         style={styles.section}
-        entering={FadeInDown.delay(400).springify()}
+        entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 300)[0]}
       >
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Guide in Evidenza</Text>
+          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Guide in Evidenza</Text>
           <Link href="/guide" asChild>
-            <TouchableOpacity>
-              <Text style={[styles.sectionLink, { color: colors.tint }]}>Vedi tutte</Text>
+            <TouchableOpacity onPress={() => onTap()}>
+              <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutte</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -245,8 +233,16 @@ export default function Index() {
             showsHorizontalScrollIndicator={false}
             data={[1, 2, 3]} // Dummy data for 3 skeleton items
             keyExtractor={(item) => item.toString()}
-            renderItem={() => <GuideSkeleton />}
+            renderItem={() => <SkeletonHeroCard />}
             contentContainerStyle={styles.articlesList}
+          />
+        ) : error ? (
+          <InlineLoading 
+            title="Errore nel caricamento delle guide"
+          />
+        ) : guides.length === 0 ? (
+          <InlineLoading 
+            title="Nessuna guida disponibile al momento"
           />
         ) : (
           <FlatList
@@ -263,13 +259,13 @@ export default function Index() {
       {/* Sezione Ristoranti in Evidenza */}
       <Animated.View 
         style={styles.section}
-        entering={FadeInDown.delay(600).springify()}
+        entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 600)[0]}
       >
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Ristoranti Consigliati</Text>
+          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Ristoranti Consigliati</Text>
           <Link href="/ristoranti" asChild>
-            <TouchableOpacity>
-              <Text style={[styles.sectionLink, { color: colors.tint }]}>Vedi tutti</Text>
+            <TouchableOpacity onPress={() => onTap()}>
+              <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutti</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -279,8 +275,16 @@ export default function Index() {
             showsHorizontalScrollIndicator={false}
             data={[1, 2, 3]} // Dummy data for 3 skeleton items
             keyExtractor={(item) => item.toString()}
-            renderItem={() => <RestaurantSkeleton />}
+            renderItem={() => <SkeletonHeroCard />}
             contentContainerStyle={styles.restaurantsList}
+          />
+        ) : error ? (
+          <InlineLoading 
+            title="Errore nel caricamento dei ristoranti"
+          />
+        ) : restaurants.length === 0 ? (
+          <InlineLoading 
+            title="Nessun ristorante disponibile al momento"
           />
         ) : (
           <FlatList
@@ -316,18 +320,13 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   heroTitle: {
-    fontSize: width > 400 ? 36 : 32, // Responsive font size
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
+    marginBottom: 8, // Dynamic font size handled by useTextStyles
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: -1, height: 1 },
     textShadowRadius: 10
   },
   heroSubtitle: {
-    fontSize: width > 400 ? 20 : 18, // Responsive font size
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)', // Dynamic font size handled by useTextStyles
     textShadowOffset: { width: -1, height: 1 },
     textShadowRadius: 10
   },
@@ -343,12 +342,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: width > 400 ? 22 : 20, // Responsive font size
-    fontWeight: 'bold',
+    // Dynamic font size and weight handled by useTextStyles
   },
   sectionLink: {
-    fontSize: 14,
-    fontWeight: '600',
+    // Dynamic font size and weight handled by useTextStyles
   },
   articlesList: {
     paddingLeft: 16,
@@ -502,24 +499,17 @@ const styles = StyleSheet.create({
   categoryPillOverlay: {
     alignSelf: 'flex-start',
     backgroundColor: '#3B82F6',
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
     borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 3,
     marginBottom: 8,
     overflow: 'hidden',
+    // Dynamic font size and weight handled by useTextStyles
   },
   cardTitleOverlay: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 4, // Dynamic font size and weight handled by useTextStyles
   },
   cardSubtitleOverlay: {
-    color: 'white',
-    fontSize: 12,
-    opacity: 0.85,
+    opacity: 0.85, // Dynamic font size handled by useTextStyles
   },
 });

@@ -4,10 +4,12 @@ import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { authService } from "../../services/auth.service";
+import { useHaptics } from "../../utils/haptics";
 
 export default function TabsLayout() {
   const { colors, colorScheme } = useTheme();
   const router = useRouter();
+  const { onNavigation } = useHaptics();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -38,6 +40,11 @@ export default function TabsLayout() {
           backgroundColor: colors.background,
         },
         headerTintColor: colors.text,
+      }}
+      screenListeners={{
+        tabPress: () => {
+          onNavigation(); // Haptic feedback per navigazione tab
+        },
       }}
     >
       <Tabs.Screen

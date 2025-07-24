@@ -5,6 +5,8 @@ import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icon
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { apiClient } from "../../services/api";
+import { useHaptics } from "../../utils/haptics";
+import { SkeletonProfileHeader, SkeletonProfileStats } from "../../components/skeleton/SkeletonCards";
 
 interface User {
   id: string;
@@ -32,6 +34,7 @@ interface UserStats {
 export default function ProfiloScreen() {
   const { colors, colorScheme, toggleColorScheme, useSystemTheme, setUseSystemTheme } = useTheme();
   const router = useRouter();
+  const { onToggle, onTap, onError } = useHaptics();
   
   // Stati per i dati utente
   const [user, setUser] = useState<User | null>(null);
@@ -49,6 +52,7 @@ export default function ProfiloScreen() {
   
   // Gestire il cambiamento modalità scura
   const handleDarkModeToggle = () => {
+    onToggle(); // Haptic feedback
     if (useSystemTheme) {
       setUseSystemTheme(false);
     } else {
@@ -140,13 +144,19 @@ export default function ProfiloScreen() {
             source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80' }} 
             style={styles.profileImage} 
           />
-          <TouchableOpacity style={[styles.editButton, { backgroundColor: colors.primary }]}>
+          <TouchableOpacity 
+            style={[styles.editButton, { backgroundColor: colors.primary }]}
+            onPress={() => onTap()}
+          >
             <FontAwesome name="camera" size={16} color="white" />
           </TouchableOpacity>
         </View>
         <Text style={[styles.profileName, { color: colors.text }]}>Mario Rossi</Text>
         <Text style={[styles.profileEmail, { color: colors.text }]}>mario.rossi@example.com</Text>
-        <TouchableOpacity style={[styles.editProfileButton, { backgroundColor: colors.card, borderColor: colors.primary }]}>
+        <TouchableOpacity 
+          style={[styles.editProfileButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
+          onPress={() => onTap()}
+        >
           <Text style={[styles.editProfileText, { color: colors.primary }]}>Modifica Profilo</Text>
         </TouchableOpacity>
       </View>
@@ -180,7 +190,10 @@ export default function ProfiloScreen() {
           </View>
           <Switch
             value={notificheAttive}
-            onValueChange={setNotificheAttive}
+            onValueChange={(value) => {
+              onToggle(); // Haptic feedback
+              setNotificheAttive(value);
+            }}
             trackColor={{ false: '#767577', true: colors.primary }}
             thumbColor={'#f4f3f4'}
           />
@@ -206,7 +219,10 @@ export default function ProfiloScreen() {
           </View>
           <Switch
             value={useSystemTheme}
-            onValueChange={setUseSystemTheme}
+            onValueChange={(value) => {
+              onToggle(); // Haptic feedback
+              setUseSystemTheme(value);
+            }}
             trackColor={{ false: '#767577', true: colors.primary }}
             thumbColor={'#f4f3f4'}
           />
@@ -219,7 +235,10 @@ export default function ProfiloScreen() {
           </View>
           <Switch
             value={newsletterAttiva}
-            onValueChange={setNewsletterAttiva}
+            onValueChange={(value) => {
+              onToggle(); // Haptic feedback
+              setNewsletterAttiva(value);
+            }}
             trackColor={{ false: '#767577', true: colors.primary }}
             thumbColor={'#f4f3f4'}
           />
@@ -232,7 +251,10 @@ export default function ProfiloScreen() {
         
         <TouchableOpacity 
           style={[styles.menuItem, { backgroundColor: colors.card }]}
-          onPress={() => router.push('/account/informazioni-personali')}
+          onPress={() => {
+            onTap();
+            router.push('/account/informazioni-personali');
+          }}
         >
           <View style={styles.menuItemLeft}>
             <Feather name="user" size={24} color={colors.primary} style={styles.menuIcon} />
@@ -243,7 +265,10 @@ export default function ProfiloScreen() {
         
         <TouchableOpacity 
           style={[styles.menuItem, { backgroundColor: colors.card }]}
-          onPress={() => router.push('/account/privacy-sicurezza')}
+          onPress={() => {
+            onTap();
+            router.push('/account/privacy-sicurezza');
+          }}
         >
           <View style={styles.menuItemLeft}>
             <Feather name="shield" size={24} color={colors.primary} style={styles.menuIcon} />
@@ -254,7 +279,10 @@ export default function ProfiloScreen() {
         
         <TouchableOpacity 
           style={[styles.menuItem, { backgroundColor: colors.card }]}
-          onPress={() => router.push('/account/aiuto-supporto')}
+          onPress={() => {
+            onTap();
+            router.push('/account/aiuto-supporto');
+          }}
         >
           <View style={styles.menuItemLeft}>
             <Feather name="help-circle" size={24} color={colors.primary} style={styles.menuIcon} />
@@ -265,7 +293,10 @@ export default function ProfiloScreen() {
         
         <TouchableOpacity 
           style={[styles.menuItem, { backgroundColor: colors.card }]}
-          onPress={() => router.push('/account/informazioni-app')}
+          onPress={() => {
+            onTap();
+            router.push('/account/informazioni-app');
+          }}
         >
           <View style={styles.menuItemLeft}>
             <Feather name="info" size={24} color={colors.primary} style={styles.menuIcon} />
@@ -274,7 +305,13 @@ export default function ProfiloScreen() {
           <MaterialIcons name="chevron-right" size={24} color={colors.text} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: 'rgba(255, 59, 48, 0.1)' }]}>
+        <TouchableOpacity 
+          style={[styles.logoutButton, { backgroundColor: 'rgba(255, 59, 48, 0.1)' }]}
+          onPress={() => {
+            onError(); // Haptic feedback specifico per logout (azione importante)
+            handleLogout();
+          }}
+        >
           <Feather name="log-out" size={20} color="#FF3B30" style={styles.logoutIcon} />
           <Text style={styles.logoutText}>Esci</Text>
         </TouchableOpacity>

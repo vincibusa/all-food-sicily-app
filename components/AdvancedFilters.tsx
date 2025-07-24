@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useHaptics } from '../utils/haptics';
 
 interface FilterOption {
   id: string;
@@ -37,13 +38,17 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   onResetFilters,
   colors,
 }) => {
+  const { onTap } = useHaptics();
   return (
     <View style={styles.filtersSection}>
       {/* Toggle Button */}
       <View style={styles.additionalFiltersContainer}>
         <TouchableOpacity
           style={[styles.filterToggle, { backgroundColor: colors.card, borderColor: colors.primary + '20' }]}
-          onPress={() => setShowFilters(!showFilters)}
+          onPress={() => {
+            onTap();
+            setShowFilters(!showFilters);
+          }}
         >
           <View style={[styles.filterToggleIcon, { backgroundColor: colors.primary + '15' }]}> 
             <MaterialIcons name="tune" size={18} color={colors.primary} />
@@ -84,7 +89,10 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     { backgroundColor: selectedCategory === item.name ? colors.primary : colors.background },
                     { borderColor: colors.primary + '30' }
                   ]}
-                  onPress={() => onCategorySelect(item.name)}
+                  onPress={() => {
+                    onTap();
+                    onCategorySelect(item.name);
+                  }}
                 >
                   <Text
                     style={[
@@ -112,7 +120,10 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       { backgroundColor: selectedCity === item.name ? colors.primary : colors.background },
                       { borderColor: colors.primary + '30' }
                     ]}
-                    onPress={() => onCitySelect(item.name)}
+                    onPress={() => {
+                      onTap();
+                      onCitySelect(item.name);
+                    }}
                   >
                     <Text
                       style={[
@@ -133,7 +144,10 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             <View style={styles.resetContainer}>
               <TouchableOpacity
                 style={[styles.resetFiltersButton, { borderColor: colors.primary, backgroundColor: colors.primary + '10' }]}
-                onPress={onResetFilters}
+                onPress={() => {
+                  onTap();
+                  onResetFilters();
+                }}
               >
                 <MaterialIcons name="refresh" size={16} color={colors.primary} />
                 <Text style={[styles.resetFiltersText, { color: colors.primary }]}>Cancella Filtri</Text>
