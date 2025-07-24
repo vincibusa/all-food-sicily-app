@@ -16,6 +16,7 @@ import { useTheme } from './context/ThemeContext';
 import Colors from '../constants/Colors';
 import { authService } from '../services/auth.service';
 import { apiClient } from '../services/api';
+import { API_CONFIG } from '../services/api.config';
 
 interface City {
   id: string;
@@ -51,10 +52,11 @@ export default function RegisterScreen() {
 
   const loadCities = async () => {
     try {
-      const citiesData = await apiClient.get<City[]>('/cities/');
-      setCities(citiesData);
+      const response = await apiClient.get<{cities: City[]}>(API_CONFIG.ENDPOINTS.CITIES.LIST);
+      setCities(response.cities);
     } catch (error) {
       console.error('Error loading cities:', error);
+      Alert.alert('Errore', 'Impossibile caricare le città');
     }
   };
 
@@ -116,8 +118,8 @@ export default function RegisterScreen() {
       Alert.alert('Errore', 'Le password non coincidono');
       return false;
     }
-    if (!formData.cityId) {
-      Alert.alert('Errore', 'Seleziona la città');
+    if (!selectedCity) {
+      Alert.alert('Errore', 'Seleziona una città');
       return false;
     }
     if (!formData.privacyConsent) {
@@ -126,6 +128,8 @@ export default function RegisterScreen() {
     }
     return true;
   };
+
+
 
   const selectCity = (city: City) => {
     setSelectedCity(city);
