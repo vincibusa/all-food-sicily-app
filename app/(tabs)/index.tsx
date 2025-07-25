@@ -257,7 +257,7 @@ export default function Index() {
       >
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Guide in Evidenza</Text>
-          <Link href="/guide" asChild>
+          <Link href="/(tabs)/guide" asChild>
             <TouchableOpacity onPress={() => onTap()}>
               <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutte</Text>
             </TouchableOpacity>

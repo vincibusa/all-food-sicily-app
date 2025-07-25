@@ -175,7 +175,7 @@ export default function GuidesListScreen() {
       enableSwipe={false}
       onPress={() => {
         onTap();
-        router.push(`/articoli/${item.id}`);
+        router.push(`/guide/${item.id}`);
       }}
       delay={index * 100}
     />
