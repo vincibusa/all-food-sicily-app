@@ -4,11 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ImageBackground,
 } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useTheme } from '../app/context/ThemeContext';
 import { useHaptics } from '../utils/haptics';
 import { useTextStyles } from '../hooks/useAccessibleText';

@@ -51,9 +51,37 @@ export default function Index() {
   const [guides, setGuides] = useState<Guide[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const [totalImages, setTotalImages] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [contentHeight, setContentHeight] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
+  
+  const handleImageLoaded = (uri: string) => {
+    setLoadedImages(prev => new Set([...prev, uri]));
+  };
+  
+  const handleImageError = (uri: string) => {
+    // Count failed images as "loaded" so we don't block forever
+    handleImageLoaded(`error-${uri}`);
+  };
+  
+  const allImagesLoaded = loadedImages.size >= totalImages && totalImages > 0;
+  
+  // Safety timeout - show content after 4 seconds even if images aren't loaded
+  useEffect(() => {
+    if (totalImages > 0 && !allImagesLoaded) {
+      const timeout = setTimeout(() => {
+        const timeoutImages = [];
+        for (let i = 0; i < totalImages; i++) {
+          timeoutImages.push(`timeout-${i}`);
+        }
+        setLoadedImages(new Set(timeoutImages));
+      }, 4000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [totalImages, allImagesLoaded]);
 
   // Enhanced refresh hook per homepage
   const refreshState = useEnhancedRefresh({
@@ -106,7 +134,15 @@ export default function Index() {
       }));
       setGuides(guidesDataTransformed);
       setRestaurants(restaurantsDataTransformed);
-      console.log('✅ Data loaded successfully:', { guides: guidesDataTransformed.length, restaurants: restaurantsDataTransformed.length });
+      
+      // Count total images to load (only count valid images)
+      const validGuideImages = guidesDataTransformed.filter((g: Guide) => g.featured_image).length;
+      const validRestaurantImages = restaurantsDataTransformed.filter((r: Restaurant) => r.featured_image).length;
+      const totalImgs = validGuideImages + validRestaurantImages + 1; // +1 for hero image
+      setTotalImages(totalImgs);
+      setLoadedImages(new Set()); // Reset loaded images
+      
+      console.log('✅ Data loaded successfully:', { guides: guidesDataTransformed.length, restaurants: restaurantsDataTransformed.length, totalImages: totalImgs });
     } catch (error) {
       console.error('❌ Error loading data:', error);
       setError('Impossibile caricare i dati. Riprova più tardi.');
@@ -148,6 +184,8 @@ export default function Index() {
               source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
               style={styles.fullImage}
               imageStyle={{ borderRadius: 12 }}
+              onLoad={() => item.featured_image && handleImageLoaded(item.featured_image)}
+              onError={() => item.featured_image && handleImageError(item.featured_image)}
             >
               <View style={styles.overlay} />
               <View style={styles.textOverlay}>
@@ -179,6 +217,8 @@ export default function Index() {
               source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
               style={styles.fullImage}
               imageStyle={{ borderRadius: 12 }}
+              onLoad={() => item.featured_image && handleImageLoaded(item.featured_image)}
+              onError={() => item.featured_image && handleImageError(item.featured_image)}
             >
               <View style={styles.overlay} />
               <View style={styles.textOverlay}>
@@ -232,6 +272,8 @@ export default function Index() {
         <ImageBackground
           source={{ uri: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80' }}
           style={styles.heroImage}
+          onLoad={() => handleImageLoaded('hero-image')}
+          onError={() => handleImageError('hero-image')}
         >
           <BlurView intensity={30} style={styles.heroOverlay}>
             <Animated.Text 
@@ -276,6 +318,15 @@ export default function Index() {
           <InlineLoading 
             title="Errore nel caricamento delle guide"
           />
+        ) : !allImagesLoaded ? (
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={[1, 2, 3]}
+            keyExtractor={(item) => item.toString()}
+            renderItem={() => <SkeletonHeroCard />}
+            contentContainerStyle={styles.articlesList}
+          />
         ) : guides.length === 0 ? (
           <InlineLoading 
             title="Nessuna guida disponibile al momento"
@@ -317,6 +368,15 @@ export default function Index() {
         ) : error ? (
           <InlineLoading 
             title="Errore nel caricamento dei ristoranti"
+          />
+        ) : !allImagesLoaded ? (
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={[1, 2, 3]}
+            keyExtractor={(item) => item.toString()}
+            renderItem={() => <SkeletonHeroCard />}
+            contentContainerStyle={styles.restaurantsList}
           />
         ) : restaurants.length === 0 ? (
           <InlineLoading 

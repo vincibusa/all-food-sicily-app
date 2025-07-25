@@ -15,7 +15,6 @@ import { useTheme } from '../context/ThemeContext';
 import { apiClient } from '../../services/api';
 import { FontAwesome } from '@expo/vector-icons';
 import ListCard from '../../components/ListCard';
-import { ListItem } from '../../components/ListCard';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
 import AdvancedFilters from '../../components/AdvancedFilters';
 import { useHaptics } from '../../utils/haptics';
@@ -41,11 +40,6 @@ interface Guide {
   description?: string;
 }
 
-interface ListCardProps {
-  item: Guide;
-  onPress: () => void;
-  delay: number;
-}
 
 interface FilterOption {
   id: string;
