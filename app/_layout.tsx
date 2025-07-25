@@ -28,14 +28,6 @@ export default function RootLayout() {
           }}
         />
         
-        <Stack.Screen 
-          name="login"
-          options={{ 
-            headerShown: false,
-            animation: 'fade',
-            gestureEnabled: false
-          }}
-        />
         
         <Stack.Screen 
           name="(tabs)" 
@@ -59,38 +51,6 @@ export default function RootLayout() {
           }}
         />
         
-        {/* Pagine dell'account */}
-        <Stack.Screen 
-          name="account/informazioni-personali" 
-          options={{ 
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        
-        <Stack.Screen 
-          name="account/privacy-sicurezza" 
-          options={{ 
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        
-        <Stack.Screen 
-          name="account/aiuto-supporto" 
-          options={{ 
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        
-        <Stack.Screen 
-          name="account/informazioni-app" 
-          options={{ 
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
       </Stack>
         </ThemeProvider>
       </PerformanceProvider>

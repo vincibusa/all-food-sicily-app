@@ -31,6 +31,8 @@ export interface ListItem {
   created_at?: string;
   rating?: string | number;
   price_range?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface ListCardProps {

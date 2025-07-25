@@ -1,29 +1,12 @@
-import React, { useEffect } from "react";
-import { Tabs, useRouter } from "expo-router";
-import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Tabs } from "expo-router";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
-import { authService } from "../../services/auth.service";
 import { useHaptics } from "../../utils/haptics";
 
 export default function TabsLayout() {
   const { colors } = useTheme();
-  const router = useRouter();
   const { onNavigation } = useHaptics();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        if (!user) {
-          router.replace('/login');
-        }
-      } catch (error) {
-        router.replace('/login');
-      }
-    };
-    
-    checkAuth();
-  }, [router]);
   
   return (
     <Tabs
@@ -65,13 +48,6 @@ export default function TabsLayout() {
         options={{
           title: "Guide",
           tabBarIcon: ({ color }) => <FontAwesome name="book" size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profilo"
-        options={{
-          title: "Profilo",
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
         }}
       />
     </Tabs>

@@ -15,6 +15,7 @@ import { useHaptics } from "../../utils/haptics";
 import { InlineLoading, FullScreenLoading } from "../../components/LoadingStates";
 import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
+import MapView from '../../components/MapView';
 
 interface Restaurant extends ListItem {
   description: string;
@@ -51,6 +52,7 @@ export default function RistorantiScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCuisine, setSelectedCuisine] = useState('Tutte');
   const [cuisineTypes, setCuisineTypes] = useState<FilterOption[]>([]);
+  const [isMapView, setIsMapView] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -84,7 +86,9 @@ export default function RistorantiScreen() {
         province: restaurant.province,
         cuisine_type: restaurant.cuisine_type || [],
         rating: restaurant.rating,
-        price_range: restaurant.price_range
+        price_range: restaurant.price_range,
+        latitude: restaurant.latitude,
+        longitude: restaurant.longitude
       }));
       setRestaurants(transformedRestaurants);
       // Add "Tutti" category at the beginning
@@ -147,6 +151,24 @@ export default function RistorantiScreen() {
     setSelectedCuisine(cuisineName);
   };
 
+  const handleLocationRequest = () => {
+    // Funzione per richiedere aggiornamento posizione
+    Alert.alert(
+      'Aggiorna Posizione',
+      'Vuoi aggiornare la tua posizione per vedere i ristoranti più vicini?',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { 
+          text: 'Aggiorna', 
+          onPress: () => {
+            // La logica di aggiornamento è già gestita nell'hook useLocation del MapView
+            console.log('Richiesta aggiornamento posizione');
+          }
+        }
+      ]
+    );
+  };
+
   
   // Filtro client-side per search query, città e tipo di cucina
   const filteredRestaurants = restaurants.filter(restaurant => {
@@ -176,138 +198,186 @@ export default function RistorantiScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-          <FontAwesome name="search" size={16} color={colors.text + '60'} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Cerca ristoranti, città, categorie..."
-            placeholderTextColor={colors.text + '60'}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => {
-              onTap();
-              setSearchQuery('');
-            }}>
-              <FontAwesome name="times" size={16} color={colors.text + '60'} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Filtri */}
-        <AdvancedFilters
-          showFilters={showFilters}
-          setShowFilters={setShowFilters}
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategorySelect={handleCategorySelect}
-          cities={cities}
-          selectedCity={selectedCity}
-          onCitySelect={setSelectedCity}
-          onResetFilters={() => {
-            setSelectedCity('Tutte');
-            setSelectedCategory('Tutti');
-          }}
-          colors={colors}
-        />
-
-        {/* Results Count e Filtri Attivi */}
-        <View style={styles.resultsSection}>
-          <Text style={[styles.resultsText, { color: colors.text + '80' }]}> 
-            {filteredRestaurants.length} ristorante{filteredRestaurants.length === 1 ? '' : 'i'} trovato{filteredRestaurants.length === 1 ? '' : 'i'}
-          </Text>
-          
-          {/* Indicatori Filtri Attivi */}
-          <View style={styles.activeFiltersContainer}>
-            {selectedCity !== 'Tutte' && (
-              <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
+        {/* Search Bar e Filtri - Solo in vista lista */}
+        {!isMapView && (
+          <>
+            {/* Search Bar */}
+            <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
+              <FontAwesome name="search" size={16} color={colors.text + '60'} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Cerca ristoranti, città, categorie..."
+                placeholderTextColor={colors.text + '60'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => {
                   onTap();
-                  setSelectedCity('Tutte');
+                  setSearchQuery('');
                 }}>
-                  <MaterialIcons name="close" size={14} color={colors.primary} />
+                  <FontAwesome name="times" size={16} color={colors.text + '60'} />
                 </TouchableOpacity>
-              </View>
-            )}
-            {selectedCategory !== 'Tutti' && (
-              <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCategory}</Text>
-                <TouchableOpacity onPress={() => {
-                  onTap();
-                  setSelectedCategory('Tutti');
-                }}>
-                  <MaterialIcons name="close" size={14} color={colors.primary} />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
+              )}
+            </View>
 
-        {/* Enhanced Refresh Indicator - Solo Icona */}
-        {refreshState.shouldShowIndicator && (
-          <MinimalRefreshIndicator
-            isRefreshing={refreshState.isRefreshing}
-            progress={refreshState.refreshProgress}
-            text=""
-            translateY={refreshState.translateY}
-            opacity={refreshState.opacity}
-            scale={refreshState.scale}
-            rotation={refreshState.rotation}
-            size="small"
-          />
-        )}
+            {/* Filtri */}
+            <AdvancedFilters
+              showFilters={showFilters}
+              setShowFilters={setShowFilters}
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+              cities={cities}
+              selectedCity={selectedCity}
+              onCitySelect={setSelectedCity}
+              onResetFilters={() => {
+                setSelectedCity('Tutte');
+                setSelectedCategory('Tutti');
+              }}
+              colors={colors}
+              showMapButton={true}
+              isMapView={isMapView}
+              onToggleMapView={() => setIsMapView(!isMapView)}
+            />
 
-        {/* Lista Ristoranti */}
-        <FlatList
-          data={filteredRestaurants}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={false}
-          onScroll={refreshState.onScroll}
-          onScrollEndDrag={refreshState.onScrollEndDrag}
-          scrollEventThrottle={16}
-          ListEmptyComponent={
-            loading ? (
-              <View style={styles.listContainer}>
-                {[1, 2, 3].map((_, index) => (
-                  <ListCardSkeleton 
-                    key={`skeleton-${index}`} 
-                    variant={SkeletonVariant.SHIMMER}
-                    showRating={true}
-                  />
-                ))}
-              </View>
-            ) : (
-              <View style={styles.centerContainer}>
-                <FontAwesome name="search" size={48} color={colors.text + '40'} />
-                <Text style={[styles.emptyText, { color: colors.text + '60' }]}> 
-                  {searchQuery ? 'Nessun ristorante trovato' : 'Nessun ristorante disponibile'}
-                </Text>
-                {searchQuery && (
-                  <Text style={[styles.emptySubtext, { color: colors.text + '40' }]}> 
-                    Prova a modificare i criteri di ricerca
-                  </Text>
+            {/* Results Count e Filtri Attivi */}
+            <View style={styles.resultsSection}>
+              <Text style={[styles.resultsText, { color: colors.text + '80' }]}> 
+                {filteredRestaurants.length} ristorante{filteredRestaurants.length === 1 ? '' : 'i'} trovato{filteredRestaurants.length === 1 ? '' : 'i'}
+              </Text>
+              
+              {/* Indicatori Filtri Attivi */}
+              <View style={styles.activeFiltersContainer}>
+                {selectedCity !== 'Tutte' && (
+                  <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
+                    <TouchableOpacity onPress={() => {
+                      onTap();
+                      setSelectedCity('Tutte');
+                    }}>
+                      <MaterialIcons name="close" size={14} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {selectedCategory !== 'Tutti' && (
+                  <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCategory}</Text>
+                    <TouchableOpacity onPress={() => {
+                      onTap();
+                      setSelectedCategory('Tutti');
+                    }}>
+                      <MaterialIcons name="close" size={14} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
-            )
-          }
-          renderItem={({ item: restaurant, index }) => (
-            <ListCard
-              item={restaurant}
-              delay={index * 100}
-              enableSwipe={false}
-              onPress={() => {
+            </View>
+
+            {/* Enhanced Refresh Indicator - Solo Icona */}
+            {refreshState.shouldShowIndicator && (
+              <MinimalRefreshIndicator
+                isRefreshing={refreshState.isRefreshing}
+                progress={refreshState.refreshProgress}
+                text=""
+                translateY={refreshState.translateY}
+                opacity={refreshState.opacity}
+                scale={refreshState.scale}
+                rotation={refreshState.rotation}
+                size="small"
+              />
+            )}
+          </>
+        )}
+
+        {/* Vista Mappa o Lista */}
+        {isMapView ? (
+          <View style={styles.mapContainer}>
+            {/* Header mappa con controlli */}
+            <View style={[styles.mapHeader, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.mapControlButton, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  onTap();
+                  setIsMapView(false);
+                }}
+              >
+                <MaterialIcons name="list" size={20} color="white" />
+                <Text style={styles.mapControlText}>Lista</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.mapControlButton, { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 1 }]}
+                onPress={() => {
+                  onTap();
+                  // Ricarica posizione utente
+                  handleLocationRequest();
+                }}
+              >
+                <MaterialIcons name="my-location" size={20} color={colors.primary} />
+                <Text style={[styles.mapControlText, { color: colors.primary }]}>Posizione</Text>
+              </TouchableOpacity>
+            </View>
+
+            <MapView
+              restaurants={filteredRestaurants}
+              onMarkerPress={(restaurant) => {
                 onTap();
-                // Navigazione al dettaglio del ristorante
                 router.push(`/ristoranti/${restaurant.id}`);
               }}
+              onLocationRequest={handleLocationRequest}
             />
-          )}
-        />
+          </View>
+        ) : (
+          /* Lista Ristoranti */
+          <FlatList
+            data={filteredRestaurants}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            onScroll={refreshState.onScroll}
+            onScrollEndDrag={refreshState.onScrollEndDrag}
+            scrollEventThrottle={16}
+            ListEmptyComponent={
+              loading ? (
+                <View style={styles.listContainer}>
+                  {[1, 2, 3].map((_, index) => (
+                    <ListCardSkeleton 
+                      key={`skeleton-${index}`} 
+                      variant={SkeletonVariant.SHIMMER}
+                      showRating={true}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.centerContainer}>
+                  <FontAwesome name="search" size={48} color={colors.text + '40'} />
+                  <Text style={[styles.emptyText, { color: colors.text + '60' }]}> 
+                    {searchQuery ? 'Nessun ristorante trovato' : 'Nessun ristorante disponibile'}
+                  </Text>
+                  {searchQuery && (
+                    <Text style={[styles.emptySubtext, { color: colors.text + '40' }]}> 
+                      Prova a modificare i criteri di ricerca
+                    </Text>
+                  )}
+                </View>
+              )
+            }
+            renderItem={({ item: restaurant, index }) => (
+              <ListCard
+                item={restaurant}
+                delay={index * 100}
+                enableSwipe={false}
+                onPress={() => {
+                  onTap();
+                  // Navigazione al dettaglio del ristorante
+                  router.push(`/ristoranti/${restaurant.id}`);
+                }}
+              />
+            )}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -599,5 +669,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+  },
+  mapContainer: {
+    flex: 1,
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+    gap: 12,
+  },
+  mapControlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapControlText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
   },
 }); 

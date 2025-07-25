@@ -200,28 +200,28 @@ export const ThemeTokens = {
       disabled: NeutralColors.gray[600],    // 3.1:1 ratio (large text only)
     },
     
-    // Brand colors (adjusted for dark theme)
+    // Brand colors - PIÙ ACCESI come nella light mode!
     brand: {
-      primary: BrandColors.red[400],        // 5.9:1 ratio with dark bg
-      secondary: BrandColors.orange[400],   // 6.1:1 ratio with dark bg
-      accent: BrandColors.green[400],       // 6.8:1 ratio with dark bg
+      primary: BrandColors.red[600],        // Stesso rosso vivace della light mode
+      secondary: BrandColors.orange[600],   // Stesso arancione vivace della light mode  
+      accent: BrandColors.green[600],       // Stesso verde vivace della light mode
     },
     
-    // Interactive elements
+    // Interactive elements - BOTTONI PIÙ VIVACI
     interactive: {
-      primary: BrandColors.red[500],
-      primaryHover: BrandColors.red[400],
-      primaryActive: BrandColors.red[300],
+      primary: BrandColors.red[600],        // #dc2626 - Rosso vivace come light mode
+      primaryHover: BrandColors.red[500],   // #ef4444 - Più chiaro al hover per dark mode
+      primaryActive: BrandColors.red[700],  // #b91c1c - Più scuro quando premuto
       secondary: NeutralColors.gray[700],
       secondaryHover: NeutralColors.gray[600],
       disabled: NeutralColors.gray[700],
     },
     
-    // Borders and dividers
+    // Borders and dividers  
     border: {
       primary: NeutralColors.gray[700],     // 2.4:1 ratio
       secondary: NeutralColors.gray[800],
-      accent: BrandColors.red[800],
+      accent: BrandColors.red[600],         // Rosso vivace anche per accenti
     },
     
     // Shadows

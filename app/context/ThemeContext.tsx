@@ -56,4 +56,7 @@ export const useTheme = (): ThemeContextType => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
-}; 
+};
+
+// Export default per soddisfare il requisito di Expo Router
+export default ThemeProvider; 

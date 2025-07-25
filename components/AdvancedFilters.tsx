@@ -24,6 +24,9 @@ interface AdvancedFiltersProps {
   onCitySelect?: (cityName: string) => void;
   onResetFilters: () => void;
   colors: any;
+  showMapButton?: boolean;
+  isMapView?: boolean;
+  onToggleMapView?: () => void;
 }
 
 const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
@@ -37,38 +40,73 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   onCitySelect = () => {},
   onResetFilters,
   colors,
+  showMapButton = false,
+  isMapView = false,
+  onToggleMapView = () => {},
 }) => {
   const { onTap } = useHaptics();
   return (
     <View style={styles.filtersSection}>
-      {/* Toggle Button */}
+      {/* Filters and Map Toggle Row */}
       <View style={styles.additionalFiltersContainer}>
-        <TouchableOpacity
-          style={[styles.filterToggle, { backgroundColor: colors.card, borderColor: colors.primary + '20' }]}
-          onPress={() => {
-            onTap();
-            setShowFilters(!showFilters);
-          }}
-        >
-          <View style={[styles.filterToggleIcon, { backgroundColor: colors.primary + '15' }]}> 
-            <MaterialIcons name="tune" size={18} color={colors.primary} />
-          </View>
-          <Text style={[styles.filterToggleText, { color: colors.text }]}>Filtri avanzati</Text>
-          <View style={styles.filterBadgeContainer}>
-            {(selectedCity !== 'Tutte' || selectedCategory !== 'Tutti') && (
-              <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}> 
-                <Text style={styles.filterBadgeText}>
-                  {(selectedCity !== 'Tutte' ? 1 : 0) + (selectedCategory !== 'Tutti' ? 1 : 0)}
-                </Text>
-              </View>
-            )}
-            <MaterialIcons 
-              name={showFilters ? "expand-less" : "expand-more"} 
-              size={20} 
-              color={colors.text + '60'} 
-            />
-          </View>
-        </TouchableOpacity>
+        <View style={styles.filtersRow}>
+          {/* Filter Toggle Button */}
+          <TouchableOpacity
+            style={[styles.filterToggle, { backgroundColor: colors.card, borderColor: colors.primary + '20' }]}
+            onPress={() => {
+              onTap();
+              setShowFilters(!showFilters);
+            }}
+          >
+            <View style={[styles.filterToggleIcon, { backgroundColor: colors.primary + '15' }]}> 
+              <MaterialIcons name="tune" size={18} color={colors.primary} />
+            </View>
+            <Text style={[styles.filterToggleText, { color: colors.text }]}>Filtri avanzati</Text>
+            <View style={styles.filterBadgeContainer}>
+              {(selectedCity !== 'Tutte' || selectedCategory !== 'Tutti') && (
+                <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}> 
+                  <Text style={styles.filterBadgeText}>
+                    {(selectedCity !== 'Tutte' ? 1 : 0) + (selectedCategory !== 'Tutti' ? 1 : 0)}
+                  </Text>
+                </View>
+              )}
+              <MaterialIcons 
+                name={showFilters ? "expand-less" : "expand-more"} 
+                size={20} 
+                color={colors.text + '60'} 
+              />
+            </View>
+          </TouchableOpacity>
+
+          {/* Map Toggle Button */}
+          {showMapButton && (
+            <TouchableOpacity
+              style={[
+                styles.mapToggleButton,
+                {
+                  backgroundColor: isMapView ? colors.primary : colors.card,
+                  borderColor: colors.primary + '20'
+                }
+              ]}
+              onPress={() => {
+                onTap();
+                onToggleMapView();
+              }}
+            >
+              <MaterialIcons 
+                name={isMapView ? "list" : "map"} 
+                size={20} 
+                color={isMapView ? 'white' : colors.primary} 
+              />
+              <Text style={[
+                styles.mapToggleText,
+                { color: isMapView ? 'white' : colors.primary }
+              ]}>
+                {isMapView ? 'Lista' : 'Visualizza Mappa'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Expandable Filters */}
@@ -168,7 +206,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 8,
   },
+  filtersRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   filterToggle: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -180,6 +223,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
+  },
+  mapToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   filterToggleIcon: {
     width: 32,
