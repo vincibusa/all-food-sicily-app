@@ -29,7 +29,7 @@ const SectionContainer: React.FC<SectionContainerProps> = ({
     >
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
-        <Link href={linkTo} asChild>
+        <Link href={linkTo as any} asChild>
           <TouchableOpacity>
             <Text style={[styles.sectionLink, { color: colors.tint }]}>{linkText}</Text>
           </TouchableOpacity>

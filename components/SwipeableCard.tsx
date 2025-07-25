@@ -112,7 +112,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
 }) => {
   const textStyles = useTextStyles();
   const haptics = useHaptics();
-  const { onTap, onSuccess, onWarning, onError, onSelection } = haptics || {};
+  const { onTap, onSuccess, onWarning, onError } = haptics || {};
 
   // Shared values per animazioni
   const translateX = useSharedValue(0);
@@ -143,7 +143,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
         case 'light':
         case 'medium':
         case 'heavy':
-          onSelection?.();
+          onTap?.();
           break;
         default:
           onTap?.();
@@ -151,7 +151,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
     } catch (error) {
       console.warn('[SwipeableCard] Haptic feedback error:', error);
     }
-  }, [onSuccess, onWarning, onError, onSelection, onTap]);
+  }, [onSuccess, onWarning, onError, onTap]);
 
   // ==========================================
   // 🎯 GESTURE HANDLER

@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import { PerformanceProvider } from "../context/PerformanceContext";
 
 // Componente wrapper per StatusBar che usa il tema
 function ThemedStatusBar() {
@@ -13,8 +14,9 @@ function ThemedStatusBar() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <ThemedStatusBar />
+      <PerformanceProvider>
+        <ThemeProvider>
+          <ThemedStatusBar />
         
         <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen 
@@ -90,7 +92,8 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      </ThemeProvider>
+        </ThemeProvider>
+      </PerformanceProvider>
     </GestureHandlerRootView>
   );
 }

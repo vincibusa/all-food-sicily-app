@@ -148,7 +148,7 @@ export const useBatterySaver = () => {
     const aggressive = settings.aggressiveMode;
 
     return {
-      imageQuality: (config.lowerImageQuality ? (aggressive ? 'low' : 'medium') : 'high') as const,
+      imageQuality: config.lowerImageQuality ? (aggressive ? 'low' : 'medium') : 'high',
       animationDuration: config.reducedAnimations ? (aggressive ? 0 : 150) : 300,
       refreshInterval: config.reduceRefreshRate ? (aggressive ? 120000 : 60000) : 30000, // 1-2 minutes vs 30 seconds
       maxConcurrentRequests: config.limitNetworkRequests ? (aggressive ? 1 : 2) : 5,

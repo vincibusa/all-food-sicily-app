@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useSharedValue, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
+import { useSharedValue, withSpring, withTiming, runOnJS, SharedValue } from 'react-native-reanimated';
 import { useHaptics } from '../utils/haptics';
 
 // ==========================================
@@ -27,10 +27,10 @@ interface EnhancedRefreshState {
   refreshProgress: number;      // Progresso 0-1
   
   // Valori animati
-  translateY: Animated.SharedValue<number>;
-  opacity: Animated.SharedValue<number>;
-  scale: Animated.SharedValue<number>;
-  rotation: Animated.SharedValue<number>;
+  translateY: SharedValue<number>;
+  opacity: SharedValue<number>;
+  scale: SharedValue<number>;
+  rotation: SharedValue<number>;
   
   // Callbacks per ScrollView
   onScroll: (event: any) => void;
@@ -67,7 +67,7 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
 
   // Haptic feedback
   const haptics = useHaptics();
-  const { onRefreshStart, onRefreshComplete, onSelection } = haptics || {};
+  const { onRefreshStart, onRefreshComplete } = haptics || {};
 
   // Valori animati
   const translateY = useSharedValue(0);
@@ -93,21 +93,20 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
       setShouldShowIndicator(true);
       
       // Haptic feedback quando raggiunge la soglia
-      if (hapticFeedback && onSelection) {
-        runOnJS(onSelection)();
+      if (hapticFeedback && onRefreshStart) {
+        runOnJS(onRefreshStart)();
       }
     } else if (isActive) {
       setIndicatorText('');
       setShouldShowIndicator(true);
     }
-  }, [hapticFeedback, onSelection]);
+  }, [hapticFeedback, onRefreshStart]);
 
   const animateIndicator = useCallback((progress: number) => {
     'worklet';
     
     // Animazione di translate - segue il movimento del dito
     translateY.value = withSpring(Math.max(0, progress * threshold * 0.8), {
-      damping: 15,
       stiffness: 250,
     });
     
@@ -118,7 +117,6 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     
     // Animazione di scale - più evidente
     scale.value = withSpring(Math.min(1.3, 1 + progress * 0.3), {
-      damping: 15,
       stiffness: 250,
     });
     
@@ -135,7 +133,6 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     'worklet';
     
     translateY.value = withSpring(0, {
-      damping: 20,
       stiffness: 300,
       duration: snapBackDuration,
     });
@@ -145,7 +142,6 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
     });
     
     scale.value = withSpring(1, {
-      damping: 15,
       stiffness: 200,
     });
     

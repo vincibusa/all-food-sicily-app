@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, ImageBackground, View, StyleSheet, Dimensions } from 'react-native';
 import { SkeletonBase } from './skeleton/SkeletonBase';
+import { usePerformance } from '../context/PerformanceContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -23,7 +24,7 @@ interface LazyImageBackgroundProps extends LazyImageProps {
 }
 
 // Helper function to optimize image URLs based on screen size and quality
-const optimizeImageUrl = (uri: string, quality: 'low' | 'medium' | 'high' = 'medium'): string => {
+const optimizeImageUrl = (uri: string, quality: 'low' | 'medium' | 'high' = 'medium', usePerformanceOptimization = false): string => {
   if (!uri || !uri.includes('unsplash.com')) return uri;
   
   // Determine optimal dimensions based on screen width and quality
@@ -34,12 +35,13 @@ const optimizeImageUrl = (uri: string, quality: 'low' | 'medium' | 'high' = 'med
   };
   
   const targetWidth = qualityMap[quality];
+  const jpegQuality = usePerformanceOptimization ? (quality === 'low' ? 60 : quality === 'medium' ? 70 : 80) : 80;
   
   // Add Unsplash optimization parameters
   if (uri.includes('?')) {
-    return `${uri}&w=${targetWidth}&q=80&fm=jpg&fit=crop`;
+    return `${uri}&w=${targetWidth}&q=${jpegQuality}&fm=jpg&fit=crop`;
   } else {
-    return `${uri}?w=${targetWidth}&q=80&fm=jpg&fit=crop`;
+    return `${uri}?w=${targetWidth}&q=${jpegQuality}&fm=jpg&fit=crop`;
   }
 };
 
@@ -59,6 +61,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [hasError, setHasError] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(priority === 'high');
   const imageRef = useRef<View>(null);
+  
+  // Get performance optimizations
+  const { getOptimizedConfig, getPerformanceStatus } = usePerformance();
+  const optimizedConfig = getOptimizedConfig();
+  const performanceStatus = getPerformanceStatus();
 
   // Intersection observer simulation for React Native
   useEffect(() => {
@@ -67,12 +74,14 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       return;
     }
 
-    // For now, we'll use a simple timeout to simulate lazy loading
-    // In a real implementation, you would use react-native-intersection-observer
-    // or implement viewport detection
+    // Use performance-optimized timing for lazy loading
+    const loadDelay = priority === 'low' ? 
+      (performanceStatus.isOptimized ? 3000 : 2000) : 
+      (performanceStatus.isOptimized ? 1000 : 500);
+      
     const timer = setTimeout(() => {
       setShouldLoad(true);
-    }, priority === 'low' ? 2000 : 500);
+    }, loadDelay);
 
     return () => clearTimeout(timer);
   }, [priority]);
@@ -88,12 +97,18 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     onError?.();
   };
 
-  const optimizedUri = optimizeImageUrl(uri || fallbackUri, quality);
+  // Use performance-aware image optimization
+  const effectiveQuality = performanceStatus.isOptimized ? optimizedConfig.imageQuality : quality;
+  const optimizedUri = optimizeImageUrl(
+    optimizedConfig.shouldPreloadImages ? uri || fallbackUri : fallbackUri, 
+    effectiveQuality as 'low' | 'medium' | 'high',
+    performanceStatus.isOptimized
+  );
 
   if (!shouldLoad) {
     return (
       <View ref={imageRef} style={style}>
-        {placeholder || <SkeletonBase style={[styles.skeleton, style]} />}
+        {placeholder || <SkeletonBase style={styles.skeleton} />}
       </View>
     );
   }
@@ -117,7 +132,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     <View style={style}>
       {!isLoaded && (
         <View style={[StyleSheet.absoluteFillObject, styles.placeholderContainer]}>
-          {placeholder || <SkeletonBase style={[styles.skeleton, style]} />}
+          {placeholder || <SkeletonBase style={styles.skeleton} />}
         </View>
       )}
       <Image
@@ -149,6 +164,11 @@ export const LazyImageBackground: React.FC<LazyImageBackgroundProps> = ({
   const [hasError, setHasError] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(priority === 'high');
   const imageRef = useRef<View>(null);
+  
+  // Get performance optimizations  
+  const { getOptimizedConfig, getPerformanceStatus } = usePerformance();
+  const optimizedConfig = getOptimizedConfig();
+  const performanceStatus = getPerformanceStatus();
 
   useEffect(() => {
     if (priority === 'high') {
@@ -156,9 +176,14 @@ export const LazyImageBackground: React.FC<LazyImageBackgroundProps> = ({
       return;
     }
 
+    // Use performance-optimized timing for lazy loading
+    const loadDelay = priority === 'low' ? 
+      (performanceStatus.isOptimized ? 3000 : 2000) : 
+      (performanceStatus.isOptimized ? 1000 : 500);
+      
     const timer = setTimeout(() => {
       setShouldLoad(true);
-    }, priority === 'low' ? 2000 : 500);
+    }, loadDelay);
 
     return () => clearTimeout(timer);
   }, [priority]);
@@ -174,12 +199,18 @@ export const LazyImageBackground: React.FC<LazyImageBackgroundProps> = ({
     onError?.();
   };
 
-  const optimizedUri = optimizeImageUrl(uri || fallbackUri, quality);
+  // Use performance-aware image optimization for background
+  const effectiveQuality = performanceStatus.isOptimized ? optimizedConfig.imageQuality : quality;
+  const optimizedUri = optimizeImageUrl(
+    optimizedConfig.shouldPreloadImages ? uri || fallbackUri : fallbackUri,
+    effectiveQuality as 'low' | 'medium' | 'high',
+    performanceStatus.isOptimized
+  );
 
   if (!shouldLoad) {
     return (
       <View ref={imageRef} style={style}>
-        {placeholder || <SkeletonBase style={[styles.skeleton, style]} />}
+        {placeholder || <SkeletonBase style={styles.skeleton} />}
         {children}
       </View>
     );
@@ -206,7 +237,7 @@ export const LazyImageBackground: React.FC<LazyImageBackgroundProps> = ({
     <View style={style}>
       {!isLoaded && (
         <View style={[StyleSheet.absoluteFillObject, styles.placeholderContainer]}>
-          {placeholder || <SkeletonBase style={[styles.skeleton, style]} />}
+          {placeholder || <SkeletonBase style={styles.skeleton} />}
         </View>
       )}
       <ImageBackground
