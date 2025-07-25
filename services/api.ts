@@ -1,4 +1,5 @@
 import { API_CONFIG, API_HEADERS, API_TIMEOUT } from './api.config';
+import { cacheManager, CacheConfig } from './cache';
 
 /**
  * Custom error class for API errors
@@ -106,9 +107,13 @@ class ApiClient {
   }
 
   /**
-   * GET request
+   * GET request with intelligent caching
    */
-  async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+  async get<T>(
+    endpoint: string, 
+    params?: Record<string, any>,
+    cacheConfig?: CacheConfig & { useCache?: boolean; forceRefresh?: boolean }
+  ): Promise<T> {
     let url = endpoint;
     if (params) {
       const queryString = new URLSearchParams(
@@ -119,39 +124,136 @@ class ApiClient {
       }
     }
 
-    return this.request<T>(url, { method: 'GET' });
+    const useCache = cacheConfig?.useCache !== false; // Default to true
+    const forceRefresh = cacheConfig?.forceRefresh === true;
+
+    // Try cache first (unless force refresh)
+    if (useCache && !forceRefresh) {
+      const cached = await cacheManager.get<T>(endpoint, params, cacheConfig);
+      if (cached) {
+        console.log(`💾 Cache ${cached.isStale ? 'STALE' : 'HIT'}:`, endpoint);
+        
+        // If stale, fetch fresh data in background
+        if (cached.isStale && cacheConfig?.staleWhileRevalidate) {
+          this.request<T>(url, { method: 'GET' })
+            .then(freshData => {
+              cacheManager.set(endpoint, freshData, cacheConfig);
+              console.log('🔄 Background refresh completed:', endpoint);
+            })
+            .catch(error => {
+              console.warn('⚠️ Background refresh failed:', error);
+            });
+        }
+        
+        return cached.data;
+      }
+      
+      console.log('❌ Cache MISS:', endpoint);
+    }
+
+    // Fetch from API
+    const data = await this.request<T>(url, { method: 'GET' });
+    
+    // Cache the result
+    if (useCache) {
+      await cacheManager.set(endpoint, data, cacheConfig);
+      console.log('💾 Cached:', endpoint);
+    }
+    
+    return data;
   }
 
   /**
-   * POST request
+   * POST request (invalidates related cache)
    */
-  async post<T>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<T> {
+  async post<T>(
+    endpoint: string, 
+    data?: any, 
+    options?: { headers?: Record<string, string>; invalidateCache?: string[] }
+  ): Promise<T> {
     const body = options?.headers?.['Content-Type'] === 'application/x-www-form-urlencoded' 
       ? data 
       : (data ? JSON.stringify(data) : undefined);
       
-    return this.request<T>(endpoint, {
+    const result = await this.request<T>(endpoint, {
       method: 'POST',
       body,
       headers: options?.headers,
     });
+    
+    // Invalidate related cache entries
+    if (options?.invalidateCache) {
+      await Promise.all(
+        options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
+      );
+      console.log('🗑️ Invalidated cache:', options.invalidateCache);
+    }
+    
+    return result;
   }
 
   /**
-   * PUT request
+   * PUT request (invalidates related cache)
    */
-  async put<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
+  async put<T>(
+    endpoint: string, 
+    data?: any,
+    options?: { invalidateCache?: string[] }
+  ): Promise<T> {
+    const result = await this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
     });
+    
+    // Invalidate related cache entries
+    if (options?.invalidateCache) {
+      await Promise.all(
+        options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
+      );
+      console.log('🗑️ Invalidated cache:', options.invalidateCache);
+    }
+    
+    return result;
   }
 
   /**
-   * DELETE request
+   * DELETE request (invalidates related cache)
    */
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  async delete<T>(
+    endpoint: string,
+    options?: { invalidateCache?: string[] }
+  ): Promise<T> {
+    const result = await this.request<T>(endpoint, { method: 'DELETE' });
+    
+    // Invalidate related cache entries
+    if (options?.invalidateCache) {
+      await Promise.all(
+        options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
+      );
+      console.log('🗑️ Invalidated cache:', options.invalidateCache);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Clear cache for specific data type
+   */
+  async clearCache(dataType?: 'restaurants' | 'guides' | 'categories' | 'search' | 'user'): Promise<void> {
+    if (dataType) {
+      await cacheManager.clearType(dataType);
+      console.log(`🗑️ Cleared ${dataType} cache`);
+    } else {
+      await cacheManager.clear();
+      console.log('🗑️ Cleared all cache');
+    }
+  }
+  
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return cacheManager.getStats();
   }
 }
 
