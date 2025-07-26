@@ -1,12 +1,16 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import Animated, { FadeInDown, FadeIn, SlideInDown, withSpring } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useHaptics } from '../utils/haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface FilterOption {
   id: string;
   name: string;
+  count?: number;
 }
 
 interface Category extends FilterOption {
@@ -27,6 +31,7 @@ interface AdvancedFiltersProps {
   showMapButton?: boolean;
   isMapView?: boolean;
   onToggleMapView?: () => void;
+  totalResults?: number;
 }
 
 const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
@@ -43,154 +48,326 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   showMapButton = false,
   isMapView = false,
   onToggleMapView = () => {},
+  totalResults = 0,
 }) => {
   const { onTap } = useHaptics();
+  
+  const activeFiltersCount = (selectedCity !== 'Tutte' ? 1 : 0) + (selectedCategory !== 'Tutti' ? 1 : 0);
+  const hasActiveFilters = activeFiltersCount > 0;
+
   return (
     <View style={styles.filtersSection}>
       {/* Filters and Map Toggle Row */}
       <View style={styles.additionalFiltersContainer}>
         <View style={styles.filtersRow}>
-          {/* Filter Toggle Button */}
-          <TouchableOpacity
-            style={[styles.filterToggle, { backgroundColor: colors.card, borderColor: colors.primary + '20' }]}
-            onPress={() => {
-              onTap();
-              setShowFilters(!showFilters);
-            }}
-          >
-            <View style={[styles.filterToggleIcon, { backgroundColor: colors.primary + '15' }]}> 
-              <MaterialIcons name="tune" size={18} color={colors.primary} />
-            </View>
-            <Text style={[styles.filterToggleText, { color: colors.text }]}>Filtri avanzati</Text>
-            <View style={styles.filterBadgeContainer}>
-              {(selectedCity !== 'Tutte' || selectedCategory !== 'Tutti') && (
-                <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}> 
-                  <Text style={styles.filterBadgeText}>
-                    {(selectedCity !== 'Tutte' ? 1 : 0) + (selectedCategory !== 'Tutti' ? 1 : 0)}
-                  </Text>
-                </View>
-              )}
-              <MaterialIcons 
-                name={showFilters ? "expand-less" : "expand-more"} 
-                size={20} 
-                color={colors.text + '60'} 
-              />
-            </View>
-          </TouchableOpacity>
-
-          {/* Map Toggle Button */}
-          {showMapButton && (
+          {/* Enhanced Filter Toggle Button */}
+          <Animated.View style={{ flex: 1 }}>
             <TouchableOpacity
               style={[
-                styles.mapToggleButton,
-                {
-                  backgroundColor: isMapView ? colors.primary : colors.card,
-                  borderColor: colors.primary + '20'
+                styles.filterToggle, 
+                { 
+                  backgroundColor: showFilters ? colors.primary + '10' : colors.card,
+                  borderColor: showFilters ? colors.primary : colors.primary + '20',
+                  borderWidth: showFilters ? 2 : 1,
                 }
               ]}
               onPress={() => {
                 onTap();
-                onToggleMapView();
+                setShowFilters(!showFilters);
               }}
+              activeOpacity={0.7}
             >
-              <MaterialIcons 
-                name={isMapView ? "list" : "map"} 
-                size={20} 
-                color={isMapView ? 'white' : colors.primary} 
-              />
-              <Text style={[
-                styles.mapToggleText,
-                { color: isMapView ? 'white' : colors.primary }
-              ]}>
-                {isMapView ? 'Lista' : 'Visualizza Mappa'}
-              </Text>
+              <View style={[
+                styles.filterToggleIcon, 
+                { 
+                  backgroundColor: showFilters ? colors.primary : colors.primary + '15',
+                }
+              ]}> 
+                <MaterialIcons 
+                  name="tune" 
+                  size={18} 
+                  color={showFilters ? 'white' : colors.primary} 
+                />
+              </View>
+              <View style={styles.filterToggleContent}>
+                <Text style={[
+                  styles.filterToggleText, 
+                  { 
+                    color: showFilters ? colors.primary : colors.text,
+                    fontWeight: showFilters ? '700' : '600'
+                  }
+                ]}>
+                  Filtri avanzati
+                </Text>
+                {hasActiveFilters && (
+                  <Text style={[styles.filterSubtext, { color: colors.text + '80' }]}>
+                    {activeFiltersCount} filtro{activeFiltersCount > 1 ? 'i' : ''} attivo{activeFiltersCount > 1 ? 'i' : ''}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.filterBadgeContainer}>
+                {hasActiveFilters && (
+                  <Animated.View 
+                    entering={FadeIn.duration(200)}
+                    style={[styles.filterBadge, { backgroundColor: colors.primary }]}
+                  > 
+                    <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+                  </Animated.View>
+                )}
+                <MaterialIcons 
+                  name={showFilters ? "expand-less" : "expand-more"} 
+                  size={22} 
+                  color={showFilters ? colors.primary : colors.text + '60'} 
+                />
+              </View>
             </TouchableOpacity>
+          </Animated.View>
+
+          {/* Enhanced Map Toggle Button */}
+          {showMapButton && (
+            <Animated.View entering={FadeIn.delay(100)}>
+              <TouchableOpacity
+                style={[
+                  styles.mapToggleButton,
+                  {
+                    backgroundColor: isMapView ? colors.primary : colors.card,
+                    borderColor: isMapView ? colors.primary : colors.primary + '30',
+                    borderWidth: isMapView ? 2 : 1,
+                    shadowColor: isMapView ? colors.primary : '#000',
+                    shadowOpacity: isMapView ? 0.3 : 0.08,
+                  }
+                ]}
+                onPress={() => {
+                  onTap();
+                  onToggleMapView();
+                }}
+                activeOpacity={0.8}
+              >
+                <View style={[
+                  styles.mapToggleIconContainer,
+                  { backgroundColor: isMapView ? 'rgba(255,255,255,0.2)' : colors.primary + '15' }
+                ]}>
+                  <MaterialIcons 
+                    name={isMapView ? "list" : "map"} 
+                    size={20} 
+                    color={isMapView ? 'white' : colors.primary} 
+                  />
+                </View>
+                <Text style={[
+                  styles.mapToggleText,
+                  { 
+                    color: isMapView ? 'white' : colors.primary,
+                    fontWeight: isMapView ? '700' : '600'
+                  }
+                ]}>
+                  {isMapView ? 'Lista' : 'Mappa'}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           )}
         </View>
       </View>
 
-      {/* Expandable Filters */}
+      {/* Enhanced Expandable Filters */}
       {showFilters && (
         <Animated.View 
-          entering={FadeInDown.duration(300)}
+          entering={SlideInDown.duration(400).springify()}
           style={[styles.expandedFilters, { backgroundColor: colors.card }]}
         >
-          {/* Categoria */}
+          {/* Categories Section with Color Coding */}
           <View style={styles.filterRow}>
-            <Text style={[styles.filterLabel, { color: colors.text }]}>Categoria</Text>
-            <View style={styles.filterButtonsGrid}>
-              {categories.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.filterButton,
-                    { backgroundColor: selectedCategory === item.name ? colors.primary : colors.background },
-                    { borderColor: colors.primary + '30' }
-                  ]}
-                  onPress={() => {
-                    onTap();
-                    onCategorySelect(item.name);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.filterButtonText,
-                      { color: selectedCategory === item.name ? 'white' : colors.text }
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.filterHeader}>
+              <MaterialIcons name="category" size={20} color={colors.primary} />
+              <Text style={[styles.filterLabel, { color: colors.text }]}>Categorie</Text>
+              <View style={[styles.filterCount, { backgroundColor: colors.primary + '15' }]}>
+                <Text style={[styles.filterCountText, { color: colors.primary }]}>
+                  {categories.length}
+                </Text>
+              </View>
             </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScrollContainer}
+              style={styles.categoryScroll}
+            >
+              {categories.map((item, index) => {
+                const isSelected = selectedCategory === item.name;
+                const categoryColor = item.color || colors.primary;
+                
+                return (
+                  <Animated.View
+                    key={item.id}
+                    entering={FadeIn.delay(index * 50).duration(300)}
+                    style={styles.categoryChipWrapper}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.categoryChip,
+                        {
+                          backgroundColor: isSelected ? categoryColor : colors.background,
+                          borderColor: isSelected ? categoryColor : categoryColor + '40',
+                          borderWidth: isSelected ? 2 : 1,
+                          shadowColor: isSelected ? categoryColor : '#000',
+                          shadowOpacity: isSelected ? 0.3 : 0.05,
+                        }
+                      ]}
+                      onPress={() => {
+                        onTap();
+                        onCategorySelect(item.name);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      {/* Color indicator dot */}
+                      <View style={[
+                        styles.colorDot,
+                        { 
+                          backgroundColor: isSelected ? 'rgba(255,255,255,0.9)' : categoryColor,
+                        }
+                      ]} />
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          { 
+                            color: isSelected ? 'white' : colors.text,
+                            fontWeight: isSelected ? '700' : '600'
+                          }
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                      {item.count && (
+                        <View style={[
+                          styles.itemCount,
+                          { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : categoryColor + '15' }
+                        ]}>
+                          <Text style={[
+                            styles.itemCountText,
+                            { color: isSelected ? 'white' : categoryColor }
+                          ]}>
+                            {item.count}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </Animated.View>
+                );
+              })}
+            </ScrollView>
           </View>
 
-          {/* Città (opzionale) */}
+          {/* Cities Section */}
           {cities.length > 0 && (
             <View style={styles.filterRow}>
-              <Text style={[styles.filterLabel, { color: colors.text }]}>Città</Text>
-              <View style={styles.filterButtonsGrid}>
-                {cities.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.filterButton,
-                      { backgroundColor: selectedCity === item.name ? colors.primary : colors.background },
-                      { borderColor: colors.primary + '30' }
-                    ]}
-                    onPress={() => {
-                      onTap();
-                      onCitySelect(item.name);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        { color: selectedCity === item.name ? 'white' : colors.text }
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.filterHeader}>
+                <MaterialIcons name="location-city" size={20} color={colors.primary} />
+                <Text style={[styles.filterLabel, { color: colors.text }]}>Città</Text>
+                <View style={[styles.filterCount, { backgroundColor: colors.primary + '15' }]}>
+                  <Text style={[styles.filterCountText, { color: colors.primary }]}>
+                    {cities.length}
+                  </Text>
+                </View>
               </View>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cityScrollContainer}
+                style={styles.cityScroll}
+              >
+                {cities.map((item, index) => {
+                  const isSelected = selectedCity === item.name;
+                  
+                  return (
+                    <Animated.View
+                      key={item.id}
+                      entering={FadeIn.delay((categories.length + index) * 50).duration(300)}
+                      style={styles.cityChipWrapper}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.cityChip,
+                          {
+                            backgroundColor: isSelected ? colors.primary : colors.background,
+                            borderColor: isSelected ? colors.primary : colors.primary + '30',
+                            borderWidth: isSelected ? 2 : 1,
+                            shadowColor: isSelected ? colors.primary : '#000',
+                            shadowOpacity: isSelected ? 0.25 : 0.05,
+                          }
+                        ]}
+                        onPress={() => {
+                          onTap();
+                          onCitySelect(item.name);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <MaterialIcons 
+                          name="place" 
+                          size={16} 
+                          color={isSelected ? 'white' : colors.primary} 
+                        />
+                        <Text
+                          style={[
+                            styles.cityChipText,
+                            { 
+                              color: isSelected ? 'white' : colors.text,
+                              fontWeight: isSelected ? '700' : '600'
+                            }
+                          ]}
+                        >
+                          {item.name}
+                        </Text>
+                        {item.count && (
+                          <View style={[
+                            styles.itemCount,
+                            { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colors.primary + '15' }
+                          ]}>
+                            <Text style={[
+                              styles.itemCountText,
+                              { color: isSelected ? 'white' : colors.primary }
+                            ]}>
+                              {item.count}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </Animated.View>
+                  );
+                })}
+              </ScrollView>
             </View>
           )}
 
-          {/* Reset Button */}
-          {(selectedCity !== 'Tutte' || selectedCategory !== 'Tutti') && (
-            <View style={styles.resetContainer}>
+          {/* Enhanced Reset Section */}
+          {hasActiveFilters && (
+            <Animated.View 
+              entering={FadeIn.delay(400).duration(300)}
+              style={styles.resetContainer}
+            >
               <TouchableOpacity
-                style={[styles.resetFiltersButton, { borderColor: colors.primary, backgroundColor: colors.primary + '10' }]}
+                style={[
+                  styles.resetFiltersButton, 
+                  { 
+                    borderColor: colors.primary, 
+                    backgroundColor: colors.primary + '10',
+                    shadowColor: colors.primary,
+                    shadowOpacity: 0.2,
+                  }
+                ]}
                 onPress={() => {
                   onTap();
                   onResetFilters();
                 }}
+                activeOpacity={0.8}
               >
-                <MaterialIcons name="refresh" size={16} color={colors.primary} />
-                <Text style={[styles.resetFiltersText, { color: colors.primary }]}>Cancella Filtri</Text>
+                <MaterialIcons name="refresh" size={18} color={colors.primary} />
+                <Text style={[styles.resetFiltersText, { color: colors.primary }]}>
+                  Cancella tutti i filtri
+                </Text>
+                <View style={[styles.resetBadge, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.resetBadgeText}>{activeFiltersCount}</Text>
+                </View>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           )}
         </Animated.View>
       )}
@@ -200,144 +377,275 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
 
 const styles = StyleSheet.create({
   filtersSection: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   additionalFiltersContainer: {
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   filtersRow: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'stretch',
   },
+  
+  // Enhanced Filter Toggle
   filterToggle: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  mapToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  mapToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+    minHeight: 56,
   },
   filterToggleIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  filterToggleContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  filterToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  filterSubtext: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
   },
   filterBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   filterBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'white',
+  },
+
+  // Enhanced Map Toggle
+  mapToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 4,
+    minWidth: 120,
+    justifyContent: 'center',
+    minHeight: 56,
+  },
+  mapToggleIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
-  filterBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  filterToggleText: {
-    fontSize: 15,
+  mapToggleText: {
+    fontSize: 14,
     fontWeight: '600',
-    flex: 1,
   },
+
+  // Enhanced Expandable Section
   expandedFilters: {
     marginHorizontal: 16,
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 12,
+    padding: 24,
+    borderRadius: 24,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 12,
+    elevation: 8,
   },
+  
+  // Filter Sections
   filterRow: {
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
   },
   filterLabel: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 12,
+    flex: 1,
   },
+  filterCount: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 28,
+    alignItems: 'center',
+  },
+  filterCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  
+  // Filter Grids
   filterButtonsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 4,
+    gap: 8,
   },
-  filterButton: {
+
+  // Scrollable Categories
+  categoryScroll: {
+    marginHorizontal: -8, // Offset container padding
+  },
+  categoryScrollContainer: {
+    paddingHorizontal: 8,
+    paddingRight: 16, // Extra padding at the end
+  },
+  categoryChipWrapper: {
+    marginRight: 8,
+  },
+
+  // Category Chips
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+    gap: 8,
+    minWidth: 80, // Minimum width for consistency
+  },
+  colorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Scrollable Cities
+  cityScroll: {
+    marginHorizontal: -8, // Offset container padding
+  },
+  cityScrollContainer: {
+    paddingHorizontal: 8,
+    paddingRight: 16, // Extra padding at the end
+  },
+  cityChipWrapper: {
+    marginRight: 8,
+  },
+
+  // City Chips
+  cityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
-    borderWidth: 1,
+    borderRadius: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+    gap: 6,
+    minWidth: 70, // Minimum width for consistency
   },
-  filterButtonText: {
+  cityChipText: {
     fontSize: 13,
     fontWeight: '600',
   },
+
+  // Item Counts
+  itemCount: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  itemCountText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  // Reset Section
   resetContainer: {
     alignItems: 'center',
-    paddingTop: 8,
-    marginTop: 12,
+    paddingTop: 16,
+    marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.08)',
+    borderTopColor: 'rgba(0,0,0,0.06)',
   },
   resetFiltersButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    borderWidth: 1.5,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 28,
+    borderWidth: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+    gap: 8,
   },
   resetFiltersText: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  resetBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resetBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'white',
   },
 });
 

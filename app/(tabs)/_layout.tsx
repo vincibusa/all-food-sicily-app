@@ -50,6 +50,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <FontAwesome name="book" size={24} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="impostazioni"
+        options={{
+          title: "Impostazioni",
+          tabBarIcon: ({ color }) => <MaterialIcons name="settings" size={24} color={color} />,
+        }}
+      />
     </Tabs>
   );
 } 

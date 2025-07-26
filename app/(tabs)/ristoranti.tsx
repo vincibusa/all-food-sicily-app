@@ -15,7 +15,7 @@ import { useHaptics } from "../../utils/haptics";
 import { InlineLoading, FullScreenLoading } from "../../components/LoadingStates";
 import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
-import MapView from '../../components/MapView';
+import { RestaurantMapView } from '../../components/MapView';
 
 interface Restaurant extends ListItem {
   description: string;
@@ -306,20 +306,10 @@ export default function RistorantiScreen() {
                 <Text style={styles.mapControlText}>Lista</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity
-                style={[styles.mapControlButton, { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 1 }]}
-                onPress={() => {
-                  onTap();
-                  // Ricarica posizione utente
-                  handleLocationRequest();
-                }}
-              >
-                <MaterialIcons name="my-location" size={20} color={colors.primary} />
-                <Text style={[styles.mapControlText, { color: colors.primary }]}>Posizione</Text>
-              </TouchableOpacity>
+  
             </View>
 
-            <MapView
+            <RestaurantMapView
               restaurants={filteredRestaurants}
               onMarkerPress={(restaurant) => {
                 onTap();
