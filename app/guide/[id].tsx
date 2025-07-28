@@ -17,6 +17,7 @@ import Colors from '../../constants/Colors';
 import { apiClient } from '../../services/api';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import BackButton from '../../components/BackButton';
 
 const { width } = Dimensions.get('window');
 
@@ -146,6 +147,8 @@ export default function GuideDetailScreen() {
             }}
             style={styles.featuredImage}
           />
+          
+          <BackButton />
           
           {/* Category Badge */}
           <View style={[styles.categoryBadge, { backgroundColor: guide.category?.color || colors.primary }]}>

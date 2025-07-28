@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { apiClient } from "../../services/api";
+import BackButton from "../../components/BackButton";
 
 const { width } = Dimensions.get('window');
 
@@ -313,6 +314,8 @@ export default function RestaurantScreen() {
               }}
               style={styles.featuredImage}
             />
+            
+            <BackButton />
             
             {/* Category Badge */}
             <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>

@@ -73,7 +73,7 @@ class RestaurantService {
     try {
       const params = {
         skip: filters?.skip || 0,
-        limit: filters?.limit || 20,
+        limit: filters?.limit || 1000,
         ...(filters?.city && { city: filters.city }),
         ...(filters?.cuisine_type && { cuisine_type: filters.cuisine_type }),
         ...(filters?.price_range && { price_range: filters.price_range }),
