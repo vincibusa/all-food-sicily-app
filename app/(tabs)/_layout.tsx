@@ -39,7 +39,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ristoranti"
         options={{
-          title: "Ristoranti",
+          title: "Locali",
           tabBarIcon: ({ color }) => <MaterialIcons name="restaurant" size={24} color={color} />,
         }}
       />
