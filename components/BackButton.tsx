@@ -1,52 +1,24 @@
-import React from 'react';
-import { TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-
-interface BackButtonProps {
-  style?: any;
-  color?: string;
-  size?: number;
-  onPress?: () => void;
-}
-
-export default function BackButton({ 
-  style,
-  color = 'white',
-  size = 24,
-  onPress
-}: BackButtonProps) {
-  const router = useRouter();
-
-  const handlePress = () => {
-    if (onPress) {
-      onPress();
-    } else {
-      router.back();
-    }
-  };
-
-  return (
-    <TouchableOpacity 
-      style={[styles.backButton, style]}
-      onPress={handlePress}
-    >
-      <Feather name="arrow-left" size={size} color={color} />
-    </TouchableOpacity>
-  );
-}
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { Pressable, StyleSheet, ViewStyle } from "react-native";
 
 const styles = StyleSheet.create({
   backButton: {
     position: 'absolute',
-    top: 40,
+    top: 20,
     left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
   },
 });
+
+interface BackButtonProps {
+  style?: ViewStyle;
+}
+
+export default function BackButton({ style }: BackButtonProps) {
+  const navigation = useNavigation();
+  return (
+    <Pressable style={[styles.backButton, style]} onPress={() => navigation.goBack()}>
+      <Ionicons name="arrow-back" size={24} color="white" />
+    </Pressable>
+  );
+}

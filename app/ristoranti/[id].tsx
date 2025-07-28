@@ -315,7 +315,7 @@ export default function RestaurantScreen() {
               style={styles.featuredImage}
             />
             
-            <BackButton />
+            <BackButton style={styles.backButton} />
             
             {/* Category Badge */}
             <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     position: 'absolute',
     top: 20,
-    left: 20,
+    right: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -605,5 +605,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 40,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 1000,
   },
 }); 

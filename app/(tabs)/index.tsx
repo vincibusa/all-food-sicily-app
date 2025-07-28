@@ -349,7 +349,7 @@ export default function Index() {
         entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 600)[0]}
       >
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Ristoranti Consigliati</Text>
+          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Locali Consigliati</Text>
           <Link href="/ristoranti" asChild>
             <TouchableOpacity onPress={() => onTap()}>
               <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutti</Text>

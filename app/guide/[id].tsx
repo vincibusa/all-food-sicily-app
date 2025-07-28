@@ -148,7 +148,7 @@ export default function GuideDetailScreen() {
             style={styles.featuredImage}
           />
           
-          <BackButton />
+          <BackButton style={styles.backButton} />
           
           {/* Category Badge */}
           <View style={[styles.categoryBadge, { backgroundColor: guide.category?.color || colors.primary }]}>
@@ -203,7 +203,7 @@ export default function GuideDetailScreen() {
           {/* Associated Restaurants */}
           {restaurants.length > 0 && (
             <Animated.View entering={FadeInDown.delay(600)} style={styles.restaurantsContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Ristoranti Correlati</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Locali Correlati</Text>
               {restaurants.map((restaurant, index) => (
                 <TouchableOpacity
                   key={restaurant.id}
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     position: 'absolute',
     top: 20,
-    left: 20,
+    right: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -389,5 +389,11 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     marginBottom: 4,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 1000,
   },
 });
