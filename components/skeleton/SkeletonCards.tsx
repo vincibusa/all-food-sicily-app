@@ -44,6 +44,57 @@ export const SkeletonHeroCard: React.FC<{ variant?: SkeletonVariant }> = ({
 };
 
 /**
+ * Skeleton per le card delle guide (più piccole)
+ */
+export const SkeletonGuideCard: React.FC<{ variant?: SkeletonVariant }> = ({ 
+  variant = SkeletonVariant.SHIMMER 
+}) => {
+  const { colors } = useTheme();
+  
+  return (
+    <View style={[styles.guideCard, { backgroundColor: colors.card }]}>
+      <SkeletonImage 
+        width="100%" 
+        height={200}
+        borderRadius={12}
+        variant={variant}
+      />
+      <View style={styles.guideCardInfo}>
+        <SkeletonText width="80%" lineHeight={16} variant={variant} />
+        <SkeletonText width="60%" lineHeight={12} variant={variant} style={{ marginTop: 8 }} />
+      </View>
+    </View>
+  );
+};
+
+/**
+ * Skeleton per le card dei ristoranti (16:9)
+ */
+export const SkeletonRestaurantCard: React.FC<{ variant?: SkeletonVariant }> = ({ 
+  variant = SkeletonVariant.SHIMMER 
+}) => {
+  const { colors } = useTheme();
+  const { width } = require('react-native').Dimensions.get('window');
+  const cardWidth = width * 0.55 > 200 ? 200 : width * 0.55;
+  const imageHeight = cardWidth * (9/16);
+  
+  return (
+    <View style={[styles.restaurantCard, { backgroundColor: colors.card }]}>
+      <SkeletonImage 
+        width="100%" 
+        height={imageHeight}
+        borderRadius={12}
+        variant={variant}
+      />
+      <View style={styles.restaurantCardInfo}>
+        <SkeletonText width="85%" lineHeight={16} variant={variant} />
+        <SkeletonText width="70%" lineHeight={12} variant={variant} style={{ marginTop: 8 }} />
+      </View>
+    </View>
+  );
+};
+
+/**
  * Skeleton per hero section homepage
  */
 export const SkeletonHeroSection: React.FC<{ variant?: SkeletonVariant }> = ({ 
@@ -239,6 +290,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  
+  // Guide Card
+  guideCard: {
+    width: 180,
+    minHeight: 280,
+    marginRight: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  
+  guideCardInfo: {
+    padding: 12,
+    minHeight: 80,
+  },
+  
+  // Restaurant Card
+  restaurantCard: {
+    width: 200,
+    minHeight: 280,
+    marginRight: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  
+  restaurantCardInfo: {
+    padding: 12,
+    minHeight: 80,
   },
   
   // Hero Section

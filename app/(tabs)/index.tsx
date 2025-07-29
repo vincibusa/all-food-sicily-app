@@ -8,7 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import Animated, { useAnimatedStyle, useSharedValue, Easing, withTiming } from "react-native-reanimated";
 import { apiClient } from "../../services/api";
 import { useHaptics } from "../../utils/haptics";
-import { SkeletonHeroCard } from "../../components/skeleton/SkeletonCards";
+import { SkeletonHeroCard, SkeletonGuideCard, SkeletonRestaurantCard } from "../../components/skeleton/SkeletonCards";
 import { useTextStyles } from "../../hooks/useAccessibleText";
 import { SCREEN_TRANSITIONS, createStaggeredAnimation, TransitionType } from "../../utils/transitions";
 import { InlineLoading } from "../../components/LoadingStates";
@@ -380,7 +380,7 @@ export default function Index() {
           <MaterialIcons name="search" size={20} color={colors.text} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Cerca locali..."
+            placeholder="Cerca i migliori locali e hotel in sicilia..."
             placeholderTextColor={colors.text + '80'}
             value={searchQuery}
             onChangeText={handleSearchChange}
@@ -468,7 +468,7 @@ export default function Index() {
             showsHorizontalScrollIndicator={false}
             data={[1, 2, 3]} // Dummy data for 3 skeleton items
             keyExtractor={(item) => item.toString()}
-            renderItem={() => <SkeletonHeroCard />}
+            renderItem={() => <SkeletonGuideCard />}
             contentContainerStyle={styles.articlesList}
           />
         ) : error ? (
@@ -481,7 +481,7 @@ export default function Index() {
             showsHorizontalScrollIndicator={false}
             data={[1, 2, 3]}
             keyExtractor={(item) => item.toString()}
-            renderItem={() => <SkeletonHeroCard />}
+            renderItem={() => <SkeletonGuideCard />}
             contentContainerStyle={styles.articlesList}
           />
         ) : guides.length === 0 ? (
@@ -519,7 +519,7 @@ export default function Index() {
             showsHorizontalScrollIndicator={false}
             data={[1, 2, 3]} // Dummy data for 3 skeleton items
             keyExtractor={(item) => item.toString()}
-            renderItem={() => <SkeletonHeroCard />}
+            renderItem={() => <SkeletonRestaurantCard />}
             contentContainerStyle={styles.restaurantsList}
           />
         ) : error ? (
@@ -532,7 +532,7 @@ export default function Index() {
             showsHorizontalScrollIndicator={false}
             data={[1, 2, 3]}
             keyExtractor={(item) => item.toString()}
-            renderItem={() => <SkeletonHeroCard />}
+            renderItem={() => <SkeletonRestaurantCard />}
             contentContainerStyle={styles.restaurantsList}
           />
         ) : restaurants.length === 0 ? (
@@ -547,6 +547,57 @@ export default function Index() {
             keyExtractor={(item) => item.id}
             renderItem={renderRestaurantItem}
             contentContainerStyle={styles.restaurantsList}
+          />
+        )}
+      </Animated.View>
+
+      {/* Sezione Hotel e B&B Consigliati */}
+      <Animated.View 
+        style={styles.section}
+        entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 900)[0]}
+      >
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Hotel e B&B Consigliati</Text>
+          <Link href="/ristoranti" asChild>
+            <TouchableOpacity onPress={() => onTap()}>
+              <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutti</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+        {loading ? (
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={[1, 2, 3]} // Dummy data for 3 skeleton items
+            keyExtractor={(item) => item.toString()}
+            renderItem={() => <SkeletonRestaurantCard />}
+            contentContainerStyle={styles.hotelsList}
+          />
+        ) : error ? (
+          <InlineLoading 
+            title="Errore nel caricamento degli hotel"
+          />
+        ) : !allImagesLoaded ? (
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={[1, 2, 3]}
+            keyExtractor={(item) => item.toString()}
+            renderItem={() => <SkeletonRestaurantCard />}
+            contentContainerStyle={styles.hotelsList}
+          />
+        ) : restaurants.length === 0 ? (
+          <InlineLoading 
+            title="Nessun hotel disponibile al momento"
+          />
+        ) : (
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={restaurants}
+            keyExtractor={(item) => item.id}
+            renderItem={renderRestaurantItem}
+            contentContainerStyle={styles.hotelsList}
           />
         )}
       </Animated.View>
@@ -727,6 +778,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   restaurantsList: {
+    paddingLeft: 16,
+    paddingRight: 8,
+  },
+  hotelsList: {
     paddingLeft: 16,
     paddingRight: 8,
   },
