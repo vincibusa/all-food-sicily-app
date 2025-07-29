@@ -153,7 +153,7 @@ export default function GuideSearchScreen() {
         category: restaurant.category ? {
           id: restaurant.category.id,
           name: restaurant.category.name,
-          color: restaurant.category.color || colors.primary
+          color: colors.primary
         } : null,
         city: restaurant.city,
         province: restaurant.province,
