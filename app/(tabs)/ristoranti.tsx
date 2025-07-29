@@ -53,6 +53,7 @@ export default function RistorantiScreen() {
   const [selectedCuisine, setSelectedCuisine] = useState('Tutte');
   const [cuisineTypes, setCuisineTypes] = useState<FilterOption[]>([]);
   const [isMapView, setIsMapView] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(20); // Show 20 items initially
 
   useEffect(() => {
     loadData();
@@ -62,54 +63,42 @@ export default function RistorantiScreen() {
     try {
       setLoading(true);
       
-      // Try to load all restaurants at once first
+      // Load all restaurants with pagination
       let allRestaurants = [];
-      try {
-        const allRestaurantsUrl = categoryId && categoryId !== 'all' 
-          ? `/restaurants/?category_id=${categoryId}&limit=10000` 
-          : `/restaurants/?limit=10000`;
+      console.log('🔄 Loading all restaurants with pagination...');
+      let currentPage = 1;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const restaurantsUrl = categoryId && categoryId !== 'all' 
+          ? `/restaurants/?category_id=${categoryId}&page=${currentPage}&limit=100` 
+          : `/restaurants/?page=${currentPage}&limit=100`;
           
-        console.log('🔄 Loading all restaurants...');
-        const restaurantsResponse = await apiClient.get<any>(allRestaurantsUrl);
-        allRestaurants = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+        console.log(`📄 Loading page ${currentPage}...`);
         
-        console.log(`✅ Loaded ${allRestaurants.length} restaurants in single request`);
-      } catch (error) {
-        console.log('⚠️ Single request failed, trying pagination...');
+        const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
+        const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
         
-        // Fallback to pagination if single request fails
-        let currentPage = 1;
-        let hasMore = true;
-        
-        while (hasMore) {
-          const restaurantsUrl = categoryId && categoryId !== 'all' 
-            ? `/restaurants/?category_id=${categoryId}&page=${currentPage}&limit=100` 
-            : `/restaurants/?page=${currentPage}&limit=100`;
-            
-          console.log(`🔄 Loading page ${currentPage}...`);
+        if (pageData.length === 0) {
+          hasMore = false;
+        } else {
+          allRestaurants.push(...pageData);
+          currentPage++;
           
-          const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
-          const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
-          
-          if (pageData.length === 0) {
-            hasMore = false;
-          } else {
-            allRestaurants.push(...pageData);
-            currentPage++;
-            
-            // Check if there are more pages
-            if (restaurantsResponse?.has_more === false || pageData.length < 100) {
-              hasMore = false;
-            }
-          }
-          
-          // Safety break to avoid infinite loops
-          if (currentPage > 50) {
-            console.warn('⚠️ Stopped loading after 50 pages');
+          // Check if there are more pages
+          if (restaurantsResponse?.has_more === false || pageData.length < 100) {
             hasMore = false;
           }
         }
+        
+        // Safety break to avoid infinite loops
+        if (currentPage > 50) {
+          console.warn('⚠️ Stopped loading after 50 pages');
+          hasMore = false;
+        }
       }
+      
+      console.log(`✅ Loaded ${allRestaurants.length} restaurants across ${currentPage - 1} pages`);
       
       // Load categories separately
       const categoriesResponse = await apiClient.get<any>('/categories/');
@@ -192,12 +181,14 @@ export default function RistorantiScreen() {
 
   const handleCategorySelect = async (categoryName: string) => {
     setSelectedCategory(categoryName);
+    setDisplayLimit(20); // Reset pagination
     const categoryId = categories.find(cat => cat.name === categoryName)?.id;
     await loadData(categoryId);
   };
 
   const handleCuisineSelect = (cuisineName: string) => {
     setSelectedCuisine(cuisineName);
+    setDisplayLimit(20); // Reset pagination
   };
 
   const handleLocationRequest = () => {
@@ -243,6 +234,14 @@ export default function RistorantiScreen() {
     return matchesSearch && matchesCity && matchesCuisine;
   });
 
+  // Display restaurants with pagination
+  const displayedRestaurants = filteredRestaurants.slice(0, displayLimit);
+  const hasMoreRestaurants = filteredRestaurants.length > displayLimit;
+
+  const loadMoreRestaurants = () => {
+    setDisplayLimit(prev => prev + 20);
+  };
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
@@ -258,7 +257,10 @@ export default function RistorantiScreen() {
                 placeholder="Cerca ristoranti, città, categorie..."
                 placeholderTextColor={colors.text + '60'}
                 value={searchQuery}
-                onChangeText={setSearchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  setDisplayLimit(20); // Reset pagination when searching
+                }}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => {
@@ -293,7 +295,7 @@ export default function RistorantiScreen() {
             {/* Results Count e Filtri Attivi */}
             <View style={styles.resultsSection}>
               <Text style={[styles.resultsText, { color: colors.text + '80' }]}> 
-                {filteredRestaurants.length} ristorante{filteredRestaurants.length === 1 ? '' : 'i'} trovato{filteredRestaurants.length === 1 ? '' : 'i'}
+                {displayedRestaurants.length} di {filteredRestaurants.length} ristorante{filteredRestaurants.length === 1 ? '' : 'i'}
               </Text>
               
               {/* Indicatori Filtri Attivi */}
@@ -359,7 +361,7 @@ export default function RistorantiScreen() {
             </View>
 
             <RestaurantMapView
-              restaurants={filteredRestaurants}
+              restaurants={displayedRestaurants}
               onMarkerPress={(restaurant) => {
                 onTap();
                 router.push(`/ristoranti/${restaurant.id}`);
@@ -370,7 +372,7 @@ export default function RistorantiScreen() {
         ) : (
           /* Lista Ristoranti */
           <FlatList
-            data={filteredRestaurants}
+            data={displayedRestaurants}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             style={{ flex: 1 }}
@@ -415,6 +417,29 @@ export default function RistorantiScreen() {
                 }}
               />
             )}
+            ListFooterComponent={
+              hasMoreRestaurants ? (
+                <View style={styles.loadMoreContainer}>
+                  <TouchableOpacity
+                    style={[styles.loadMoreButton, { backgroundColor: colors.primary }]}
+                    onPress={() => {
+                      onTap();
+                      loadMoreRestaurants();
+                    }}
+                  >
+                    <Text style={styles.loadMoreText}>
+                      Carica altri {Math.min(20, filteredRestaurants.length - displayLimit)} ristoranti
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.endOfListContainer}>
+                  <Text style={[styles.endOfListText, { color: colors.text + '60' }]}>
+                    {filteredRestaurants.length > 0 ? 'Hai visto tutti i ristoranti!' : ''}
+                  </Text>
+                </View>
+              )
+            }
           />
         )}
       </View>
@@ -739,5 +764,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: 'white',
+  },
+  loadMoreContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loadMoreText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  endOfListContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  endOfListText: {
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 }); 

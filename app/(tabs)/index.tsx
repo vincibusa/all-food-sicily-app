@@ -274,23 +274,22 @@ export default function Index() {
       >
         <Link href={{ pathname: '/guide/[id]', params: { id: item.id } }} asChild>
           <TouchableOpacity 
-            style={styles.fullImageCard}
+            style={styles.guideCard}
             onPress={() => onTap()}
           >
             <ImageBackground
               source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
-              style={styles.fullImage}
+              style={styles.guideImage}
               imageStyle={{ borderRadius: 12 }}
               onLoad={() => item.featured_image && handleImageLoaded(item.featured_image)}
               onError={() => item.featured_image && handleImageError(item.featured_image)}
             >
-              <View style={styles.overlay} />
-              <View style={styles.textOverlay}>
-                <Text style={[styles.categoryPillOverlay, textStyles.label('white'), { backgroundColor: item.category?.color || colors.primary }]}>{item.category?.name || 'Guida'}</Text>
-                <Text style={[styles.cardTitleOverlay, textStyles.subtitle('white')]} numberOfLines={2}>{item.title}</Text>
-                <Text style={[styles.cardSubtitleOverlay, textStyles.caption('rgba(255,255,255,0.9)')]} numberOfLines={1}>{item.city}, {item.province}</Text>
-              </View>
+
             </ImageBackground>
+            <View style={styles.guideInfo}>
+              <Text style={[styles.guideTitle, textStyles.subtitle(colors.text)]}>{item.title}</Text>
+              <Text style={[styles.guideLocation, textStyles.caption(colors.text + '80')]}>{item.city}, {item.province}</Text>
+            </View>
           </TouchableOpacity>
         </Link>
       </Animated.View>
@@ -307,23 +306,24 @@ export default function Index() {
       >
         <Link href={{ pathname: '/ristoranti/[id]', params: { id: item.id } }} asChild>
           <TouchableOpacity 
-            style={styles.fullImageCard}
+            style={styles.restaurantCard}
             onPress={() => onTap()}
           >
             <ImageBackground
               source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
-              style={styles.fullImage}
+              style={styles.restaurantImage}
               imageStyle={{ borderRadius: 12 }}
               onLoad={() => item.featured_image && handleImageLoaded(item.featured_image)}
               onError={() => item.featured_image && handleImageError(item.featured_image)}
             >
-              <View style={styles.overlay} />
-              <View style={styles.textOverlay}>
-                <Text style={[styles.categoryPillOverlay, textStyles.label('white'), { backgroundColor: item.category_color || colors.primary }]}>{item.category_name || 'Ristorante'}</Text>
-                <Text style={[styles.cardTitleOverlay, textStyles.subtitle('white')]} numberOfLines={2}>{item.name}</Text>
-                <Text style={[styles.cardSubtitleOverlay, textStyles.caption('rgba(255,255,255,0.9)')]} numberOfLines={1}>{item.city}, {item.province}</Text>
+              <View style={styles.restaurantCategoryPill}>
+                <Text style={[styles.restaurantCategoryText, textStyles.label('white')]}>{item.category_name || 'Ristorante'}</Text>
               </View>
             </ImageBackground>
+            <View style={styles.restaurantInfo}>
+              <Text style={[styles.restaurantTitle, textStyles.subtitle(colors.text)]} numberOfLines={2}>{item.name}</Text>
+              <Text style={[styles.restaurantLocation, textStyles.caption(colors.text + '80')]} numberOfLines={1}>{item.city}, {item.province}</Text>
+            </View>
           </TouchableOpacity>
         </Link>
       </Animated.View>
@@ -455,7 +455,7 @@ export default function Index() {
         entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 300)[0]}
       >
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Guide in Evidenza</Text>
+          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Scopri le ultime guide</Text>
           <Link href="/(tabs)/guide" asChild>
             <TouchableOpacity onPress={() => onTap()}>
               <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutte</Text>
@@ -730,30 +730,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 8,
   },
-  restaurantCard: {
-    width: width * 0.75 > 300 ? 280 : width * 0.75, // Responsive width
-    height: 220,
-    marginRight: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
-  },
-  restaurantImage: {
-    width: '100%',
-    height: 150,
-  },
-  restaurantInfo: {
-    padding: 12,
-    height: 70,
-    justifyContent: 'center',
-  },
+  // Old restaurant card styles - removed
   locationPill: {
     position: 'absolute',
     top: -15,
@@ -805,7 +782,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   fullImageCard: {
-    width: width * 0.85 > 320 ? 320 : width * 0.85,
+    width: width * 0.55 > 200 ? 200 : width * 0.55, // Very compact width for small cards
     height: 260,
     marginRight: 16,
     borderRadius: 12,
@@ -844,5 +821,99 @@ const styles = StyleSheet.create({
   },
   cardSubtitleOverlay: {
     opacity: 0.85, // Dynamic font size handled by useTextStyles
+  },
+  // Guide card styles
+  guideCard: {
+    width: width * 0.45 > 180 ? 180 : width * 0.45, // Smaller width for guide cards
+    minHeight: 280, // Minimum height, can expand for longer text
+    marginRight: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
+    backgroundColor: 'white', // For the text area
+  },
+  guideImage: {
+    width: '100%',
+    height: 200, // Fixed height for image
+  },
+  guideCategoryPill: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: '#3B82F6',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    overflow: 'hidden',
+  },
+  guideCategoryText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  guideInfo: {
+    padding: 12,
+    minHeight: 80, // Minimum height, can expand
+    justifyContent: 'flex-start',
+  },
+  guideTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  guideLocation: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  // Restaurant card styles
+  restaurantCard: {
+    width: width * 0.55 > 200 ? 200 : width * 0.55, // Same width as other cards
+    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16) + 80, // 16:9 image + text area
+    marginRight: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
+    backgroundColor: 'white', // For the text area
+  },
+  restaurantImage: {
+    width: '100%',
+    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16), // 16:9 aspect ratio
+  },
+  restaurantCategoryPill: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: '#3B82F6',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    overflow: 'hidden',
+  },
+  restaurantCategoryText: {
+    color: 'white',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
+  restaurantInfo: {
+    padding: 12,
+    height: 80, // Fixed height for text area
+    justifyContent: 'center',
+  },
+  restaurantTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  restaurantLocation: {
+    fontSize: 12,
+    opacity: 0.8,
   },
 });
