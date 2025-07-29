@@ -272,11 +272,13 @@ export default function Index() {
       <Animated.View
         entering={staggeredAnimations[index] || SCREEN_TRANSITIONS.home.enter}
       >
-        <Link href={{ pathname: '/guide/[id]', params: { id: item.id } }} asChild>
-          <TouchableOpacity 
-            style={styles.guideCard}
-            onPress={() => onTap()}
-          >
+        <TouchableOpacity 
+          style={styles.guideCard}
+          onPress={() => {
+            onTap();
+            router.push(`/guide-categories/${item.id}`);
+          }}
+        >
             <ImageBackground
               source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
               style={styles.guideImage}
@@ -288,10 +290,8 @@ export default function Index() {
             </ImageBackground>
             <View style={styles.guideInfo}>
               <Text style={[styles.guideTitle, textStyles.subtitle(colors.text)]}>{item.title}</Text>
-              <Text style={[styles.guideLocation, textStyles.caption(colors.text + '80')]}>{item.city}, {item.province}</Text>
             </View>
           </TouchableOpacity>
-        </Link>
       </Animated.View>
     );
   };
@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
   // Guide card styles
   guideCard: {
     width: width * 0.45 > 180 ? 180 : width * 0.45, // Smaller width for guide cards
-    minHeight: 280, // Minimum height, can expand for longer text
+    minHeight: 260, // Reduced height since we only have title
     marginRight: 16,
     borderRadius: 12,
     overflow: 'hidden',
@@ -912,8 +912,8 @@ const styles = StyleSheet.create({
   },
   guideInfo: {
     padding: 12,
-    minHeight: 80, // Minimum height, can expand
-    justifyContent: 'flex-start',
+    minHeight: 60, // Reduced height since we only have title
+    justifyContent: 'center',
   },
   guideTitle: {
     fontSize: 14,
