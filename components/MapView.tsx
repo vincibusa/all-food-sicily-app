@@ -15,11 +15,19 @@ interface RestaurantMapProps {
   restaurants: ListItem[];
   onMarkerPress?: (restaurant: ListItem) => void;
   onLocationRequest?: () => void;
+  height?: number;
+  showLocationButton?: boolean;
 }
 
 const { width, height } = Dimensions.get('window');
 
-export const RestaurantMapView: React.FC<RestaurantMapProps> = ({ restaurants, onMarkerPress, onLocationRequest }) => {
+export const RestaurantMapView: React.FC<RestaurantMapProps> = ({ 
+  restaurants, 
+  onMarkerPress, 
+  onLocationRequest,
+  height: customHeight,
+  showLocationButton = true 
+}) => {
   const { colors, colorScheme } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>({
@@ -87,7 +95,7 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({ restaurants, o
 
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, height: customHeight || height - 200 }]}>
       {/* Mappa nativa con react-native-maps */}
       <MapView
         ref={mapRef}
@@ -120,7 +128,7 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({ restaurants, o
       </MapView>
 
       {/* Bottone per centrare sulla posizione utente */}
-      {hasPermission && (
+      {hasPermission && showLocationButton && (
         <TouchableOpacity
           style={[styles.locationFab, { backgroundColor: colors.card }]}
           onPress={centerOnUserLocation}
@@ -158,8 +166,7 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({ restaurants, o
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: width,
-    height: height - 200, // Lascia spazio per header e tabs
+    width: '100%',
   },
   map: {
     flex: 1,

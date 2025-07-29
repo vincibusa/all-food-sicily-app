@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions, TextInput } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useTheme } from "../context/ThemeContext";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Animated, { useAnimatedStyle, useSharedValue, Easing, withTiming } from "react-native-reanimated";
 import { apiClient } from "../../services/api";
@@ -14,6 +15,9 @@ import { InlineLoading } from "../../components/LoadingStates";
 import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
 import { VerticalScrollIndicator, ScrollIndicatorType, ScrollIndicatorPosition } from "../../components/ScrollIndicators";
+import { RestaurantMapView } from "../../components/MapView";
+import { MaterialIcons } from "@expo/vector-icons";
+import { ListItem } from "../../components/ListCard";
 
 const { width } = Dimensions.get('window');
 
@@ -50,12 +54,15 @@ export default function Index() {
   const fadeAnim = useSharedValue(0);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]); // All restaurants for search
   const [loading, setLoading] = useState(true);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const [totalImages, setTotalImages] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [contentHeight, setContentHeight] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
   
   const handleImageLoaded = (uri: string) => {
     setLoadedImages(prev => new Set([...prev, uri]));
@@ -67,6 +74,57 @@ export default function Index() {
   };
   
   const allImagesLoaded = loadedImages.size >= totalImages && totalImages > 0;
+
+  // Convert restaurants to ListItem format for MapView
+  const mapRestaurants: ListItem[] = restaurants
+    .filter(restaurant => restaurant.id && restaurant.name) // Filter out invalid entries
+    .map(restaurant => ({
+      id: restaurant.id,
+      title: restaurant.name,
+      featured_image: restaurant.featured_image || '',
+      category: {
+        id: restaurant.id, // Using restaurant id as category id fallback
+        name: restaurant.category_name || 'Ristorante',
+        color: restaurant.category_color || '#3B82F6'
+      },
+      city: restaurant.city || '',
+      province: restaurant.province || '',
+      rating: typeof restaurant.rating === 'string' ? parseFloat(restaurant.rating) : restaurant.rating,
+      latitude: 37.5, // Default fallback, should be from API
+      longitude: 14.0, // Default fallback, should be from API
+    }));
+
+  // Filter restaurants based on search query - use allRestaurants for comprehensive search
+  const filteredRestaurants = allRestaurants.length > 0 ? allRestaurants.filter(restaurant => {
+    if (!searchQuery.trim() || !restaurant) return false;
+    const query = searchQuery.toLowerCase();
+    return (
+      (restaurant.name && restaurant.name.toLowerCase().includes(query)) ||
+      (restaurant.city && restaurant.city.toLowerCase().includes(query)) ||
+      (restaurant.province && restaurant.province.toLowerCase().includes(query)) ||
+      (restaurant.category_name && restaurant.category_name.toLowerCase().includes(query))
+    );
+  }) : [];
+
+  // Handle search input changes
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    setShowSearchResults(text.trim().length > 0);
+  };
+
+  // Handle search result selection
+  const handleSearchResultSelect = (restaurant: Restaurant) => {
+    if (!restaurant.id || !restaurant.name) return;
+    
+    setSearchQuery(restaurant.name);
+    setShowSearchResults(false);
+    onTap(); // Haptic feedback
+    // Navigate to restaurant detail page
+    router.push({
+      pathname: '/ristoranti/[id]',
+      params: { id: restaurant.id }
+    });
+  };
   
   // Safety timeout - show content after 4 seconds even if images aren't loaded
   useEffect(() => {
@@ -106,14 +164,57 @@ export default function Index() {
       console.log('📥 Loading data from API...');
       setLoading(true);
       setError(null);
-      const [guidesResponse, restaurantsResponse, categoriesResponse] = await Promise.all([
+      
+      // Load guides and categories first
+      const [guidesResponse, categoriesResponse] = await Promise.all([
         apiClient.get<any>('/guides/'),
-        apiClient.get<any>('/restaurants/'),
         apiClient.get<any>('/categories/')
       ]);
-      // Handle different response structures - backend returns {guides: [...], restaurants: [...], categories: [...]}
+      
+      // Load all restaurants with pagination (same logic as in ristoranti.tsx)
+      let allRestaurantsData = [];
+      try {
+        console.log('🔄 Loading all restaurants for search...');
+        let currentPage = 1;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const restaurantsUrl = `/restaurants/?page=${currentPage}&limit=100`;
+          console.log(`📄 Loading page ${currentPage}...`);
+          
+          const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
+          const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+          
+          if (pageData.length === 0) {
+            hasMore = false;
+          } else {
+            allRestaurantsData.push(...pageData);
+            currentPage++;
+            
+            // Check if there are more pages
+            if (restaurantsResponse?.has_more === false || pageData.length < 100) {
+              hasMore = false;
+            }
+          }
+          
+          // Safety break to avoid infinite loops
+          if (currentPage > 50) {
+            console.warn('⚠️ Stopped loading after 50 pages');
+            hasMore = false;
+          }
+        }
+        
+        console.log(`✅ Loaded ${allRestaurantsData.length} restaurants across ${currentPage - 1} pages`);
+      } catch (error) {
+        console.warn('⚠️ Pagination failed, loading single page:', error);
+        // Fallback to single page
+        const restaurantsResponse = await apiClient.get<any>('/restaurants/?limit=100');
+        allRestaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+      }
+      
+      // Handle different response structures
       const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.guides || guidesResponse?.items || []);
-      const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+      const restaurantsData = allRestaurantsData;
       const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
       // Funzione per trovare il colore della categoria
       const getCategoryColor = (catName: string) =>
@@ -127,22 +228,32 @@ export default function Index() {
           color: getCategoryColor(g.category?.name || g.category_name)
         }
       }));
-      // Restaurants con colore categoria
-      const restaurantsDataTransformed = restaurantsData.slice(0, 3).map((r: any) => ({
+      // All Restaurants con colore categoria (per ricerca)
+      const allRestaurantsTransformed = restaurantsData.map((r: any) => ({
         ...r,
         category_color: getCategoryColor(r.category_name)
       }));
+      
+      // Restaurants per visualizzazione (solo 3)
+      const restaurantsDataTransformed = allRestaurantsTransformed.slice(0, 3);
+      
       setGuides(guidesDataTransformed);
       setRestaurants(restaurantsDataTransformed);
+      setAllRestaurants(allRestaurantsTransformed);
       
       // Count total images to load (only count valid images)
       const validGuideImages = guidesDataTransformed.filter((g: Guide) => g.featured_image).length;
       const validRestaurantImages = restaurantsDataTransformed.filter((r: Restaurant) => r.featured_image).length;
-      const totalImgs = validGuideImages + validRestaurantImages + 1; // +1 for hero image
+      const totalImgs = validGuideImages + validRestaurantImages; // No hero image anymore
       setTotalImages(totalImgs);
       setLoadedImages(new Set()); // Reset loaded images
       
-      console.log('✅ Data loaded successfully:', { guides: guidesDataTransformed.length, restaurants: restaurantsDataTransformed.length, totalImages: totalImgs });
+      console.log('✅ Data loaded successfully:', { 
+        guides: guidesDataTransformed.length, 
+        displayRestaurants: restaurantsDataTransformed.length,
+        allRestaurants: allRestaurantsTransformed.length,
+        totalImages: totalImgs 
+      });
     } catch (error) {
       console.error('❌ Error loading data:', error);
       setError('Impossibile caricare i dati. Riprova più tardi.');
@@ -152,20 +263,6 @@ export default function Index() {
     }
   };
 
-  
-  const heroAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: fadeAnim.value,
-      transform: [
-        { 
-          scale: withTiming(fadeAnim.value, { 
-            duration: 1000, 
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1) 
-          }) 
-        }
-      ]
-    };
-  });
 
   // Funzione per renderizzare guide con animazione
   const renderGuideItem = ({ item, index }: { item: Guide, index: number }) => {
@@ -235,7 +332,7 @@ export default function Index() {
 
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       
       {/* Enhanced Refresh Indicator - Solo Icona */}
@@ -267,30 +364,90 @@ export default function Index() {
         alwaysBounceVertical={true}
       >
       
-      {/* Header con Hero Image */}
-      <Animated.View style={[styles.heroContainer, heroAnimatedStyle]}>
-        <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80' }}
-          style={styles.heroImage}
-          onLoad={() => handleImageLoaded('hero-image')}
-          onError={() => handleImageError('hero-image')}
-        >
-          <BlurView intensity={30} style={styles.heroOverlay}>
-            <Animated.Text 
-              entering={SCREEN_TRANSITIONS.home.enter} 
-              style={[styles.heroTitle, textStyles.title('white')]}
+      {/* Header con Search Bar e Mappa */}
+      <View style={[styles.mapSection, { backgroundColor: colors.background }]}>
+        {/* Search overlay to close results when tapping outside */}
+        {showSearchResults && (
+          <TouchableOpacity
+            style={styles.searchOverlay}
+            activeOpacity={1}
+            onPress={() => setShowSearchResults(false)}
+          />
+        )}
+        
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
+          <MaterialIcons name="search" size={20} color={colors.text} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Cerca locali..."
+            placeholderTextColor={colors.text + '80'}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => {
+              setSearchQuery('');
+              setShowSearchResults(false);
+            }}>
+              <MaterialIcons name="clear" size={20} color={colors.text} />
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {/* Search Results Dropdown */}
+        {showSearchResults && filteredRestaurants.length > 0 && (
+          <View style={[styles.searchResultsContainer, { backgroundColor: colors.card }]}>
+            <ScrollView 
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
             >
-              AllFoodSicily
-            </Animated.Text>
-            <Animated.Text 
-              entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 200)[0]} 
-              style={[styles.heroSubtitle, textStyles.body('rgba(255,255,255,0.9)')]} 
-            >
-              Il gusto e la cultura della Sicilia
-            </Animated.Text>
-          </BlurView>
-        </ImageBackground>
-      </Animated.View>
+              {filteredRestaurants.slice(0, 5).map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.searchResultItem, { borderBottomColor: colors.border }]}
+                  onPress={() => handleSearchResultSelect(item)}
+                >
+                  <View style={styles.searchResultContent}>
+                    <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>
+                      {item.name || 'Nome non disponibile'}
+                    </Text>
+                    <Text style={[styles.searchResultLocation, { color: colors.text + '80' }]} numberOfLines={1}>
+                      {item.city || 'Città'}, {item.province || 'Provincia'} • {item.category_name || 'Categoria'}
+                    </Text>
+                  </View>
+                  <MaterialIcons name="arrow-forward" size={16} color={colors.text + '60'} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+        
+        {showSearchResults && filteredRestaurants.length === 0 && (
+          <View style={[styles.searchResultsContainer, { backgroundColor: colors.card }]}>
+            <View style={styles.noResultsContainer}>
+              <MaterialIcons name="search-off" size={24} color={colors.text + '60'} />
+              <Text style={[styles.noResultsText, { color: colors.text + '80' }]}>
+                Nessun ristorante trovato
+              </Text>
+            </View>
+          </View>
+        )}
+        
+        {/* Small Map */}
+        <View style={styles.mapContainer}>
+          <RestaurantMapView
+            restaurants={mapRestaurants}
+            height={width * 0.4}
+            showLocationButton={false}
+            onMarkerPress={(restaurant) => {
+              // Navigate to restaurant detail
+              console.log('Restaurant selected:', restaurant.title);
+            }}
+          />
+        </View>
+      </View>
 
       {/* Sezione Guide in Evidenza */}
       <Animated.View 
@@ -406,7 +563,7 @@ export default function Index() {
           autoHide={false}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -414,30 +571,97 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  heroContainer: {
-    height: width * 0.6, // Responsive height based on screen width
+  mapSection: {
     marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    position: 'relative',
   },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'flex-end',
+  searchOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
   },
-  heroOverlay: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    paddingTop: 20,
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1001,
   },
-  heroTitle: {
-    marginBottom: 8, // Dynamic font size handled by useTextStyles
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10
+  searchIcon: {
+    marginRight: 8,
   },
-  heroSubtitle: {
-    textShadowColor: 'rgba(0, 0, 0, 0.75)', // Dynamic font size handled by useTextStyles
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  mapContainer: {
+    height: width * 0.4, // Small map, responsive height
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchResultsContainer: {
+    position: 'absolute',
+    top: 60, // Position below search bar
+    left: 0,
+    right: 0,
+    maxHeight: 200,
+    borderRadius: 12,
+    marginHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+  },
+  searchResultContent: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  searchResultLocation: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  noResultsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  noResultsText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   section: {
     marginBottom: 24,

@@ -61,18 +61,67 @@ export default function RistorantiScreen() {
   const loadData = async (categoryId?: string) => {
     try {
       setLoading(true);
-      // Use API-based filtering when a specific category is selected
-      const restaurantsUrl = categoryId && categoryId !== 'all' 
-        ? `/restaurants/?category_id=${categoryId}` 
-        : '/restaurants/';
-      const [restaurantsResponse, categoriesResponse] = await Promise.all([
-        apiClient.get<any>(restaurantsUrl),
-        apiClient.get<any>('/categories/')
-      ]);
-      const restaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+      
+      // Try to load all restaurants at once first
+      let allRestaurants = [];
+      try {
+        const allRestaurantsUrl = categoryId && categoryId !== 'all' 
+          ? `/restaurants/?category_id=${categoryId}&limit=10000` 
+          : `/restaurants/?limit=10000`;
+          
+        console.log('🔄 Loading all restaurants...');
+        const restaurantsResponse = await apiClient.get<any>(allRestaurantsUrl);
+        allRestaurants = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+        
+        console.log(`✅ Loaded ${allRestaurants.length} restaurants in single request`);
+      } catch (error) {
+        console.log('⚠️ Single request failed, trying pagination...');
+        
+        // Fallback to pagination if single request fails
+        let currentPage = 1;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const restaurantsUrl = categoryId && categoryId !== 'all' 
+            ? `/restaurants/?category_id=${categoryId}&page=${currentPage}&limit=100` 
+            : `/restaurants/?page=${currentPage}&limit=100`;
+            
+          console.log(`🔄 Loading page ${currentPage}...`);
+          
+          const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
+          const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+          
+          if (pageData.length === 0) {
+            hasMore = false;
+          } else {
+            allRestaurants.push(...pageData);
+            currentPage++;
+            
+            // Check if there are more pages
+            if (restaurantsResponse?.has_more === false || pageData.length < 100) {
+              hasMore = false;
+            }
+          }
+          
+          // Safety break to avoid infinite loops
+          if (currentPage > 50) {
+            console.warn('⚠️ Stopped loading after 50 pages');
+            hasMore = false;
+          }
+        }
+      }
+      
+      // Load categories separately
+      const categoriesResponse = await apiClient.get<any>('/categories/');
       const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
+      
+      // Debug logging
+      console.log('🏪 Final Data:', {
+        totalRestaurants: allRestaurants.length,
+        categoriesCount: categoriesData.length
+      });
       // Transform data to match ListItem interface
-      const transformedRestaurants = restaurantsData.map((restaurant: any) => ({
+      const transformedRestaurants = allRestaurants.map((restaurant: any) => ({
         id: restaurant.id,
         title: restaurant.name, // Use name as title for restaurants
         name: restaurant.name,
@@ -99,8 +148,8 @@ export default function RistorantiScreen() {
       setCategories(allCategories);
 
       // Extract unique cities and cuisine types from restaurants data
-      const uniqueCities = [...new Set(restaurantsData.map((r: any) => r.city).filter(Boolean))].sort() as string[];
-      const allCuisineTypes = restaurantsData.flatMap((r: any) => r.cuisine_type || []);
+      const uniqueCities = [...new Set(allRestaurants.map((r: any) => r.city).filter(Boolean))].sort() as string[];
+      const allCuisineTypes = allRestaurants.flatMap((r: any) => r.cuisine_type || []);
       const uniqueCuisineTypes = [...new Set(allCuisineTypes.filter(Boolean))].sort() as string[];
 
       setCities([
