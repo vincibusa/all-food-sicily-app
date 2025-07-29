@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -14,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { apiClient } from '../../services/api';
 
 const categoryContent = {
   'guida': {
@@ -129,15 +131,94 @@ Partecipa alle nostre iniziative per vivere esperienze culinarie autentiche.`,
   }
 };
 
+interface GuideSection {
+  id: string;
+  title: string;
+  content: string;
+  featured_image?: string;
+  gallery: string[];
+}
+
 export default function GuideCategoryScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, guideId } = useLocalSearchParams<{ id: string; guideId?: string }>();
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const textStyles = useTextStyles();
+  
+  const [section, setSection] = useState<GuideSection | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fallback al contenuto statico se non c'è guideId
   const category = categoryContent[id as keyof typeof categoryContent];
 
-  if (!category) {
+  useEffect(() => {
+    if (guideId && (id === 'presentazione' || id === 'premi-speciali' || id === 'iniziative')) {
+      loadSectionData();
+    } else {
+      setLoading(false);
+    }
+  }, [guideId, id]);
+
+  const loadSectionData = async () => {
+    if (!guideId) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      console.log(`🔄 Loading section ${id} for guide ${guideId}`);
+      
+      const response = await apiClient.get<GuideSection>(`/guides/${guideId}/sections/${id}`);
+      setSection(response);
+      
+      console.log('✅ Section loaded successfully:', response.title);
+    } catch (error) {
+      console.error('❌ Error loading section:', error);
+      setError('Impossibile caricare la sezione');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Usa i dati dinamici se disponibili, altrimenti fallback statico  
+  const displayData = section || category;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, textStyles.body(colors.text)]}>
+            Caricamento sezione...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.errorContainer}>
+          <MaterialIcons name="error-outline" size={64} color={colors.text + '40'} />
+          <Text style={[styles.errorText, textStyles.title(colors.text)]}>
+            {error}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              onTap();
+              loadSectionData();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Riprova</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!displayData) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.errorContainer}>
@@ -188,12 +269,12 @@ export default function GuideCategoryScreen() {
         {/* Hero Image */}
         <Animated.View entering={FadeInDown.delay(100)}>
           <Image
-            source={{ uri: category.image }}
+            source={{ uri: displayData.featured_image || displayData.image }}
             style={styles.heroImage}
           />
-          <View style={[styles.iconOverlay, { backgroundColor: category.color }]}>
+          <View style={[styles.iconOverlay, { backgroundColor: displayData.color || colors.primary }]}>
             <MaterialIcons
-              name={category.icon as any}
+              name={(displayData.icon || 'info') as any}
               size={32}
               color="white"
             />
@@ -206,13 +287,38 @@ export default function GuideCategoryScreen() {
           entering={FadeInDown.delay(200)}
         >
           <Text style={[styles.categoryTitle, textStyles.title(colors.text)]}>
-            {category.title}
+            {displayData.title}
           </Text>
           
           <Text style={[styles.categoryContent, textStyles.body(colors.text)]}>
-            {category.content}
+            {displayData.content}
           </Text>
         </Animated.View>
+
+        {/* Gallery se disponibile */}
+        {displayData.gallery && displayData.gallery.length > 0 && (
+          <Animated.View 
+            style={styles.gallerySection}
+            entering={FadeInDown.delay(300)}
+          >
+            <Text style={[styles.galleryTitle, textStyles.subtitle(colors.text)]}>
+              Galleria
+            </Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.galleryScroll}
+            >
+              {displayData.gallery.map((imageUrl, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: imageUrl }}
+                  style={styles.galleryImage}
+                />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
 
         {/* Bottom padding */}
         <View style={styles.bottomPadding} />
@@ -320,5 +426,49 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  gallerySection: {
+    padding: 20,
+  },
+  galleryTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  galleryScroll: {
+    paddingRight: 20,
+  },
+  galleryImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 12,
+    marginRight: 16,
+    backgroundColor: '#f0f0f0',
   },
 });

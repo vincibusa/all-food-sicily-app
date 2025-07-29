@@ -114,10 +114,8 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, delay = 0 }) => {
 };
 
 export default function ImpostazioniScreen() {
-  const { colors, colorScheme, toggleColorScheme } = useTheme();
+  const { colors } = useTheme();
   const { onTap } = useHaptics();
-
-  const isDarkMode = colorScheme === 'dark';
 
   const appInfo = {
     version: Application.nativeApplicationVersion || '1.0.0',
@@ -222,70 +220,48 @@ export default function ImpostazioniScreen() {
           </Text>
         </Animated.View>
 
-        {/* Tema */}
-        <Animated.View entering={FadeInDown.delay(100).duration(400)}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Aspetto</Text>
-          <SettingItem
-            icon="palette"
-            title="Tema scuro"
-            subtitle={isDarkMode ? "Attivo" : "Disattivo"}
-            rightComponent={
-              <Switch
-                value={isDarkMode}
-                onValueChange={() => {
-                  onTap();
-                  toggleColorScheme();
-                }}
-                trackColor={{ false: colors.background, true: colors.primary }}
-                thumbColor={colors.card}
-              />
-            }
-            showChevron={false}
-            delay={150}
-          />
-        </Animated.View>
 
         {/* Generale */}
-        <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+        <Animated.View entering={FadeInDown.delay(100).duration(400)}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Generale</Text>
           <SettingItem
             icon="star"
             title="Valuta l'app"
             subtitle="Lasciaci una recensione"
             onPress={handleRateApp}
-            delay={250}
+            delay={150}
           />
           <SettingItem
             icon="share"
             title="Condividi app"
             subtitle="Condividi con gli amici"
             onPress={handleShareApp}
-            delay={300}
+            delay={200}
           />
           <SettingItem
             icon="support"
             title="Contattaci"
             subtitle="Aiuto e supporto"
             onPress={handleContactSupport}
-            delay={350}
+            delay={250}
           />
         </Animated.View>
 
         {/* FAQ */}
-        <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+        <Animated.View entering={FadeInDown.delay(300).duration(400)}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Domande Frequenti</Text>
           {faqData.map((faq, index) => (
             <FAQItem
               key={index}
               question={faq.question}
               answer={faq.answer}
-              delay={450 + index * 50}
+              delay={350 + index * 50}
             />
           ))}
         </Animated.View>
 
         {/* Informazioni App */}
-        <Animated.View entering={FadeInDown.delay(800).duration(400)}>
+        <Animated.View entering={FadeInDown.delay(700).duration(400)}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Informazioni App</Text>
           <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
             <View style={styles.infoRow}>

@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme as useDeviceColorScheme } from 'react-native';
+import React, { createContext, useContext } from 'react';
 import Colors from '../../constants/Colors';
 
-type ColorScheme = 'light' | 'dark';
+type ColorScheme = 'light';
 type ThemeContextType = {
   colorScheme: ColorScheme;
   colors: typeof Colors.light;
@@ -15,35 +14,29 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const deviceColorScheme = useDeviceColorScheme() as ColorScheme || 'light';
-  const [useSystemTheme, setUseSystemTheme] = useState(true);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(deviceColorScheme);
+  // Force light mode only
+  const colorScheme: ColorScheme = 'light';
+  const colors = Colors.light;
 
-  // Aggiorna il tema quando cambia quello del dispositivo (se useSystemTheme è true)
-  useEffect(() => {
-    if (useSystemTheme) {
-      setColorScheme(deviceColorScheme);
-    }
-  }, [deviceColorScheme, useSystemTheme]);
-
+  // No-op functions for compatibility
   const toggleColorScheme = () => {
-    setUseSystemTheme(false);  // Disabilita il tema di sistema quando l'utente cambia manualmente
-    setColorScheme(prevScheme => (prevScheme === 'light' ? 'dark' : 'light'));
+    // Do nothing - light mode only
   };
 
   const handleSetColorScheme = (scheme: ColorScheme) => {
-    setUseSystemTheme(false);  // Disabilita il tema di sistema quando l'utente cambia manualmente
-    setColorScheme(scheme);
+    // Do nothing - light mode only
   };
 
-  const colors = Colors[colorScheme];
+  const setUseSystemTheme = (use: boolean) => {
+    // Do nothing - light mode only
+  };
 
   const value = {
     colorScheme,
     colors,
     setColorScheme: handleSetColorScheme,
     toggleColorScheme,
-    useSystemTheme,
+    useSystemTheme: false,
     setUseSystemTheme,
   };
 

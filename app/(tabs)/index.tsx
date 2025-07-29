@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
 import { useTheme } from "../context/ThemeContext";
 import { Link, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";

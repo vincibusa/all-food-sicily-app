@@ -112,8 +112,14 @@ export default function GuideSpecificCategoriesScreen() {
     if (categoryId === 'guida') {
       // Navigate to guide-specific restaurant search
       router.push(`/guide-search?guideId=${guideId}`);
+    } else if (categoryId === 'vincitori') {
+      // Navigate to awards page
+      router.push(`/guide-awards/${guideId}`);
+    } else if (categoryId === 'sponsor') {
+      // Navigate to sponsors page
+      router.push(`/guide-sponsors/${guideId}`);
     } else {
-      // Navigate to guide-specific category content
+      // Navigate to guide-specific category content (presentazione, premi-speciali, iniziative)
       router.push(`/guide-category/${categoryId}?guideId=${guideId}`);
     }
   };
@@ -141,7 +147,6 @@ export default function GuideSpecificCategoriesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-
         {/* Categories Grid */}
         <View style={styles.categoriesContainer}>
           {categories.map((category, index) => (
@@ -209,31 +214,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 10,
     paddingHorizontal: 20,
-  },
-  guideInfoSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    marginBottom: 20,
-  },
-  guideTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  guideLocation: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  guideCategoryPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  guideCategoryText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   categoriesContainer: {
     flexDirection: 'row',
