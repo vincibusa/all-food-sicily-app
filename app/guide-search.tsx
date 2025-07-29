@@ -535,7 +535,7 @@ export default function GuideSearchScreen() {
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, textStyles.title(colors.text)]}>
-          {guideId ? (guide?.title || 'Caricamento...') : 'Ricerca Locali'}
+          Ricerca Locali
         </Text>
         <View style={styles.placeholder} />
       </View>
