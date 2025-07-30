@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView, Platform } from 'react-native';
 import Animated, { FadeInDown, FadeIn, SlideInDown, withSpring } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useHaptics } from '../utils/haptics';
@@ -89,7 +89,12 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               style={[
                 styles.filterToggle, 
                 { 
-                  backgroundColor: showFilters ? colors.primary + '10' : colors.card,
+                  backgroundColor: showFilters 
+                    ? (Platform.OS === 'android' 
+                        ? `${colors.primary}40` // Più opaco per Android
+                        : colors.primary + '10'
+                      )
+                    : 'transparent', // Trasparente quando non attivo
                   borderColor: showFilters ? colors.primary : colors.primary + '20',
                   borderWidth: showFilters ? 2 : 1,
                 }
@@ -98,7 +103,11 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 onTap();
                 setShowFilters(!showFilters);
               }}
-              activeOpacity={0.7}
+              activeOpacity={
+                Platform.OS === 'android' && showFilters 
+                  ? 1 // Nessun effetto opacity quando i filtri sono aperti su Android
+                  : 0.7
+              }
             >
               <View style={[
                 styles.filterToggleIcon, 
@@ -108,7 +117,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               ]}> 
                 <MaterialIcons 
                   name="tune" 
-                  size={18} 
+                  size={Platform.OS === 'android' ? 20 : 18} 
                   color={showFilters ? 'white' : colors.primary} 
                 />
               </View>
@@ -120,7 +129,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     fontWeight: showFilters ? '700' : '600'
                   }
                 ]}>
-                  Filtri avanzati
+                  Filtri 
                 </Text>
                 {hasActiveFilters && (
                   <Text style={[styles.filterSubtext, { color: colors.text + '80' }]}>
@@ -583,11 +592,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    backgroundColor: 'transparent', // Default trasparente
+    borderWidth: 0, // Default senza bordo
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      elevation: 4,
+    } : {}),
     height: 64,
   },
   filterToggleIcon: {
@@ -597,11 +610,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...(Platform.OS === 'android' ? {
+      // Su Android, assicuriamoci che l'icona sia ben centrata
+      paddingTop: 1,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    }),
   },
   filterToggleContent: {
     flex: 1,

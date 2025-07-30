@@ -132,8 +132,17 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
             onPress={() => handleMarkerPress(restaurant)}
           >
             {/* Marker personalizzato */}
-            <View style={[styles.customMarker, { backgroundColor: restaurant.category?.color || colors.primary }]}>
-              <MaterialIcons name={getMarkerIcon(restaurant)} size={20} color="white" />
+            <View style={[
+              styles.customMarker, 
+              { backgroundColor: restaurant.category?.color || colors.primary },
+              Platform.OS === 'android' ? styles.androidMarker : {}
+            ]}>
+              <MaterialIcons 
+                name={getMarkerIcon(restaurant)} 
+                size={Platform.OS === 'android' ? 16 : 20} 
+                color="white" 
+                style={Platform.OS === 'android' ? { marginTop: 1 } : {}}
+              />
             </View>
           </Marker>
         ))}
@@ -147,7 +156,7 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
         >
           <MaterialIcons 
             name="my-location" 
-            size={24} 
+            size={Platform.OS === 'android' ? 22 : 24} 
             color={colors.primary} 
           />
         </TouchableOpacity>
@@ -191,11 +200,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    ...(Platform.OS === 'android' ? {
+      elevation: 5,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    }),
+  },
+  androidMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    paddingTop: 2,
+    paddingLeft: 1,
   },
   locationFab: {
     position: 'absolute',
@@ -206,11 +225,14 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...(Platform.OS === 'android' ? {
+      elevation: 8,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    }),
   },
   loadingOverlay: {
     position: 'absolute',

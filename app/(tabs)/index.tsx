@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions, TextInput, Alert } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions, TextInput, Alert, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { Link, router } from "expo-router";
@@ -885,11 +885,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    } : {
+      elevation: 3,
+    }),
     zIndex: 1001,
   },
   searchIcon: {
@@ -904,11 +907,12 @@ const styles = StyleSheet.create({
     height: width * 0.4, // Small map, responsive height
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    } : {}),
   },
   searchResultsContainer: {
     position: 'absolute',
@@ -918,11 +922,14 @@ const styles = StyleSheet.create({
     maxHeight: 200,
     borderRadius: 12,
     marginHorizontal: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    } : {
+      elevation: 8,
+    }),
     zIndex: 1000,
   },
   searchResultItem: {
@@ -983,14 +990,16 @@ const styles = StyleSheet.create({
     marginRight: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
+    ...(Platform.OS === 'android' ? {} : {
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+      elevation: 4,
+    }),
   },
   articleImage: {
     width: '100%',
@@ -1084,11 +1093,13 @@ const styles = StyleSheet.create({
     marginRight: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
+    ...(Platform.OS === 'android' ? {} : {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+      elevation: 4,
+    }),
   },
   fullImage: {
     width: '100%',
@@ -1126,12 +1137,14 @@ const styles = StyleSheet.create({
     marginRight: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
-    backgroundColor: 'white', // For the text area
+    ...(Platform.OS === 'android' ? {} : {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+      elevation: 4,
+      backgroundColor: 'white', // For the text area
+    }),
   },
   guideImage: {
     width: '100%',
@@ -1173,12 +1186,14 @@ const styles = StyleSheet.create({
     marginRight: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
-    backgroundColor: 'white', // For the text area
+    ...(Platform.OS === 'android' ? {} : {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+      elevation: 4,
+      backgroundColor: 'white', // For the text area
+    }),
   },
   restaurantImage: {
     width: '100%',
