@@ -16,6 +16,7 @@ import { InlineLoading, FullScreenLoading } from "../../components/LoadingStates
 import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
 import { RestaurantMapView } from '../../components/MapView';
+import { useLocation } from "../../hooks/useLocation";
 
 interface Restaurant extends ListItem {
   description: string;
@@ -42,6 +43,7 @@ export default function RistorantiScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const router = useRouter();
+  const { location: userLocation, getCurrentLocation, calculateDistance } = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tutti');
   const [selectedCity, setSelectedCity] = useState('Tutte');
@@ -57,6 +59,13 @@ export default function RistorantiScreen() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Effetto per ottenere la posizione dell'utente al caricamento
+  useEffect(() => {
+    if (!userLocation) {
+      getCurrentLocation();
+    }
   }, []);
 
   const loadData = async (categoryId?: string) => {
@@ -214,9 +223,20 @@ export default function RistorantiScreen() {
     );
   };
 
+  // Funzione per ordinare per distanza
+  const sortByDistance = (items: ListItem[], userLat: number, userLng: number) => {
+    return items
+      .filter(item => item.latitude && item.longitude)
+      .map(item => ({
+        ...item,
+        distance: calculateDistance(userLat, userLng, Number(item.latitude), Number(item.longitude))
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .map(({ distance, ...item }) => item as ListItem);
+  };
   
   // Filtro client-side per search query, città e tipo di cucina
-  const filteredRestaurants = restaurants.filter(restaurant => {
+  let filteredRestaurants = restaurants.filter(restaurant => {
     // Search query filter
     const matchesSearch = !searchQuery.trim() || (
       restaurant.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -238,6 +258,17 @@ export default function RistorantiScreen() {
     
     return matchesSearch && matchesCity && matchesCuisine;
   });
+
+  // Ordina per distanza se abbiamo la posizione dell'utente
+  if (userLocation) {
+    console.log('🎯 Ordinamento ristoranti per distanza dalla posizione:', userLocation);
+    filteredRestaurants = sortByDistance(filteredRestaurants, userLocation.latitude, userLocation.longitude);
+    console.log('📍 Primi 3 ristoranti ordinati:', filteredRestaurants.slice(0, 3).map(r => ({
+      name: r.title,
+      city: r.city,
+      coords: `${r.latitude},${r.longitude}`
+    })));
+  }
 
   // Display restaurants with pagination
   const displayedRestaurants = filteredRestaurants.slice(0, displayLimit);
@@ -287,9 +318,11 @@ export default function RistorantiScreen() {
               cities={cities}
               selectedCity={selectedCity}
               onCitySelect={handleCitySelect}
-              hotelTypes={cuisineTypes}
+              hotelTypes={cuisineTypes} // Tipi di cucina per i ristoranti
               selectedHotelType={selectedCuisine}
               onHotelTypeSelect={handleCuisineSelect}
+              hotelTypesLabel="Tipo Cucina" // Etichetta personalizzata per ristoranti
+              hotelTypesIcon="restaurant" // Icona appropriata per cucina
               onResetFilters={() => {
                 setSelectedCity('Tutte');
                 setSelectedCategory('Tutti');
@@ -309,7 +342,7 @@ export default function RistorantiScreen() {
               
               {/* Indicatori Filtri Attivi */}
               <View style={styles.activeFiltersContainer}>
-                {selectedCity !== 'Tutte' && (
+                {selectedCity && selectedCity !== 'Tutte' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                     <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
                     <TouchableOpacity onPress={() => {
@@ -320,7 +353,7 @@ export default function RistorantiScreen() {
                     </TouchableOpacity>
                   </View>
                 )}
-                {selectedCategory !== 'Tutti' && (
+                {selectedCategory && selectedCategory !== 'Tutti' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                     <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCategory}</Text>
                     <TouchableOpacity onPress={() => {
@@ -331,7 +364,7 @@ export default function RistorantiScreen() {
                     </TouchableOpacity>
                   </View>
                 )}
-                {selectedCuisine !== 'Tutte' && (
+                {selectedCuisine && selectedCuisine !== 'Tutte' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                     <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCuisine}</Text>
                     <TouchableOpacity onPress={() => {

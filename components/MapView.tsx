@@ -78,6 +78,18 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
     }
   };
 
+  // Determina l'icona del marker in base al tipo di establishment
+  const getMarkerIcon = (item: ListItem) => {
+    // Controlla se è un hotel basandosi sulla categoria o sulle proprietà
+    const isHotel = item.category?.name?.toLowerCase().includes('hotel') ||
+                   item.category?.name?.toLowerCase().includes('b&b') ||
+                   item.category?.name?.toLowerCase().includes('agriturismo') ||
+                   item.category?.name?.toLowerCase().includes('resort') ||
+                   (item as any).hotel_type; // Verifica se ha proprietà hotel_type
+    
+    return isHotel ? 'hotel' : 'restaurant';
+  };
+
   // Centra la mappa sulla posizione utente
   const centerOnUserLocation = async () => {
     const location = await getCurrentLocation();
@@ -121,7 +133,7 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
           >
             {/* Marker personalizzato */}
             <View style={[styles.customMarker, { backgroundColor: restaurant.category?.color || colors.primary }]}>
-              <MaterialIcons name="restaurant" size={20} color="white" />
+              <MaterialIcons name={getMarkerIcon(restaurant)} size={20} color="white" />
             </View>
           </Marker>
         ))}

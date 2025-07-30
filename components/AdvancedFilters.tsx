@@ -30,6 +30,8 @@ interface AdvancedFiltersProps {
   hotelTypes?: FilterOption[];
   selectedHotelType?: string;
   onHotelTypeSelect?: (typeName: string) => void;
+  hotelTypesLabel?: string; // Personalizza l'etichetta per hotelTypes
+  hotelTypesIcon?: string; // Personalizza l'icona per hotelTypes
   starRatings?: FilterOption[];
   selectedStarRating?: string;
   onStarRatingSelect?: (rating: string) => void;
@@ -45,7 +47,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   showFilters,
   setShowFilters,
   categories,
-  selectedCategory,
+  selectedCategory = 'Tutti',
   onCategorySelect,
   cities = [],
   selectedCity = 'Tutte',
@@ -53,6 +55,8 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   hotelTypes = [],
   selectedHotelType = 'Tutti',
   onHotelTypeSelect = () => {},
+  hotelTypesLabel = 'Tipo Struttura', // Default label
+  hotelTypesIcon = 'hotel', // Default icon
   starRatings = [],
   selectedStarRating = 'Tutte',
   onStarRatingSelect = () => {},
@@ -66,10 +70,12 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   const { onTap } = useHaptics();
   
   const activeFiltersCount = 
-    (selectedCity !== 'Tutte' ? 1 : 0) + 
-    (selectedCategory !== 'Tutti' ? 1 : 0) +
-    (selectedHotelType !== 'Tutti' ? 1 : 0) +
-    (selectedStarRating !== 'Tutte' ? 1 : 0);
+    (selectedCity && selectedCity !== 'Tutte' ? 1 : 0) + 
+    (selectedCategory && selectedCategory !== 'Tutti' ? 1 : 0) +
+    (selectedHotelType && selectedHotelType !== 'Tutti' && selectedHotelType !== 'Tutte' ? 1 : 0) +
+    (selectedStarRating && selectedStarRating !== 'Tutte' ? 1 : 0);
+  
+  
   const hasActiveFilters = activeFiltersCount > 0;
 
   return (
@@ -192,6 +198,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           style={[styles.expandedFilters, { backgroundColor: colors.card }]}
         >
           {/* Categories Section with Color Coding */}
+          {categories.length > 0 && (
           <View style={styles.filterRow}>
             <View style={styles.filterHeader}>
               <MaterialIcons name="category" size={20} color={colors.primary} />
@@ -272,6 +279,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               })}
             </ScrollView>
           </View>
+          )}
 
           {/* Cities Section */}
           {cities.length > 0 && (
@@ -358,8 +366,8 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           {hotelTypes.length > 0 && (
             <View style={styles.filterRow}>
               <View style={styles.filterHeader}>
-                <MaterialIcons name="hotel" size={20} color={colors.primary} />
-                <Text style={[styles.filterLabel, { color: colors.text }]}>Tipo Struttura</Text>
+                <MaterialIcons name={hotelTypesIcon as any} size={20} color={colors.primary} />
+                <Text style={[styles.filterLabel, { color: colors.text }]}>{hotelTypesLabel}</Text>
                 <View style={[styles.filterCount, { backgroundColor: colors.primary + '15' }]}>
                   <Text style={[styles.filterCountText, { color: colors.primary }]}>
                     {hotelTypes.length}
@@ -399,7 +407,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                         activeOpacity={0.8}
                       >
                         <MaterialIcons 
-                          name="business" 
+                          name={hotelTypesIcon as any} 
                           size={16} 
                           color={isSelected ? 'white' : colors.primary} 
                         />
@@ -580,7 +588,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
-    minHeight: 56,
+    height: 64,
   },
   filterToggleIcon: {
     width: 36,
@@ -636,16 +644,17 @@ const styles = StyleSheet.create({
   mapToggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 16,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
     minWidth: 120,
     justifyContent: 'center',
-    minHeight: 56,
+    height: 64,
   },
   mapToggleIconContainer: {
     width: 28,

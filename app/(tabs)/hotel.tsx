@@ -16,6 +16,7 @@ import { InlineLoading, FullScreenLoading } from "../../components/LoadingStates
 import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
 import { RestaurantMapView } from '../../components/MapView';
+import { useLocation } from "../../hooks/useLocation";
 
 interface Hotel extends ListItem {
   description: string;
@@ -38,6 +39,7 @@ export default function HotelScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const router = useRouter();
+  const { location: userLocation, getCurrentLocation, calculateDistance } = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('Tutte');
   const [selectedHotelType, setSelectedHotelType] = useState('Tutti');
@@ -53,6 +55,13 @@ export default function HotelScreen() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Effetto per ottenere la posizione dell'utente al caricamento
+  useEffect(() => {
+    if (!userLocation) {
+      getCurrentLocation();
+    }
   }, []);
 
   const loadData = async () => {
@@ -205,8 +214,20 @@ export default function HotelScreen() {
     );
   };
 
+  // Funzione per ordinare per distanza
+  const sortByDistance = (items: ListItem[], userLat: number, userLng: number) => {
+    return items
+      .filter(item => item.latitude && item.longitude)
+      .map(item => ({
+        ...item,
+        distance: calculateDistance(userLat, userLng, Number(item.latitude), Number(item.longitude))
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .map(({ distance, ...item }) => item as ListItem);
+  };
+
   // Client-side filter for search query, city, hotel type, and star rating
-  const filteredHotels = hotels.filter(hotel => {
+  let filteredHotels = hotels.filter(hotel => {
     // Search query filter
     const matchesSearch = !searchQuery.trim() || (
       hotel.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -232,6 +253,17 @@ export default function HotelScreen() {
     
     return matchesSearch && matchesCity && matchesHotelType && matchesStarRating;
   });
+
+  // Ordina per distanza se abbiamo la posizione dell'utente
+  if (userLocation) {
+    console.log('🏨 Ordinamento hotel per distanza dalla posizione:', userLocation);
+    filteredHotels = sortByDistance(filteredHotels, userLocation.latitude, userLocation.longitude);
+    console.log('🏨 Primi 3 hotel ordinati:', filteredHotels.slice(0, 3).map(h => ({
+      name: h.title,
+      city: h.city,
+      coords: `${h.latitude},${h.longitude}`
+    })));
+  }
 
   // Display hotels with pagination
   const displayedHotels = filteredHotels.slice(0, displayLimit);
@@ -274,7 +306,7 @@ export default function HotelScreen() {
             <AdvancedFilters
               showFilters={showFilters}
               setShowFilters={setShowFilters}
-              categories={[]}
+              categories={[]} // NON mostrare "Categorie" negli hotel
               selectedCategory={''}
               onCategorySelect={() => {}}
               cities={cities}
@@ -283,6 +315,8 @@ export default function HotelScreen() {
               hotelTypes={hotelTypes}
               selectedHotelType={selectedHotelType}
               onHotelTypeSelect={handleHotelTypeSelect}
+              hotelTypesLabel="Tipo Struttura" // Etichetta per hotel
+              hotelTypesIcon="hotel" // Icona appropriata per hotel
               starRatings={starRatings}
               selectedStarRating={selectedStarRating}
               onStarRatingSelect={handleStarRatingSelect}
@@ -297,153 +331,6 @@ export default function HotelScreen() {
               onToggleMapView={() => setIsMapView(!isMapView)}
             />
 
-            {/* Filtri Hotel Personalizzati */}
-            <View style={styles.additionalFiltersContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.filterToggle,
-                  { 
-                    backgroundColor: colors.card,
-                    borderColor: showFilters ? colors.primary : colors.text + '20'
-                  }
-                ]}
-                onPress={() => {
-                  onTap();
-                  setShowFilters(!showFilters);
-                }}
-              >
-                <View style={[styles.filterToggleIcon, { backgroundColor: colors.primary + '20' }]}>
-                  <MaterialIcons name="filter-list" size={16} color={colors.primary} />
-                </View>
-                <View style={styles.filterBadgeContainer}>
-                  <Text style={[styles.filterToggleText, { color: colors.text }]}>
-                    Filtri Hotel
-                  </Text>
-                  <MaterialIcons 
-                    name={showFilters ? "expand-less" : "expand-more"} 
-                    size={20} 
-                    color={colors.text + '60'} 
-                  />
-                </View>
-              </TouchableOpacity>
-
-              {showFilters && (
-                <Animated.View 
-                  entering={FadeInDown.duration(300)}
-                  style={[styles.expandedFilters, { backgroundColor: colors.card }]}
-                >
-                  {/* Filtro Città */}
-                  <View style={styles.filterRow}>
-                    <Text style={[styles.filterLabel, { color: colors.text }]}>Città</Text>
-                    <View style={styles.filterButtonsGrid}>
-                      {cities.map((city) => (
-                        <TouchableOpacity
-                          key={city.id}
-                          style={[
-                            styles.filterButton,
-                            {
-                              backgroundColor: selectedCity === city.name ? colors.primary : colors.background,
-                              borderColor: colors.primary,
-                            }
-                          ]}
-                          onPress={() => {
-                            onTap();
-                            setSelectedCity(city.name);
-                            setDisplayLimit(20);
-                          }}
-                        >
-                          <Text style={[
-                            styles.filterButtonText,
-                            { color: selectedCity === city.name ? 'white' : colors.primary }
-                          ]}>
-                            {city.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Filtro Tipo Hotel */}
-                  <View style={styles.filterRow}>
-                    <Text style={[styles.filterLabel, { color: colors.text }]}>Tipo Struttura</Text>
-                    <View style={styles.filterButtonsGrid}>
-                      {hotelTypes.map((type) => (
-                        <TouchableOpacity
-                          key={type.id}
-                          style={[
-                            styles.filterButton,
-                            {
-                              backgroundColor: selectedHotelType === type.name ? colors.primary : colors.background,
-                              borderColor: colors.primary,
-                            }
-                          ]}
-                          onPress={() => {
-                            onTap();
-                            setSelectedHotelType(type.name);
-                            setDisplayLimit(20);
-                          }}
-                        >
-                          <Text style={[
-                            styles.filterButtonText,
-                            { color: selectedHotelType === type.name ? 'white' : colors.primary }
-                          ]}>
-                            {type.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Filtro Stelle */}
-                  <View style={styles.filterRow}>
-                    <Text style={[styles.filterLabel, { color: colors.text }]}>Stelle</Text>
-                    <View style={styles.filterButtonsGrid}>
-                      {starRatings.map((rating) => (
-                        <TouchableOpacity
-                          key={rating.id}
-                          style={[
-                            styles.filterButton,
-                            {
-                              backgroundColor: selectedStarRating === rating.name ? colors.primary : colors.background,
-                              borderColor: colors.primary,
-                            }
-                          ]}
-                          onPress={() => {
-                            onTap();
-                            setSelectedStarRating(rating.name);
-                            setDisplayLimit(20);
-                          }}
-                        >
-                          <Text style={[
-                            styles.filterButtonText,
-                            { color: selectedStarRating === rating.name ? 'white' : colors.primary }
-                          ]}>
-                            {rating.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Reset Filtri */}
-                  <View style={styles.resetContainer}>
-                    <TouchableOpacity
-                      style={[styles.resetFiltersButton, { borderColor: colors.text + '30' }]}
-                      onPress={() => {
-                        onTap();
-                        setSelectedCity('Tutte');
-                        setSelectedHotelType('Tutti'); 
-                        setSelectedStarRating('Tutte');
-                        setDisplayLimit(20);
-                      }}
-                    >
-                      <MaterialIcons name="refresh" size={16} color={colors.text} />
-                      <Text style={[styles.resetFiltersText, { color: colors.text }]}>Reset Filtri</Text>
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-              )}
-            </View>
 
             {/* Results Count e Filtri Attivi */}
             <View style={styles.resultsSection}>
@@ -453,7 +340,7 @@ export default function HotelScreen() {
               
               {/* Indicatori Filtri Attivi */}
               <View style={styles.activeFiltersContainer}>
-                {selectedCity !== 'Tutte' && (
+                {selectedCity && selectedCity !== 'Tutte' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                     <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
                     <TouchableOpacity onPress={() => {
@@ -464,7 +351,7 @@ export default function HotelScreen() {
                     </TouchableOpacity>
                   </View>
                 )}
-                {selectedHotelType !== 'Tutti' && (
+                {selectedHotelType && selectedHotelType !== 'Tutti' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                     <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedHotelType}</Text>
                     <TouchableOpacity onPress={() => {
@@ -475,7 +362,7 @@ export default function HotelScreen() {
                     </TouchableOpacity>
                   </View>
                 )}
-                {selectedStarRating !== 'Tutte' && (
+                {selectedStarRating && selectedStarRating !== 'Tutte' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
                     <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedStarRating}</Text>
                     <TouchableOpacity onPress={() => {

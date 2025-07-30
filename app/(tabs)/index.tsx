@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions, TextInput } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ImageBackground, FlatList, Dimensions, TextInput, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { Link, router } from "expo-router";
@@ -17,6 +17,7 @@ import { VerticalScrollIndicator, ScrollIndicatorType, ScrollIndicatorPosition }
 import { RestaurantMapView } from "../../components/MapView";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ListItem } from "../../components/ListCard";
+import { useLocation } from "../../hooks/useLocation";
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +44,8 @@ interface Restaurant {
   price_range: number;
   category_name: string;
   category_color?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface Hotel {
@@ -57,6 +60,8 @@ interface Hotel {
   hotel_type: string[];
   category_name: string;
   category_color?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export default function Index() {
@@ -66,8 +71,7 @@ export default function Index() {
   const scrollY = useSharedValue(0);
   const fadeAnim = useSharedValue(0);
   const [guides, setGuides] = useState<Guide[]>([]);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [hotels, setHotels] = useState<Hotel[]>([]);
+  // Removed restaurants and hotels state - now using nearestRestaurants and nearestHotels computed values
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]); // All restaurants for search
   const [allHotels, setAllHotels] = useState<Hotel[]>([]); // All hotels for search
   const [loading, setLoading] = useState(true);
@@ -78,6 +82,9 @@ export default function Index() {
   const [containerHeight, setContainerHeight] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
+
+  // Hook per geolocalizzazione
+  const { location: userLocation, getCurrentLocation, calculateDistance } = useLocation();
   
   const handleImageLoaded = (uri: string) => {
     setLoadedImages(prev => new Set([...prev, uri]));
@@ -90,9 +97,9 @@ export default function Index() {
   
   const allImagesLoaded = loadedImages.size >= totalImages && totalImages > 0;
 
-  // Convert restaurants to ListItem format for MapView
-  const mapRestaurants: ListItem[] = restaurants
-    .filter(restaurant => restaurant.id && restaurant.name) // Filter out invalid entries
+  // Convert ALL restaurants to ListItem format for MapView (not just 3)
+  const mapRestaurants: ListItem[] = allRestaurants
+    .filter(restaurant => restaurant.id && restaurant.name && restaurant.latitude && restaurant.longitude) // Filter out invalid entries and missing coordinates
     .map(restaurant => ({
       id: restaurant.id,
       title: restaurant.name,
@@ -105,13 +112,13 @@ export default function Index() {
       city: restaurant.city || '',
       province: restaurant.province || '',
       rating: typeof restaurant.rating === 'string' ? parseFloat(restaurant.rating) : restaurant.rating,
-      latitude: 37.5, // Default fallback, should be from API
-      longitude: 14.0, // Default fallback, should be from API
+      latitude: restaurant.latitude, // Use real coordinates from API
+      longitude: restaurant.longitude, // Use real coordinates from API
     }));
 
-  // Convert hotels to ListItem format for MapView
-  const mapHotels: ListItem[] = hotels
-    .filter(hotel => hotel.id && hotel.name) // Filter out invalid entries
+  // Convert ALL hotels to ListItem format for MapView (not just 3)
+  const mapHotels: ListItem[] = allHotels
+    .filter(hotel => hotel.id && hotel.name && hotel.latitude && hotel.longitude) // Filter out invalid entries and missing coordinates
     .map(hotel => ({
       id: hotel.id,
       title: hotel.name,
@@ -124,12 +131,49 @@ export default function Index() {
       city: hotel.city || '',
       province: hotel.province || '',
       rating: typeof hotel.rating === 'string' ? parseFloat(hotel.rating) : hotel.rating,
-      latitude: 37.5, // Default fallback, should be from API
-      longitude: 14.0, // Default fallback, should be from API
+      latitude: hotel.latitude, // Use real coordinates from API
+      longitude: hotel.longitude, // Use real coordinates from API
+      hotel_type: hotel.hotel_type, // Add hotel_type property to identify as hotel
     }));
 
   // Combine both restaurants and hotels for map view
   const mapItems: ListItem[] = [...mapRestaurants, ...mapHotels];
+
+  // Funzione per ordinare per distanza
+  const sortByDistance = (items: (Restaurant | Hotel)[], userLat: number, userLng: number) => {
+    return items
+      .filter(item => item.latitude && item.longitude) // Solo elementi con coordinate
+      .map(item => ({
+        ...item,
+        distance: calculateDistance(userLat, userLng, Number(item.latitude), Number(item.longitude))
+      }))
+      .sort((a, b) => a.distance - b.distance);
+  };
+
+  // Ottieni i 3 ristoranti più vicini
+  const nearestRestaurants: Restaurant[] = userLocation 
+    ? sortByDistance(allRestaurants, userLocation.latitude, userLocation.longitude)
+        .slice(0, 3)
+        .map(({ distance, ...item }) => item as Restaurant) // Rimuovi la proprietà distance per mantenere il tipo originale
+    : allRestaurants.slice(0, 3); // Fallback ai primi 3 se no geolocalizzazione
+
+  // Ottieni i 3 hotel più vicini  
+  const nearestHotels: Hotel[] = userLocation
+    ? sortByDistance(allHotels, userLocation.latitude, userLocation.longitude)
+        .slice(0, 3)
+        .map(({ distance, ...item }) => item as Hotel) // Rimuovi la proprietà distance per mantenere il tipo originale
+    : allHotels.slice(0, 3); // Fallback ai primi 3 se no geolocalizzazione
+
+  console.log(`🗺️ Map data:`, {
+    allRestaurantsTotal: allRestaurants.length,
+    nearestRestaurants: nearestRestaurants.length,
+    restaurantsWithCoords: mapRestaurants.length,
+    allHotelsTotal: allHotels.length,
+    nearestHotels: nearestHotels.length,
+    hotelsWithCoords: mapHotels.length,
+    mapItemsTotal: mapItems.length,
+    userLocation: userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : 'No location'
+  });
 
   // Filter both restaurants and hotels based on search query
   const filteredResults = searchQuery.trim().length > 0 
@@ -218,6 +262,8 @@ export default function Index() {
   useEffect(() => {
     fadeAnim.value = withTiming(1, { duration: 1000, easing: Easing.bezier(0.25, 0.1, 0.25, 1) });
     loadData();
+    // Ottieni la posizione utente per calcolare le distanze
+    getCurrentLocation();
   }, []);
 
   const loadData = async () => {
@@ -337,43 +383,50 @@ export default function Index() {
       // All Restaurants con colore categoria (per ricerca)
       const allRestaurantsTransformed = restaurantsData.map((r: any) => ({
         ...r,
-        category_color: getCategoryColor(r.category_name)
+        category_color: getCategoryColor(r.category_name),
+        latitude: r.latitude, // Use coordinates directly like in working restaurant page
+        longitude: r.longitude // Use coordinates directly like in working restaurant page
       }));
       
       // All Hotels con colore categoria (per ricerca)
       const allHotelsTransformed = hotelsData.map((h: any) => ({
         ...h,
-        category_color: getCategoryColor(h.category_name)
+        category_color: getCategoryColor(h.category_name),
+        latitude: h.latitude, // Use coordinates directly like in working restaurant page
+        longitude: h.longitude // Use coordinates directly like in working restaurant page
       }));
       
-      // Restaurants per visualizzazione (solo 3)
-      const restaurantsDataTransformed = allRestaurantsTransformed.slice(0, 3);
-      
-      // Hotels per visualizzazione (solo 3)  
-      const hotelsDataTransformed = allHotelsTransformed.slice(0, 3);
-      
       setGuides(guidesDataTransformed);
-      setRestaurants(restaurantsDataTransformed);
-      setHotels(hotelsDataTransformed);
       setAllRestaurants(allRestaurantsTransformed);
       setAllHotels(allHotelsTransformed);
       
-      // Count total images to load (only count valid images)
+      // Count total images to load (only count valid images from first 3 of each)
       const validGuideImages = guidesDataTransformed.filter((g: Guide) => g.featured_image).length;
-      const validRestaurantImages = restaurantsDataTransformed.filter((r: Restaurant) => r.featured_image).length;
-      const validHotelImages = hotelsDataTransformed.filter((h: Hotel) => h.featured_image).length;
+      const validRestaurantImages = allRestaurantsTransformed.slice(0, 3).filter((r: Restaurant) => r.featured_image).length;
+      const validHotelImages = allHotelsTransformed.slice(0, 3).filter((h: Hotel) => h.featured_image).length;
       const totalImgs = validGuideImages + validRestaurantImages + validHotelImages;
       setTotalImages(totalImgs);
       setLoadedImages(new Set()); // Reset loaded images
       
       console.log('✅ Data loaded successfully:', { 
         guides: guidesDataTransformed.length, 
-        displayRestaurants: restaurantsDataTransformed.length,
-        displayHotels: hotelsDataTransformed.length,
         allRestaurants: allRestaurantsTransformed.length,
         allHotels: allHotelsTransformed.length,
         totalImages: totalImgs 
       });
+      
+      // Debug coordinates
+      console.log('🔍 Restaurant coordinates sample:', allRestaurantsTransformed.slice(0, 3).map((r: any) => ({
+        name: r.name,
+        latitude: r.latitude,
+        longitude: r.longitude
+      })));
+      
+      console.log('🔍 Hotel coordinates sample:', allHotelsTransformed.slice(0, 3).map((h: any) => ({
+        name: h.name,
+        latitude: h.latitude,
+        longitude: h.longitude
+      })));
     } catch (error) {
       console.error('❌ Error loading data:', error);
       setError('Impossibile caricare i dati. Riprova più tardi.');
@@ -418,7 +471,7 @@ export default function Index() {
 
   // Funzione per renderizzare ristoranti con animazione
   const renderRestaurantItem = ({ item, index }: { item: Restaurant, index: number }) => {
-    const staggeredAnimations = createStaggeredAnimation(TransitionType.FADE_RIGHT, restaurants.length, 800, 120);
+    const staggeredAnimations = createStaggeredAnimation(TransitionType.FADE_RIGHT, nearestRestaurants.length, 800, 120);
     
     return (
       <Animated.View
@@ -452,7 +505,7 @@ export default function Index() {
 
   // Funzione per renderizzare hotel con animazione
   const renderHotelItem = ({ item, index }: { item: Hotel, index: number }) => {
-    const staggeredAnimations = createStaggeredAnimation(TransitionType.FADE_RIGHT, hotels.length, 1200, 120);
+    const staggeredAnimations = createStaggeredAnimation(TransitionType.FADE_RIGHT, nearestHotels.length, 1200, 120);
     
     return (
       <Animated.View
@@ -608,16 +661,31 @@ export default function Index() {
           <RestaurantMapView
             restaurants={mapItems}
             height={width * 0.4}
-            showLocationButton={false}
+            showLocationButton={true}
             onMarkerPress={(item) => {
               onTap();
               // Determine if it's a restaurant or hotel based on the original data
-              const isHotel = hotels.some(hotel => hotel.id === item.id);
+              const isHotel = allHotels.some(hotel => hotel.id === item.id);
               if (isHotel) {
                 router.push(`/hotel/${item.id}`);
               } else {
                 router.push(`/ristoranti/${item.id}`);
               }
+            }}
+            onLocationRequest={() => {
+              Alert.alert(
+                'Aggiorna Posizione',
+                'Vuoi aggiornare la tua posizione per vedere i locali più vicini?',
+                [
+                  { text: 'Annulla', style: 'cancel' },
+                  { 
+                    text: 'Aggiorna', 
+                    onPress: () => {
+                      console.log('Richiesta aggiornamento posizione dalla home page');
+                    }
+                  }
+                ]
+              )
             }}
           />
         </View>
@@ -680,7 +748,7 @@ export default function Index() {
         entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 600)[0]}
       >
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Locali Consigliati</Text>
+          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Locali nelle Vicinanze</Text>
           <Link href="/ristoranti" asChild>
             <TouchableOpacity onPress={() => onTap()}>
               <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutti</Text>
@@ -709,7 +777,7 @@ export default function Index() {
             renderItem={() => <SkeletonRestaurantCard />}
             contentContainerStyle={styles.restaurantsList}
           />
-        ) : restaurants.length === 0 ? (
+        ) : nearestRestaurants.length === 0 ? (
           <InlineLoading 
             title="Nessun ristorante disponibile al momento"
           />
@@ -717,7 +785,7 @@ export default function Index() {
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={restaurants}
+            data={nearestRestaurants}
             keyExtractor={(item) => item.id}
             renderItem={renderRestaurantItem}
             contentContainerStyle={styles.restaurantsList}
@@ -731,7 +799,7 @@ export default function Index() {
         entering={createStaggeredAnimation(TransitionType.FADE_UP, 1, 900)[0]}
       >
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Hotel e B&B Consigliati</Text>
+          <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Hotel nelle Vicinanze</Text>
           <Link href="/(tabs)/hotel" asChild>
             <TouchableOpacity onPress={() => onTap()}>
               <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutti</Text>
@@ -760,7 +828,7 @@ export default function Index() {
             renderItem={() => <SkeletonRestaurantCard />}
             contentContainerStyle={styles.hotelsList}
           />
-        ) : hotels.length === 0 ? (
+        ) : nearestHotels.length === 0 ? (
           <InlineLoading 
             title="Nessun hotel disponibile al momento"
           />
@@ -768,7 +836,7 @@ export default function Index() {
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={hotels}
+            data={nearestHotels}
             keyExtractor={(item) => item.id}
             renderItem={renderHotelItem}
             contentContainerStyle={styles.hotelsList}
