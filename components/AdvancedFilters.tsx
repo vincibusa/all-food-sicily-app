@@ -26,6 +26,13 @@ interface AdvancedFiltersProps {
   cities?: FilterOption[];
   selectedCity?: string;
   onCitySelect?: (cityName: string) => void;
+  // Hotel-specific filters
+  hotelTypes?: FilterOption[];
+  selectedHotelType?: string;
+  onHotelTypeSelect?: (typeName: string) => void;
+  starRatings?: FilterOption[];
+  selectedStarRating?: string;
+  onStarRatingSelect?: (rating: string) => void;
   onResetFilters: () => void;
   colors: any;
   showMapButton?: boolean;
@@ -43,6 +50,12 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   cities = [],
   selectedCity = 'Tutte',
   onCitySelect = () => {},
+  hotelTypes = [],
+  selectedHotelType = 'Tutti',
+  onHotelTypeSelect = () => {},
+  starRatings = [],
+  selectedStarRating = 'Tutte',
+  onStarRatingSelect = () => {},
   onResetFilters,
   colors,
   showMapButton = false,
@@ -52,7 +65,11 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
 }) => {
   const { onTap } = useHaptics();
   
-  const activeFiltersCount = (selectedCity !== 'Tutte' ? 1 : 0) + (selectedCategory !== 'Tutti' ? 1 : 0);
+  const activeFiltersCount = 
+    (selectedCity !== 'Tutte' ? 1 : 0) + 
+    (selectedCategory !== 'Tutti' ? 1 : 0) +
+    (selectedHotelType !== 'Tutti' ? 1 : 0) +
+    (selectedStarRating !== 'Tutte' ? 1 : 0);
   const hasActiveFilters = activeFiltersCount > 0;
 
   return (
@@ -302,6 +319,168 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       >
                         <MaterialIcons 
                           name="place" 
+                          size={16} 
+                          color={isSelected ? 'white' : colors.primary} 
+                        />
+                        <Text
+                          style={[
+                            styles.cityChipText,
+                            { 
+                              color: isSelected ? 'white' : colors.text,
+                              fontWeight: isSelected ? '700' : '600'
+                            }
+                          ]}
+                        >
+                          {item.name}
+                        </Text>
+                        {item.count && (
+                          <View style={[
+                            styles.itemCount,
+                            { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colors.primary + '15' }
+                          ]}>
+                            <Text style={[
+                              styles.itemCountText,
+                              { color: isSelected ? 'white' : colors.primary }
+                            ]}>
+                              {item.count}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </Animated.View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Hotel Types Section */}
+          {hotelTypes.length > 0 && (
+            <View style={styles.filterRow}>
+              <View style={styles.filterHeader}>
+                <MaterialIcons name="hotel" size={20} color={colors.primary} />
+                <Text style={[styles.filterLabel, { color: colors.text }]}>Tipo Struttura</Text>
+                <View style={[styles.filterCount, { backgroundColor: colors.primary + '15' }]}>
+                  <Text style={[styles.filterCountText, { color: colors.primary }]}>
+                    {hotelTypes.length}
+                  </Text>
+                </View>
+              </View>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cityScrollContainer}
+                style={styles.cityScroll}
+              >
+                {hotelTypes.map((item, index) => {
+                  const isSelected = selectedHotelType === item.name;
+                  
+                  return (
+                    <Animated.View
+                      key={item.id}
+                      entering={FadeIn.delay((categories.length + cities.length + index) * 50).duration(300)}
+                      style={styles.cityChipWrapper}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.cityChip,
+                          {
+                            backgroundColor: isSelected ? colors.primary : colors.background,
+                            borderColor: isSelected ? colors.primary : colors.primary + '30',
+                            borderWidth: isSelected ? 2 : 1,
+                            shadowColor: isSelected ? colors.primary : '#000',
+                            shadowOpacity: isSelected ? 0.25 : 0.05,
+                          }
+                        ]}
+                        onPress={() => {
+                          onTap();
+                          onHotelTypeSelect(item.name);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <MaterialIcons 
+                          name="business" 
+                          size={16} 
+                          color={isSelected ? 'white' : colors.primary} 
+                        />
+                        <Text
+                          style={[
+                            styles.cityChipText,
+                            { 
+                              color: isSelected ? 'white' : colors.text,
+                              fontWeight: isSelected ? '700' : '600'
+                            }
+                          ]}
+                        >
+                          {item.name}
+                        </Text>
+                        {item.count && (
+                          <View style={[
+                            styles.itemCount,
+                            { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colors.primary + '15' }
+                          ]}>
+                            <Text style={[
+                              styles.itemCountText,
+                              { color: isSelected ? 'white' : colors.primary }
+                            ]}>
+                              {item.count}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </Animated.View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Star Ratings Section */}
+          {starRatings.length > 0 && (
+            <View style={styles.filterRow}>
+              <View style={styles.filterHeader}>
+                <MaterialIcons name="star" size={20} color={colors.primary} />
+                <Text style={[styles.filterLabel, { color: colors.text }]}>Stelle</Text>
+                <View style={[styles.filterCount, { backgroundColor: colors.primary + '15' }]}>
+                  <Text style={[styles.filterCountText, { color: colors.primary }]}>
+                    {starRatings.length}
+                  </Text>
+                </View>
+              </View>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cityScrollContainer}
+                style={styles.cityScroll}
+              >
+                {starRatings.map((item, index) => {
+                  const isSelected = selectedStarRating === item.name;
+                  
+                  return (
+                    <Animated.View
+                      key={item.id}
+                      entering={FadeIn.delay((categories.length + cities.length + hotelTypes.length + index) * 50).duration(300)}
+                      style={styles.cityChipWrapper}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.cityChip,
+                          {
+                            backgroundColor: isSelected ? colors.primary : colors.background,
+                            borderColor: isSelected ? colors.primary : colors.primary + '30',
+                            borderWidth: isSelected ? 2 : 1,
+                            shadowColor: isSelected ? colors.primary : '#000',
+                            shadowOpacity: isSelected ? 0.25 : 0.05,
+                          }
+                        ]}
+                        onPress={() => {
+                          onTap();
+                          onStarRatingSelect(item.name);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <MaterialIcons 
+                          name="grade" 
                           size={16} 
                           color={isSelected ? 'white' : colors.primary} 
                         />

@@ -44,6 +44,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="hotel"
+        options={{
+          title: "Hotel",
+          tabBarIcon: ({ color }) => <FontAwesome name="bed" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="guide"
         options={{
           title: "Guide",

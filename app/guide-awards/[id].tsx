@@ -219,30 +219,7 @@ export default function GuideAwardsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Stats Header */}
-        <Animated.View 
-          style={styles.statsContainer}
-          entering={FadeInDown.delay(50)}
-        >
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <MaterialIcons name="emoji-events" size={32} color={colors.primary} />
-            <Text style={[styles.statNumber, textStyles.title(colors.text)]}>
-              {awards.length}
-            </Text>
-            <Text style={[styles.statLabel, textStyles.caption(colors.text + '80')]}>
-              Premi Assegnati
-            </Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <MaterialIcons name="star" size={32} color="#FFD700" />
-            <Text style={[styles.statNumber, textStyles.title(colors.text)]}>
-              {awards.filter(a => a.is_winner).length}
-            </Text>
-            <Text style={[styles.statLabel, textStyles.caption(colors.text + '80')]}>
-              Vincitori
-            </Text>
-          </View>
-        </Animated.View>
+
 
         {/* Awards List */}
         {awards.length > 0 ? (

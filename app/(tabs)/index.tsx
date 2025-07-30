@@ -45,6 +45,20 @@ interface Restaurant {
   category_color?: string;
 }
 
+interface Hotel {
+  id: string;
+  name: string;
+  featured_image: string;
+  city: string;
+  province: string;
+  rating: string | number;
+  star_rating?: number;
+  price_range: number;
+  hotel_type: string[];
+  category_name: string;
+  category_color?: string;
+}
+
 export default function Index() {
   const { colors, colorScheme } = useTheme();
   const { onTap } = useHaptics();
@@ -53,7 +67,9 @@ export default function Index() {
   const fadeAnim = useSharedValue(0);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]); // All restaurants for search
+  const [allHotels, setAllHotels] = useState<Hotel[]>([]); // All hotels for search
   const [loading, setLoading] = useState(true);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const [totalImages, setTotalImages] = useState(0);
@@ -93,17 +109,54 @@ export default function Index() {
       longitude: 14.0, // Default fallback, should be from API
     }));
 
-  // Filter restaurants based on search query - use allRestaurants for comprehensive search
-  const filteredRestaurants = allRestaurants.length > 0 ? allRestaurants.filter(restaurant => {
-    if (!searchQuery.trim() || !restaurant) return false;
-    const query = searchQuery.toLowerCase();
-    return (
-      (restaurant.name && restaurant.name.toLowerCase().includes(query)) ||
-      (restaurant.city && restaurant.city.toLowerCase().includes(query)) ||
-      (restaurant.province && restaurant.province.toLowerCase().includes(query)) ||
-      (restaurant.category_name && restaurant.category_name.toLowerCase().includes(query))
-    );
-  }) : [];
+  // Convert hotels to ListItem format for MapView
+  const mapHotels: ListItem[] = hotels
+    .filter(hotel => hotel.id && hotel.name) // Filter out invalid entries
+    .map(hotel => ({
+      id: hotel.id,
+      title: hotel.name,
+      featured_image: hotel.featured_image || '',
+      category: {
+        id: hotel.id, // Using hotel id as category id fallback
+        name: hotel.hotel_type?.[0]?.charAt(0).toUpperCase() + hotel.hotel_type?.[0]?.slice(1).replace('&', ' & ') || 'Hotel',
+        color: hotel.category_color || '#FF6B6B' // Different color for hotels
+      },
+      city: hotel.city || '',
+      province: hotel.province || '',
+      rating: typeof hotel.rating === 'string' ? parseFloat(hotel.rating) : hotel.rating,
+      latitude: 37.5, // Default fallback, should be from API
+      longitude: 14.0, // Default fallback, should be from API
+    }));
+
+  // Combine both restaurants and hotels for map view
+  const mapItems: ListItem[] = [...mapRestaurants, ...mapHotels];
+
+  // Filter both restaurants and hotels based on search query
+  const filteredResults = searchQuery.trim().length > 0 
+    ? [
+        ...allRestaurants.filter(restaurant => {
+          if (!restaurant) return false;
+          const query = searchQuery.toLowerCase();
+          return (
+            (restaurant.name && restaurant.name.toLowerCase().includes(query)) ||
+            (restaurant.city && restaurant.city.toLowerCase().includes(query)) ||
+            (restaurant.province && restaurant.province.toLowerCase().includes(query)) ||
+            (restaurant.category_name && restaurant.category_name.toLowerCase().includes(query))
+          );
+        }).map(restaurant => ({ ...restaurant, type: 'restaurant' })),
+        ...allHotels.filter(hotel => {
+          if (!hotel) return false;
+          const query = searchQuery.toLowerCase();
+          return (
+            (hotel.name && hotel.name.toLowerCase().includes(query)) ||
+            (hotel.city && hotel.city.toLowerCase().includes(query)) ||
+            (hotel.province && hotel.province.toLowerCase().includes(query)) ||
+            (hotel.category_name && hotel.category_name.toLowerCase().includes(query)) ||
+            (hotel.hotel_type && hotel.hotel_type.some(type => type.toLowerCase().includes(query)))
+          );
+        }).map(hotel => ({ ...hotel, type: 'hotel' }))
+      ]
+    : [];
 
   // Handle search input changes
   const handleSearchChange = (text: string) => {
@@ -112,17 +165,26 @@ export default function Index() {
   };
 
   // Handle search result selection
-  const handleSearchResultSelect = (restaurant: Restaurant) => {
-    if (!restaurant.id || !restaurant.name) return;
+  const handleSearchResultSelect = (item: any) => {
+    if (!item.id || !item.name) return;
     
-    setSearchQuery(restaurant.name);
+    setSearchQuery(item.name);
     setShowSearchResults(false);
     onTap(); // Haptic feedback
-    // Navigate to restaurant detail page
-    router.push({
-      pathname: '/ristoranti/[id]',
-      params: { id: restaurant.id }
-    });
+    
+    // Navigate based on item type
+    if (item.type === 'hotel') {
+      router.push({
+        pathname: '/hotel/[id]',
+        params: { id: item.id }
+      });
+    } else {
+      // Default to restaurant
+      router.push({
+        pathname: '/ristoranti/[id]',
+        params: { id: item.id }
+      });
+    }
   };
   
   // Safety timeout - show content after 4 seconds even if images aren't loaded
@@ -210,14 +272,58 @@ export default function Index() {
         const restaurantsResponse = await apiClient.get<any>('/restaurants/?limit=100');
         allRestaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
       }
+
+      // Load all hotels with pagination (same logic as restaurants)
+      let allHotelsData = [];
+      try {
+        console.log('🔄 Loading all hotels for search...');
+        let currentPage = 1;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const hotelsUrl = `/hotels/?page=${currentPage}&limit=100`;
+          console.log(`📄 Loading hotel page ${currentPage}...`);
+          
+          const hotelsResponse = await apiClient.get<any>(hotelsUrl);
+          const pageData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
+          
+          if (pageData.length === 0) {
+            hasMore = false;
+          } else {
+            allHotelsData.push(...pageData);
+            currentPage++;
+            
+            // Check if there are more pages
+            if (hotelsResponse?.has_more === false || pageData.length < 100) {
+              hasMore = false;
+            }
+          }
+          
+          // Safety break to avoid infinite loops
+          if (currentPage > 50) {
+            console.warn('⚠️ Stopped loading hotel after 50 pages');
+            hasMore = false;
+          }
+        }
+        
+        console.log(`✅ Loaded ${allHotelsData.length} hotels across ${currentPage - 1} pages`);
+      } catch (error) {
+        console.warn('⚠️ Hotel pagination failed, loading single page:', error);
+        // Fallback to single page
+        const hotelsResponse = await apiClient.get<any>('/hotels/?limit=100');
+        allHotelsData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
+      }
       
       // Handle different response structures
       const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.guides || guidesResponse?.items || []);
       const restaurantsData = allRestaurantsData;
+      const hotelsData = allHotelsData;
       const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
+      
       // Funzione per trovare il colore della categoria
       const getCategoryColor = (catName: string) =>
         categoriesData.find((cat: any) => cat.name === catName)?.color || colors.primary;
+      
       // Guides con colore categoria
       const guidesDataTransformed = guidesData.slice(0, 3).map((g: any) => ({
         ...g,
@@ -227,30 +333,45 @@ export default function Index() {
           color: getCategoryColor(g.category?.name || g.category_name)
         }
       }));
+      
       // All Restaurants con colore categoria (per ricerca)
       const allRestaurantsTransformed = restaurantsData.map((r: any) => ({
         ...r,
         category_color: getCategoryColor(r.category_name)
       }));
       
+      // All Hotels con colore categoria (per ricerca)
+      const allHotelsTransformed = hotelsData.map((h: any) => ({
+        ...h,
+        category_color: getCategoryColor(h.category_name)
+      }));
+      
       // Restaurants per visualizzazione (solo 3)
       const restaurantsDataTransformed = allRestaurantsTransformed.slice(0, 3);
       
+      // Hotels per visualizzazione (solo 3)  
+      const hotelsDataTransformed = allHotelsTransformed.slice(0, 3);
+      
       setGuides(guidesDataTransformed);
       setRestaurants(restaurantsDataTransformed);
+      setHotels(hotelsDataTransformed);
       setAllRestaurants(allRestaurantsTransformed);
+      setAllHotels(allHotelsTransformed);
       
       // Count total images to load (only count valid images)
       const validGuideImages = guidesDataTransformed.filter((g: Guide) => g.featured_image).length;
       const validRestaurantImages = restaurantsDataTransformed.filter((r: Restaurant) => r.featured_image).length;
-      const totalImgs = validGuideImages + validRestaurantImages; // No hero image anymore
+      const validHotelImages = hotelsDataTransformed.filter((h: Hotel) => h.featured_image).length;
+      const totalImgs = validGuideImages + validRestaurantImages + validHotelImages;
       setTotalImages(totalImgs);
       setLoadedImages(new Set()); // Reset loaded images
       
       console.log('✅ Data loaded successfully:', { 
         guides: guidesDataTransformed.length, 
         displayRestaurants: restaurantsDataTransformed.length,
+        displayHotels: hotelsDataTransformed.length,
         allRestaurants: allRestaurantsTransformed.length,
+        allHotels: allHotelsTransformed.length,
         totalImages: totalImgs 
       });
     } catch (error) {
@@ -329,10 +450,54 @@ export default function Index() {
     );
   };
 
+  // Funzione per renderizzare hotel con animazione
+  const renderHotelItem = ({ item, index }: { item: Hotel, index: number }) => {
+    const staggeredAnimations = createStaggeredAnimation(TransitionType.FADE_RIGHT, hotels.length, 1200, 120);
+    
+    return (
+      <Animated.View
+        entering={staggeredAnimations[index] || SCREEN_TRANSITIONS.home.enter}
+      >
+        <Link href={{ pathname: '/hotel/[id]', params: { id: item.id } }} asChild>
+          <TouchableOpacity 
+            style={styles.restaurantCard}
+            onPress={() => onTap()}
+          >
+            <ImageBackground
+              source={{ uri: item.featured_image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' }}
+              style={styles.restaurantImage}
+              imageStyle={{ borderRadius: 12 }}
+              onLoad={() => item.featured_image && handleImageLoaded(item.featured_image)}
+              onError={() => item.featured_image && handleImageError(item.featured_image)}
+            >
+              <View style={styles.restaurantCategoryPill}>
+                <Text style={[styles.restaurantCategoryText, textStyles.label('white')]}>
+                  {item.hotel_type?.[0]?.charAt(0).toUpperCase() + item.hotel_type?.[0]?.slice(1).replace('&', ' & ') || 'Hotel'}
+                </Text>
+              </View>
+              {/* Star rating overlay */}
+              {item.star_rating && (
+                <View style={styles.starRatingOverlay}>
+                  {Array.from({ length: item.star_rating }, (_, i) => (
+                    <Text key={i} style={styles.starIcon}>⭐</Text>
+                  ))}
+                </View>
+              )}
+            </ImageBackground>
+            <View style={styles.restaurantInfo}>
+              <Text style={[styles.restaurantTitle, textStyles.subtitle(colors.text)]} numberOfLines={2}>{item.name}</Text>
+              <Text style={[styles.restaurantLocation, textStyles.caption(colors.text + '80')]} numberOfLines={1}>{item.city}, {item.province}</Text>
+            </View>
+          </TouchableOpacity>
+        </Link>
+      </Animated.View>
+    );
+  };
+
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={colorScheme === 'light' ? 'dark' : 'dark'} />
       
       {/* Enhanced Refresh Indicator - Solo Icona */}
       {refreshState.shouldShowIndicator && (
@@ -395,25 +560,29 @@ export default function Index() {
         </View>
         
         {/* Search Results Dropdown */}
-        {showSearchResults && filteredRestaurants.length > 0 && (
+        {showSearchResults && filteredResults.length > 0 && (
           <View style={[styles.searchResultsContainer, { backgroundColor: colors.card }]}>
             <ScrollView 
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
             >
-              {filteredRestaurants.slice(0, 5).map((item) => (
+              {filteredResults.slice(0, 5).map((item) => (
                 <TouchableOpacity
-                  key={item.id}
+                  key={`${item.type}-${item.id}`}
                   style={[styles.searchResultItem, { borderBottomColor: colors.border }]}
                   onPress={() => handleSearchResultSelect(item)}
                 >
                   <View style={styles.searchResultContent}>
-                    <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>
-                      {item.name || 'Nome non disponibile'}
-                    </Text>
+                    <View style={styles.searchResultHeader}>
+                      <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>
+                        {item.name || 'Nome non disponibile'}
+                      </Text>
+
+                    </View>
                     <Text style={[styles.searchResultLocation, { color: colors.text + '80' }]} numberOfLines={1}>
-                      {item.city || 'Città'}, {item.province || 'Provincia'} • {item.category_name || 'Categoria'}
+                      {item.city || 'Città'}, {item.province || 'Provincia'} • 
+
                     </Text>
                   </View>
                   <MaterialIcons name="arrow-forward" size={16} color={colors.text + '60'} />
@@ -423,12 +592,12 @@ export default function Index() {
           </View>
         )}
         
-        {showSearchResults && filteredRestaurants.length === 0 && (
+        {showSearchResults && filteredResults.length === 0 && (
           <View style={[styles.searchResultsContainer, { backgroundColor: colors.card }]}>
             <View style={styles.noResultsContainer}>
               <MaterialIcons name="search-off" size={24} color={colors.text + '60'} />
               <Text style={[styles.noResultsText, { color: colors.text + '80' }]}>
-                Nessun ristorante trovato
+                Nessun locale o hotel trovato
               </Text>
             </View>
           </View>
@@ -437,12 +606,18 @@ export default function Index() {
         {/* Small Map */}
         <View style={styles.mapContainer}>
           <RestaurantMapView
-            restaurants={mapRestaurants}
+            restaurants={mapItems}
             height={width * 0.4}
             showLocationButton={false}
-            onMarkerPress={(restaurant) => {
-              // Navigate to restaurant detail
-              console.log('Restaurant selected:', restaurant.title);
+            onMarkerPress={(item) => {
+              onTap();
+              // Determine if it's a restaurant or hotel based on the original data
+              const isHotel = hotels.some(hotel => hotel.id === item.id);
+              if (isHotel) {
+                router.push(`/hotel/${item.id}`);
+              } else {
+                router.push(`/ristoranti/${item.id}`);
+              }
             }}
           />
         </View>
@@ -557,7 +732,7 @@ export default function Index() {
       >
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>Hotel e B&B Consigliati</Text>
-          <Link href="/ristoranti" asChild>
+          <Link href="/(tabs)/hotel" asChild>
             <TouchableOpacity onPress={() => onTap()}>
               <Text style={[styles.sectionLink, textStyles.button(colors.tint)]}>Vedi tutti</Text>
             </TouchableOpacity>
@@ -585,7 +760,7 @@ export default function Index() {
             renderItem={() => <SkeletonRestaurantCard />}
             contentContainerStyle={styles.hotelsList}
           />
-        ) : restaurants.length === 0 ? (
+        ) : hotels.length === 0 ? (
           <InlineLoading 
             title="Nessun hotel disponibile al momento"
           />
@@ -593,9 +768,9 @@ export default function Index() {
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={restaurants}
+            data={hotels}
             keyExtractor={(item) => item.id}
-            renderItem={renderRestaurantItem}
+            renderItem={renderHotelItem}
             contentContainerStyle={styles.hotelsList}
           />
         )}
@@ -969,5 +1144,36 @@ const styles = StyleSheet.create({
   restaurantLocation: {
     fontSize: 12,
     opacity: 0.8,
+  },
+  searchResultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  searchResultTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  searchResultTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'white',
+  },
+  starRatingOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  starIcon: {
+    color: '#FFD700',
+    fontSize: 10,
   },
 });

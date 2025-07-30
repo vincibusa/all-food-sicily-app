@@ -17,20 +17,16 @@ import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
 import { RestaurantMapView } from '../../components/MapView';
 
-interface Restaurant extends ListItem {
+interface Hotel extends ListItem {
   description: string;
   rating: string | number;
   price_range: number;
-  cuisine_type: string[];
+  hotel_type: string[];
+  star_rating?: number;
   category_name: string;
   category_id: string;
 }
 
-interface Category {
-  id: string;
-  name: string;
-  color: string;
-}
 
 interface FilterOption {
   id: string;
@@ -38,55 +34,53 @@ interface FilterOption {
   count?: number;
 }
 
-export default function RistorantiScreen() {
+export default function HotelScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Tutti');
   const [selectedCity, setSelectedCity] = useState('Tutte');
-  const [restaurants, setRestaurants] = useState<ListItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedHotelType, setSelectedHotelType] = useState('Tutti');
+  const [selectedStarRating, setSelectedStarRating] = useState('Tutte');
+  const [hotels, setHotels] = useState<ListItem[]>([]);
   const [cities, setCities] = useState<FilterOption[]>([]);
+  const [hotelTypes, setHotelTypes] = useState<FilterOption[]>([]);
+  const [starRatings, setStarRatings] = useState<FilterOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedCuisine, setSelectedCuisine] = useState('Tutte');
-  const [cuisineTypes, setCuisineTypes] = useState<FilterOption[]>([]);
   const [isMapView, setIsMapView] = useState(false);
-  const [displayLimit, setDisplayLimit] = useState(20); // Show 20 items initially
+  const [displayLimit, setDisplayLimit] = useState(20);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async (categoryId?: string) => {
+  const loadData = async () => {
     try {
       setLoading(true);
       
-      // Load all restaurants with pagination
-      let allRestaurants = [];
-      console.log('🔄 Loading all restaurants with pagination...');
+      // Load all hotels with pagination
+      let allHotels = [];
+      console.log('🔄 Loading all hotels with pagination...');
       let currentPage = 1;
       let hasMore = true;
       
       while (hasMore) {
-        const restaurantsUrl = categoryId && categoryId !== 'all' 
-          ? `/restaurants/?category_id=${categoryId}&page=${currentPage}&limit=100` 
-          : `/restaurants/?page=${currentPage}&limit=100`;
+        const hotelsUrl = `/hotels/?page=${currentPage}&limit=100`;
           
         console.log(`📄 Loading page ${currentPage}...`);
         
-        const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
-        const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+        const hotelsResponse = await apiClient.get<any>(hotelsUrl);
+        const pageData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
         
         if (pageData.length === 0) {
           hasMore = false;
         } else {
-          allRestaurants.push(...pageData);
+          allHotels.push(...pageData);
           currentPage++;
           
           // Check if there are more pages
-          if (restaurantsResponse?.has_more === false || pageData.length < 100) {
+          if (hotelsResponse?.has_more === false || pageData.length < 100) {
             hasMore = false;
           }
         }
@@ -98,115 +92,112 @@ export default function RistorantiScreen() {
         }
       }
       
-      console.log(`✅ Loaded ${allRestaurants.length} restaurants across ${currentPage - 1} pages`);
-      
-      // Load categories separately
-      const categoriesResponse = await apiClient.get<any>('/categories/');
-      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
+      console.log(`✅ Loaded ${allHotels.length} hotels across ${currentPage - 1} pages`);
       
       // Debug logging
-      console.log('🏪 Final Data:', {
-        totalRestaurants: allRestaurants.length,
-        categoriesCount: categoriesData.length
+      console.log('🏨 Final Data:', {
+        totalHotels: allHotels.length
       });
-      // Transform data to match ListItem interface
-      const transformedRestaurants = allRestaurants.map((restaurant: any) => ({
-        id: restaurant.id,
-        title: restaurant.name, // Use name as title for restaurants
-        name: restaurant.name,
-        featured_image: restaurant.featured_image,
-        category: restaurant.category_name ? {
-          id: restaurant.category_id || 'unknown',
-          name: restaurant.category_name,
-          color: categoriesData.find((cat: any) => cat.id === restaurant.category_id)?.color || colors.primary
-        } : null,
-        city: restaurant.city,
-        province: restaurant.province,
-        cuisine_type: restaurant.cuisine_type || [],
-        rating: restaurant.rating,
-        price_range: restaurant.price_range,
-        latitude: restaurant.latitude,
-        longitude: restaurant.longitude
-      }));
-      setRestaurants(transformedRestaurants);
-      // Add "Tutti" category at the beginning
-      const allCategories = [
-        { id: 'all', name: 'Tutti', color: colors.primary },
-        ...categoriesData
-      ];
-      setCategories(allCategories);
 
-      // Extract unique cities and cuisine types from restaurants data
-      const uniqueCities = [...new Set(allRestaurants.map((r: any) => r.city).filter(Boolean))].sort() as string[];
-      const allCuisineTypes = allRestaurants.flatMap((r: any) => r.cuisine_type || []);
-      const uniqueCuisineTypes = [...new Set(allCuisineTypes.filter(Boolean))].sort() as string[];
+      // Transform data to match ListItem interface
+      const transformedHotels = allHotels.map((hotel: any) => ({
+        id: hotel.id,
+        title: hotel.name,
+        name: hotel.name,
+        featured_image: hotel.featured_image,
+        category: hotel.category_name ? {
+          id: hotel.category_id || 'unknown',
+          name: hotel.category_name,
+          color: colors.primary
+        } : null,
+        city: hotel.city,
+        province: hotel.province,
+        hotel_type: hotel.hotel_type || [],
+        star_rating: hotel.star_rating,
+        rating: hotel.rating,
+        price_range: hotel.price_range,
+        latitude: hotel.latitude,
+        longitude: hotel.longitude
+      }));
+      setHotels(transformedHotels);
+
+      // Extract unique cities, hotel types, and star ratings from hotels data
+      const uniqueCities = [...new Set(allHotels.map((h: any) => h.city).filter(Boolean))].sort() as string[];
+      const allHotelTypes = allHotels.flatMap((h: any) => h.hotel_type || []);
+      const uniqueHotelTypes = [...new Set(allHotelTypes.filter(Boolean))].sort() as string[];
+      const uniqueStarRatings = [...new Set(allHotels.map((h: any) => h.star_rating).filter(Boolean))].sort((a, b) => b - a) as number[];
 
       setCities([
         { id: 'all', name: 'Tutte' },
         ...uniqueCities.map((city) => ({ id: city, name: city }))
       ]);
 
-      setCuisineTypes([
-        { id: 'all', name: 'Tutte' },
-        ...uniqueCuisineTypes.map((cuisine) => ({ 
-          id: cuisine, 
-          name: cuisine.charAt(0).toUpperCase() + cuisine.slice(1).replace('-', ' ')
+      setHotelTypes([
+        { id: 'all', name: 'Tutti' },
+        ...uniqueHotelTypes.map((type) => ({ 
+          id: type, 
+          name: type.charAt(0).toUpperCase() + type.slice(1).replace('&', ' & ')
         }))
       ]);
+
+      setStarRatings([
+        { id: 'all', name: 'Tutte' },
+        ...uniqueStarRatings.map((rating) => ({ 
+          id: rating.toString(), 
+          name: `${rating} stelle`
+        }))
+      ]);
+
     } catch (error) {
       console.error('Error loading data:', error);
-      Alert.alert('Errore', 'Impossibile caricare i ristoranti');
+      Alert.alert('Errore', 'Impossibile caricare gli hotel');
     } finally {
       setLoading(false);
     }
   };
 
   const handleRefresh = async () => {
-    const currentCategoryId = categories.find(cat => cat.name === selectedCategory)?.id;
-    await loadData(currentCategoryId);
+    await loadData();
   };
 
   // Enhanced refresh hook
   const refreshState = useEnhancedRefresh({
     onRefresh: async () => {
-      console.log('🔄 Refreshing restaurants...');
+      console.log('🔄 Refreshing hotels...');
       await handleRefresh();
-      console.log('✅ Restaurants refreshed');
+      console.log('✅ Hotels refreshed');
     },
-    threshold: 60, // Soglia ridotta per attivazione più facile
+    threshold: 60,
     hapticFeedback: true,
     showIndicator: true,
     refreshDuration: 800,
   });
 
-  const handleCategorySelect = async (categoryName: string) => {
-    setSelectedCategory(categoryName);
-    setDisplayLimit(20); // Reset pagination
-    const categoryId = categories.find(cat => cat.name === categoryName)?.id;
-    await loadData(categoryId);
-  };
-
-  const handleCuisineSelect = (cuisineName: string) => {
-    setSelectedCuisine(cuisineName);
-    setDisplayLimit(20); // Reset pagination
-  };
 
   const handleCitySelect = (cityName: string) => {
     setSelectedCity(cityName);
     setDisplayLimit(20); // Reset pagination
   };
 
+  const handleHotelTypeSelect = (typeName: string) => {
+    setSelectedHotelType(typeName);
+    setDisplayLimit(20); // Reset pagination
+  };
+
+  const handleStarRatingSelect = (rating: string) => {
+    setSelectedStarRating(rating);
+    setDisplayLimit(20); // Reset pagination
+  };
+
   const handleLocationRequest = () => {
-    // Funzione per richiedere aggiornamento posizione
     Alert.alert(
       'Aggiorna Posizione',
-      'Vuoi aggiornare la tua posizione per vedere i ristoranti più vicini?',
+      'Vuoi aggiornare la tua posizione per vedere gli hotel più vicini?',
       [
         { text: 'Annulla', style: 'cancel' },
         { 
           text: 'Aggiorna', 
           onPress: () => {
-            // La logica di aggiornamento è già gestita nell'hook useLocation del MapView
             console.log('Richiesta aggiornamento posizione');
           }
         }
@@ -214,39 +205,41 @@ export default function RistorantiScreen() {
     );
   };
 
-  
-  // Filtro client-side per search query, città e tipo di cucina
-  const filteredRestaurants = restaurants.filter(restaurant => {
+  // Client-side filter for search query, city, hotel type, and star rating
+  const filteredHotels = hotels.filter(hotel => {
     // Search query filter
     const matchesSearch = !searchQuery.trim() || (
-      restaurant.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.province?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.cuisine_type?.some((cuisine: string) => cuisine?.toLowerCase().includes(searchQuery.toLowerCase()))
+      hotel.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      hotel.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      hotel.province?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      hotel.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      hotel.hotel_type?.some((type: string) => type?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     // City filter
-    const matchesCity = selectedCity === 'Tutte' || restaurant.city === selectedCity;
+    const matchesCity = selectedCity === 'Tutte' || hotel.city === selectedCity;
 
-    // Cuisine type filter
-    const matchesCuisine = selectedCuisine === 'Tutte' || 
-      restaurant.cuisine_type?.some((cuisine: string) => {
-        const formattedCuisine = cuisine.charAt(0).toUpperCase() + cuisine.slice(1).replace('-', ' ');
-        return formattedCuisine === selectedCuisine;
+    // Hotel type filter
+    const matchesHotelType = selectedHotelType === 'Tutti' || 
+      hotel.hotel_type?.some((type: string) => {
+        const formattedType = type.charAt(0).toUpperCase() + type.slice(1).replace('&', ' & ');
+        return formattedType === selectedHotelType;
       });
+
+    // Star rating filter
+    const matchesStarRating = selectedStarRating === 'Tutte' || 
+      hotel.star_rating?.toString() === selectedStarRating.replace(' stelle', '');
     
-    return matchesSearch && matchesCity && matchesCuisine;
+    return matchesSearch && matchesCity && matchesHotelType && matchesStarRating;
   });
 
-  // Display restaurants with pagination
-  const displayedRestaurants = filteredRestaurants.slice(0, displayLimit);
-  const hasMoreRestaurants = filteredRestaurants.length > displayLimit;
+  // Display hotels with pagination
+  const displayedHotels = filteredHotels.slice(0, displayLimit);
+  const hasMoreHotels = filteredHotels.length > displayLimit;
 
-  const loadMoreRestaurants = () => {
+  const loadMoreHotels = () => {
     setDisplayLimit(prev => prev + 20);
   };
-
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
@@ -259,12 +252,12 @@ export default function RistorantiScreen() {
               <FontAwesome name="search" size={16} color={colors.text + '60'} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Cerca ristoranti, città, categorie..."
+                placeholder="Cerca hotel, città, tipologie..."
                 placeholderTextColor={colors.text + '60'}
                 value={searchQuery}
                 onChangeText={(text) => {
                   setSearchQuery(text);
-                  setDisplayLimit(20); // Reset pagination when searching
+                  setDisplayLimit(20);
                 }}
               />
               {searchQuery.length > 0 && (
@@ -281,19 +274,22 @@ export default function RistorantiScreen() {
             <AdvancedFilters
               showFilters={showFilters}
               setShowFilters={setShowFilters}
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategorySelect={handleCategorySelect}
+              categories={[]}
+              selectedCategory={''}
+              onCategorySelect={() => {}}
               cities={cities}
               selectedCity={selectedCity}
               onCitySelect={handleCitySelect}
-              hotelTypes={cuisineTypes}
-              selectedHotelType={selectedCuisine}
-              onHotelTypeSelect={handleCuisineSelect}
+              hotelTypes={hotelTypes}
+              selectedHotelType={selectedHotelType}
+              onHotelTypeSelect={handleHotelTypeSelect}
+              starRatings={starRatings}
+              selectedStarRating={selectedStarRating}
+              onStarRatingSelect={handleStarRatingSelect}
               onResetFilters={() => {
                 setSelectedCity('Tutte');
-                setSelectedCategory('Tutti');
-                setSelectedCuisine('Tutte');
+                setSelectedHotelType('Tutti');
+                setSelectedStarRating('Tutte');
               }}
               colors={colors}
               showMapButton={true}
@@ -301,10 +297,158 @@ export default function RistorantiScreen() {
               onToggleMapView={() => setIsMapView(!isMapView)}
             />
 
+            {/* Filtri Hotel Personalizzati */}
+            <View style={styles.additionalFiltersContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.filterToggle,
+                  { 
+                    backgroundColor: colors.card,
+                    borderColor: showFilters ? colors.primary : colors.text + '20'
+                  }
+                ]}
+                onPress={() => {
+                  onTap();
+                  setShowFilters(!showFilters);
+                }}
+              >
+                <View style={[styles.filterToggleIcon, { backgroundColor: colors.primary + '20' }]}>
+                  <MaterialIcons name="filter-list" size={16} color={colors.primary} />
+                </View>
+                <View style={styles.filterBadgeContainer}>
+                  <Text style={[styles.filterToggleText, { color: colors.text }]}>
+                    Filtri Hotel
+                  </Text>
+                  <MaterialIcons 
+                    name={showFilters ? "expand-less" : "expand-more"} 
+                    size={20} 
+                    color={colors.text + '60'} 
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {showFilters && (
+                <Animated.View 
+                  entering={FadeInDown.duration(300)}
+                  style={[styles.expandedFilters, { backgroundColor: colors.card }]}
+                >
+                  {/* Filtro Città */}
+                  <View style={styles.filterRow}>
+                    <Text style={[styles.filterLabel, { color: colors.text }]}>Città</Text>
+                    <View style={styles.filterButtonsGrid}>
+                      {cities.map((city) => (
+                        <TouchableOpacity
+                          key={city.id}
+                          style={[
+                            styles.filterButton,
+                            {
+                              backgroundColor: selectedCity === city.name ? colors.primary : colors.background,
+                              borderColor: colors.primary,
+                            }
+                          ]}
+                          onPress={() => {
+                            onTap();
+                            setSelectedCity(city.name);
+                            setDisplayLimit(20);
+                          }}
+                        >
+                          <Text style={[
+                            styles.filterButtonText,
+                            { color: selectedCity === city.name ? 'white' : colors.primary }
+                          ]}>
+                            {city.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Filtro Tipo Hotel */}
+                  <View style={styles.filterRow}>
+                    <Text style={[styles.filterLabel, { color: colors.text }]}>Tipo Struttura</Text>
+                    <View style={styles.filterButtonsGrid}>
+                      {hotelTypes.map((type) => (
+                        <TouchableOpacity
+                          key={type.id}
+                          style={[
+                            styles.filterButton,
+                            {
+                              backgroundColor: selectedHotelType === type.name ? colors.primary : colors.background,
+                              borderColor: colors.primary,
+                            }
+                          ]}
+                          onPress={() => {
+                            onTap();
+                            setSelectedHotelType(type.name);
+                            setDisplayLimit(20);
+                          }}
+                        >
+                          <Text style={[
+                            styles.filterButtonText,
+                            { color: selectedHotelType === type.name ? 'white' : colors.primary }
+                          ]}>
+                            {type.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Filtro Stelle */}
+                  <View style={styles.filterRow}>
+                    <Text style={[styles.filterLabel, { color: colors.text }]}>Stelle</Text>
+                    <View style={styles.filterButtonsGrid}>
+                      {starRatings.map((rating) => (
+                        <TouchableOpacity
+                          key={rating.id}
+                          style={[
+                            styles.filterButton,
+                            {
+                              backgroundColor: selectedStarRating === rating.name ? colors.primary : colors.background,
+                              borderColor: colors.primary,
+                            }
+                          ]}
+                          onPress={() => {
+                            onTap();
+                            setSelectedStarRating(rating.name);
+                            setDisplayLimit(20);
+                          }}
+                        >
+                          <Text style={[
+                            styles.filterButtonText,
+                            { color: selectedStarRating === rating.name ? 'white' : colors.primary }
+                          ]}>
+                            {rating.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Reset Filtri */}
+                  <View style={styles.resetContainer}>
+                    <TouchableOpacity
+                      style={[styles.resetFiltersButton, { borderColor: colors.text + '30' }]}
+                      onPress={() => {
+                        onTap();
+                        setSelectedCity('Tutte');
+                        setSelectedHotelType('Tutti'); 
+                        setSelectedStarRating('Tutte');
+                        setDisplayLimit(20);
+                      }}
+                    >
+                      <MaterialIcons name="refresh" size={16} color={colors.text} />
+                      <Text style={[styles.resetFiltersText, { color: colors.text }]}>Reset Filtri</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+              )}
+            </View>
+
             {/* Results Count e Filtri Attivi */}
             <View style={styles.resultsSection}>
               <Text style={[styles.resultsText, { color: colors.text + '80' }]}> 
-                {displayedRestaurants.length} di {filteredRestaurants.length} ristorante{filteredRestaurants.length === 1 ? '' : 'i'}
+                {displayedHotels.length} di {filteredHotels.length} hotel
               </Text>
               
               {/* Indicatori Filtri Attivi */}
@@ -320,23 +464,23 @@ export default function RistorantiScreen() {
                     </TouchableOpacity>
                   </View>
                 )}
-                {selectedCategory !== 'Tutti' && (
+                {selectedHotelType !== 'Tutti' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
-                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCategory}</Text>
+                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedHotelType}</Text>
                     <TouchableOpacity onPress={() => {
                       onTap();
-                      setSelectedCategory('Tutti');
+                      setSelectedHotelType('Tutti');
                     }}>
                       <MaterialIcons name="close" size={14} color={colors.primary} />
                     </TouchableOpacity>
                   </View>
                 )}
-                {selectedCuisine !== 'Tutte' && (
+                {selectedStarRating !== 'Tutte' && (
                   <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
-                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCuisine}</Text>
+                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedStarRating}</Text>
                     <TouchableOpacity onPress={() => {
                       onTap();
-                      setSelectedCuisine('Tutte');
+                      setSelectedStarRating('Tutte');
                     }}>
                       <MaterialIcons name="close" size={14} color={colors.primary} />
                     </TouchableOpacity>
@@ -345,7 +489,7 @@ export default function RistorantiScreen() {
               </View>
             </View>
 
-            {/* Enhanced Refresh Indicator - Solo Icona */}
+            {/* Enhanced Refresh Indicator */}
             {refreshState.shouldShowIndicator && (
               <MinimalRefreshIndicator
                 isRefreshing={refreshState.isRefreshing}
@@ -395,18 +539,18 @@ export default function RistorantiScreen() {
             </View>
 
             <RestaurantMapView
-              restaurants={displayedRestaurants}
-              onMarkerPress={(restaurant) => {
+              restaurants={displayedHotels}
+              onMarkerPress={(hotel) => {
                 onTap();
-                router.push(`/ristoranti/${restaurant.id}`);
+                router.push(`/hotel/${hotel.id}`);
               }}
               onLocationRequest={handleLocationRequest}
             />
           </View>
         ) : (
-          /* Lista Ristoranti */
+          /* Lista Hotel */
           <FlatList
-            data={displayedRestaurants}
+            data={displayedHotels}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             style={{ flex: 1 }}
@@ -427,9 +571,9 @@ export default function RistorantiScreen() {
                 </View>
               ) : (
                 <View style={styles.centerContainer}>
-                  <FontAwesome name="search" size={48} color={colors.text + '40'} />
+                  <FontAwesome name="hotel" size={48} color={colors.text + '40'} />
                   <Text style={[styles.emptyText, { color: colors.text + '60' }]}> 
-                    {searchQuery ? 'Nessun ristorante trovato' : 'Nessun ristorante disponibile'}
+                    {searchQuery ? 'Nessun hotel trovato' : 'Nessun hotel disponibile'}
                   </Text>
                   {searchQuery && (
                     <Text style={[styles.emptySubtext, { color: colors.text + '40' }]}> 
@@ -439,37 +583,36 @@ export default function RistorantiScreen() {
                 </View>
               )
             }
-            renderItem={({ item: restaurant, index }) => (
+            renderItem={({ item: hotel, index }) => (
               <ListCard
-                item={restaurant}
+                item={hotel}
                 delay={index * 100}
                 enableSwipe={false}
                 onPress={() => {
                   onTap();
-                  // Navigazione al dettaglio del ristorante
-                  router.push(`/ristoranti/${restaurant.id}`);
+                  router.push(`/hotel/${hotel.id}`);
                 }}
               />
             )}
             ListFooterComponent={
-              hasMoreRestaurants ? (
+              hasMoreHotels ? (
                 <View style={styles.loadMoreContainer}>
                   <TouchableOpacity
                     style={[styles.loadMoreButton, { backgroundColor: colors.primary }]}
                     onPress={() => {
                       onTap();
-                      loadMoreRestaurants();
+                      loadMoreHotels();
                     }}
                   >
                     <Text style={styles.loadMoreText}>
-                      Carica altri {Math.min(20, filteredRestaurants.length - displayLimit)} ristoranti
+                      Carica altri {Math.min(20, filteredHotels.length - displayLimit)} hotel
                     </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.endOfListContainer}>
                   <Text style={[styles.endOfListText, { color: colors.text + '60' }]}>
-                    {filteredRestaurants.length > 0 ? 'Hai visto tutti i ristoranti!' : ''}
+                    {filteredHotels.length > 0 ? 'Hai visto tutti gli hotel!' : ''}
                   </Text>
                 </View>
               )
@@ -481,7 +624,7 @@ export default function RistorantiScreen() {
   );
 }
 
-// Aggiorno gli stili per essere identici a guide.tsx
+// Stili identici a ristoranti.tsx per consistenza
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -663,99 +806,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  restaurantCard: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
-    overflow: 'hidden',
-  },
-  restaurantImage: {
-    width: 120,
-    height: 140,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
-  },
-  restaurantContent: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  restaurantTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    lineHeight: 24,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  locationText: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginRight: 6,
-  },
-  tagText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  moreTagsText: {
-    fontSize: 10,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  priceText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
-  },
-  loadingText: {
-    fontSize: 16,
   },
   emptyText: {
     fontSize: 18,
@@ -826,4 +881,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
   },
-}); 
+});

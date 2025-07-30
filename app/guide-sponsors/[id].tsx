@@ -281,30 +281,7 @@ export default function GuideSponsorsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Stats Header */}
-        <Animated.View 
-          style={styles.statsContainer}
-          entering={FadeInDown.delay(50)}
-        >
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <MaterialIcons name="handshake" size={32} color={colors.primary} />
-            <Text style={[styles.statNumber, textStyles.title(colors.text)]}>
-              {sponsors.length}
-            </Text>
-            <Text style={[styles.statLabel, textStyles.caption(colors.text + '80')]}>
-              Partner Attivi
-            </Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <MaterialIcons name="category" size={32} color="#FFD700" />
-            <Text style={[styles.statNumber, textStyles.title(colors.text)]}>
-              {Object.keys(groupedSponsors).length}
-            </Text>
-            <Text style={[styles.statLabel, textStyles.caption(colors.text + '80')]}>
-              Categorie
-            </Text>
-          </View>
-        </Animated.View>
+
 
         {/* Sponsors by Type */}
         {sponsors.length > 0 ? (
