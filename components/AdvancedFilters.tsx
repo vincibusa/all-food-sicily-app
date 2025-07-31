@@ -91,7 +91,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 { 
                   backgroundColor: showFilters 
                     ? (Platform.OS === 'android' 
-                        ? `${colors.primary}40` // Più opaco per Android
+                        ? colors.primary + '40' // Usa concatenazione anche per Android
                         : colors.primary + '10'
                       )
                     : 'transparent', // Trasparente quando non attivo
@@ -592,16 +592,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
     borderRadius: 20,
-    backgroundColor: 'transparent', // Default trasparente
-    borderWidth: 0, // Default senza bordo
-    ...(Platform.OS === 'ios' ? {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.12,
-      shadowRadius: 6,
-      elevation: 4,
-    } : {}),
+    backgroundColor: 'transparent',
+    borderWidth: 0,
     height: 64,
+    // Rimuoviamo le ombre per ora
   },
   filterToggleIcon: {
     width: 36,
@@ -610,16 +604,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
-    ...(Platform.OS === 'android' ? {
-      // Su Android, assicuriamoci che l'icona sia ben centrata
-      paddingTop: 1,
-    } : {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
-    }),
+    // Rimuoviamo le ombre e padding condizionali per ora
   },
   filterToggleContent: {
     flex: 1,

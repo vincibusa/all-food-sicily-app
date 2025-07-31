@@ -406,18 +406,14 @@ export default function RistorantiScreen() {
                   setIsMapView(false);
                 }}
               >
-                <MaterialIcons 
-                  name="list" 
-                  size={Platform.OS === 'android' ? 22 : 20} 
-                  color="white" 
-                />
+                <MaterialIcons name="list" size={20} color="white" />
                 <Text style={styles.mapControlText}>Lista</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.mapControlButton, { 
                   backgroundColor: Platform.OS === 'android' 
-                    ? `${colors.primary}20` 
+                    ? colors.primary + '20' 
                     : colors.primary + '10',
                   borderColor: colors.primary,
                   borderWidth: 1
@@ -428,11 +424,7 @@ export default function RistorantiScreen() {
                   setShowFilters(true);
                 }}
               >
-                <MaterialIcons 
-                  name="filter-list" 
-                  size={Platform.OS === 'android' ? 22 : 20} 
-                  color={colors.primary} 
-                />
+                <MaterialIcons name="filter-list" size={20} color={colors.primary} />
                 <Text style={[styles.mapControlText, { color: colors.primary }]}>Filtri</Text>
               </TouchableOpacity>
             </View>
@@ -827,20 +819,14 @@ const styles = StyleSheet.create({
   mapControlButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Platform.OS === 'android' ? 18 : 16,
-    paddingVertical: Platform.OS === 'android' ? 12 : 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
     gap: 6,
-    backgroundColor: 'transparent', // Default trasparente
-    borderWidth: 0, // Default senza bordo
-    minHeight: Platform.OS === 'android' ? 44 : 40, // Altezza minima per Android
-    ...(Platform.OS === 'ios' ? {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    } : {}),
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    minHeight: 40,
+    // Rimuoviamo le ombre condizionali per ora
   },
   mapControlText: {
     fontSize: 14,

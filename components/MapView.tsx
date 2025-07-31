@@ -134,14 +134,12 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
             {/* Marker personalizzato */}
             <View style={[
               styles.customMarker, 
-              { backgroundColor: restaurant.category?.color || colors.primary },
-              Platform.OS === 'android' ? styles.androidMarker : {}
+              { backgroundColor: restaurant.category?.color || colors.primary }
             ]}>
               <MaterialIcons 
                 name={getMarkerIcon(restaurant)} 
-                size={Platform.OS === 'android' ? 16 : 20} 
+                size={20} 
                 color="white" 
-                style={Platform.OS === 'android' ? { marginTop: 1 } : {}}
               />
             </View>
           </Marker>
@@ -200,21 +198,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    ...(Platform.OS === 'android' ? {
-      elevation: 5,
-    } : {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-    }),
-  },
-  androidMarker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    paddingTop: 2,
-    paddingLeft: 1,
+    elevation: 5,
+    // Rimuoviamo le ombre condizionali per ora
   },
   locationFab: {
     position: 'absolute',
