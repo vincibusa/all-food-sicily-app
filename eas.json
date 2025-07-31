@@ -7,6 +7,18 @@
         "distribution": "store",
         "ios": {
           "buildConfiguration": "Release"
+        },
+        "android": {
+          "buildType": "apk"
+        }
+      },
+      "preview": {
+        "distribution": "internal",
+        "ios": {
+          "buildConfiguration": "Release"
+        },
+        "android": {
+          "buildType": "apk"
         }
       }
     },

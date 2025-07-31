@@ -33,6 +33,9 @@ export interface ListItem {
   price_range?: number;
   latitude?: number;
   longitude?: number;
+  // Hotel-specific properties
+  hotel_type?: string[];
+  star_rating?: number;
 }
 
 interface ListCardProps {
