@@ -28,7 +28,7 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
   height: customHeight,
   showLocationButton = true 
 }) => {
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>({
     latitude: 37.5, // Centro Sicilia

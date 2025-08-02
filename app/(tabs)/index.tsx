@@ -65,7 +65,7 @@ interface Hotel {
 }
 
 export default function Index() {
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const { onTap } = useHaptics();
   const textStyles = useTextStyles();
   const scrollY = useSharedValue(0);
@@ -164,16 +164,6 @@ export default function Index() {
         .map(({ distance, ...item }) => item as Hotel) // Rimuovi la proprietà distance per mantenere il tipo originale
     : allHotels.slice(0, 3); // Fallback ai primi 3 se no geolocalizzazione
 
-  console.log(`🗺️ Map data:`, {
-    allRestaurantsTotal: allRestaurants.length,
-    nearestRestaurants: nearestRestaurants.length,
-    restaurantsWithCoords: mapRestaurants.length,
-    allHotelsTotal: allHotels.length,
-    nearestHotels: nearestHotels.length,
-    hotelsWithCoords: mapHotels.length,
-    mapItemsTotal: mapItems.length,
-    userLocation: userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : 'No location'
-  });
 
   // Filter both restaurants and hotels based on search query
   const filteredResults = searchQuery.trim().length > 0 
@@ -249,9 +239,7 @@ export default function Index() {
   // Enhanced refresh hook per homepage
   const refreshState = useEnhancedRefresh({
     onRefresh: async () => {
-      console.log('🔄 Starting refresh...');
       await loadData();
-      console.log('✅ Refresh completed');
     },
     threshold: 60, // Ridotto per attivazione più facile
     hapticFeedback: true,
@@ -268,7 +256,6 @@ export default function Index() {
 
   const loadData = async () => {
     try {
-      console.log('📥 Loading data from API...');
       setLoading(true);
       setError(null);
       
@@ -281,13 +268,11 @@ export default function Index() {
       // Load all restaurants with pagination (same logic as in ristoranti.tsx)
       let allRestaurantsData = [];
       try {
-        console.log('🔄 Loading all restaurants for search...');
         let currentPage = 1;
         let hasMore = true;
         
         while (hasMore) {
           const restaurantsUrl = `/restaurants/?page=${currentPage}&limit=100`;
-          console.log(`📄 Loading page ${currentPage}...`);
           
           const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
           const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
@@ -306,14 +291,14 @@ export default function Index() {
           
           // Safety break to avoid infinite loops
           if (currentPage > 50) {
-            console.warn('⚠️ Stopped loading after 50 pages');
+            // Stopped loading after 50 pages to prevent infinite loops
             hasMore = false;
           }
         }
         
-        console.log(`✅ Loaded ${allRestaurantsData.length} restaurants across ${currentPage - 1} pages`);
+        // Loaded restaurants successfully
       } catch (error) {
-        console.warn('⚠️ Pagination failed, loading single page:', error);
+        // Pagination failed, loading single page
         // Fallback to single page
         const restaurantsResponse = await apiClient.get<any>('/restaurants/?limit=100');
         allRestaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
@@ -322,13 +307,11 @@ export default function Index() {
       // Load all hotels with pagination (same logic as restaurants)
       let allHotelsData = [];
       try {
-        console.log('🔄 Loading all hotels for search...');
         let currentPage = 1;
         let hasMore = true;
         
         while (hasMore) {
           const hotelsUrl = `/hotels/?page=${currentPage}&limit=100`;
-          console.log(`📄 Loading hotel page ${currentPage}...`);
           
           const hotelsResponse = await apiClient.get<any>(hotelsUrl);
           const pageData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
@@ -347,14 +330,14 @@ export default function Index() {
           
           // Safety break to avoid infinite loops
           if (currentPage > 50) {
-            console.warn('⚠️ Stopped loading hotel after 50 pages');
+            // Stopped loading hotel after 50 pages to prevent infinite loops
             hasMore = false;
           }
         }
         
-        console.log(`✅ Loaded ${allHotelsData.length} hotels across ${currentPage - 1} pages`);
+        // Loaded hotels successfully
       } catch (error) {
-        console.warn('⚠️ Hotel pagination failed, loading single page:', error);
+        // Hotel pagination failed, loading single page
         // Fallback to single page
         const hotelsResponse = await apiClient.get<any>('/hotels/?limit=100');
         allHotelsData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
@@ -408,31 +391,13 @@ export default function Index() {
       setTotalImages(totalImgs);
       setLoadedImages(new Set()); // Reset loaded images
       
-      console.log('✅ Data loaded successfully:', { 
-        guides: guidesDataTransformed.length, 
-        allRestaurants: allRestaurantsTransformed.length,
-        allHotels: allHotelsTransformed.length,
-        totalImages: totalImgs 
-      });
-      
-      // Debug coordinates
-      console.log('🔍 Restaurant coordinates sample:', allRestaurantsTransformed.slice(0, 3).map((r: any) => ({
-        name: r.name,
-        latitude: r.latitude,
-        longitude: r.longitude
-      })));
-      
-      console.log('🔍 Hotel coordinates sample:', allHotelsTransformed.slice(0, 3).map((h: any) => ({
-        name: h.name,
-        latitude: h.latitude,
-        longitude: h.longitude
-      })));
+      // Data loaded successfully
     } catch (error) {
-      console.error('❌ Error loading data:', error);
+      // Error loading data
       setError('Impossibile caricare i dati. Riprova più tardi.');
     } finally {
       setLoading(false);
-      console.log('🏁 Loading finished');
+      // Loading finished
     }
   };
 
@@ -550,7 +515,7 @@ export default function Index() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === 'light' ? 'dark' : 'dark'} />
+      <StatusBar style="dark" />
       
       {/* Enhanced Refresh Indicator - Solo Icona */}
       {refreshState.shouldShowIndicator && (
@@ -681,7 +646,7 @@ export default function Index() {
                   { 
                     text: 'Aggiorna', 
                     onPress: () => {
-                      console.log('Richiesta aggiornamento posizione dalla home page');
+                      // Location update requested from home page
                     }
                   }
                 ]

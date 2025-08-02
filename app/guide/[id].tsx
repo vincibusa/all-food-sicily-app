@@ -52,7 +52,7 @@ interface Restaurant {
 export default function GuideDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const [guide, setGuide] = useState<GuideDetail | null>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +78,7 @@ export default function GuideDetailScreen() {
         setRestaurants(restaurantsData);
       }
     } catch (error) {
-      console.error('Error loading guide detail:', error);
+      // Error loading guide detail
       Alert.alert('Errore', 'Impossibile caricare i dettagli della guida');
       router.back();
     } finally {
@@ -95,7 +95,7 @@ export default function GuideDetailScreen() {
         title: guide.title,
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      // Error sharing
     }
   };
 

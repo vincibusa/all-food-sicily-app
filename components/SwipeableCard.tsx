@@ -149,7 +149,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
           onTap?.();
       }
     } catch (error) {
-      console.warn('[SwipeableCard] Haptic feedback error:', error);
+      // Haptic feedback error
     }
   }, [onSuccess, onWarning, onError, onTap]);
 

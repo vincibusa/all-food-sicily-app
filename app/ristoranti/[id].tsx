@@ -36,7 +36,7 @@ interface RestaurantDetail {
 
 export default function RestaurantScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const router = useRouter();
   const [restaurant, setRestaurant] = useState<RestaurantDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function RestaurantScreen() {
       const restaurantData = await apiClient.get<RestaurantDetail>(`/restaurants/${id}`);
       setRestaurant(restaurantData);
     } catch (error) {
-      console.error('Error loading restaurant detail:', error);
+      // Error loading restaurant detail
       Alert.alert('Errore', 'Impossibile caricare i dettagli del ristorante');
       router.back();
     } finally {
@@ -71,7 +71,7 @@ export default function RestaurantScreen() {
         title: restaurant.name,
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      // Error sharing
     }
   };
 
@@ -97,7 +97,7 @@ export default function RestaurantScreen() {
         }
       })
       .catch((err) => {
-        console.error('Error making phone call:', err);
+        // Error making phone call
         Alert.alert('Errore', 'Impossibile effettuare la chiamata');
       });
   };
@@ -176,7 +176,7 @@ export default function RestaurantScreen() {
         }
       })
       .catch((err) => {
-        console.error('Error opening website:', err);
+        // Error opening website
         Alert.alert('Errore', 'Impossibile aprire il sito web');
       });
   };

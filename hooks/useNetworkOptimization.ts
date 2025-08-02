@@ -76,7 +76,7 @@ export const useNetworkOptimization = () => {
         setConfig(JSON.parse(savedConfig));
       }
     } catch (error) {
-      console.warn('Failed to load network optimization config:', error);
+      // Failed to load network optimization config
     }
   };
 
@@ -87,7 +87,7 @@ export const useNetworkOptimization = () => {
         metricsHistory.current = JSON.parse(savedMetrics);
       }
     } catch (error) {
-      console.warn('Failed to load network metrics history:', error);
+      // Failed to load network metrics history
     }
   };
 
@@ -96,7 +96,7 @@ export const useNetworkOptimization = () => {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfig(newConfig);
     } catch (error) {
-      console.warn('Failed to save network optimization config:', error);
+      // Failed to save network optimization config
     }
   };
 
@@ -106,7 +106,7 @@ export const useNetworkOptimization = () => {
       const historyToSave = metricsHistory.current.slice(-100);
       await AsyncStorage.setItem(METRICS_KEY, JSON.stringify(historyToSave));
     } catch (error) {
-      console.warn('Failed to save network metrics history:', error);
+      // Failed to save network metrics history
     }
   };
 
@@ -151,7 +151,7 @@ export const useNetworkOptimization = () => {
       }
       
     } catch (error) {
-      console.warn('Speed test failed:', error);
+      // Speed test failed
       setNetworkQuality('poor');
     }
   }, []);

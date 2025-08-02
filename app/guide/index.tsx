@@ -35,7 +35,7 @@ interface Guide {
 
 export default function GuidesListScreen() {
   const router = useRouter();
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [filteredGuides, setFilteredGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ export default function GuidesListScreen() {
       const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.items || []);
       setGuides(guidesData);
     } catch (error) {
-      console.error('Error loading guides:', error);
+      // Error loading guides
       Alert.alert('Errore', 'Impossibile caricare le guide');
     } finally {
       setLoading(false);

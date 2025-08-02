@@ -62,14 +62,13 @@ export default function GuideAwardsScreen() {
     try {
       setLoading(true);
       setError(null);
-      console.log(`🔄 Loading awards for guide: ${guideId}`);
       
       const response = await apiClient.get<Award[]>(`/guides/${guideId}/awards`);
       setAwards(response);
       
-      console.log('✅ Awards loaded successfully:', response.length);
+      // Awards loaded successfully
     } catch (error) {
-      console.error('❌ Error loading awards:', error);
+      // Error loading awards
       setError('Impossibile caricare i premi');
     } finally {
       setLoading(false);

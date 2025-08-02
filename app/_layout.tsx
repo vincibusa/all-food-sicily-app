@@ -5,10 +5,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { PerformanceProvider } from "../context/PerformanceContext";
 
-// Componente wrapper per StatusBar che usa il tema
+// Componente wrapper per StatusBar - sempre dark per light theme
 function ThemedStatusBar() {
-  const { colorScheme } = useTheme();
-  return <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />;
+  return <StatusBar style="dark" />;
 }
 
 export default function RootLayout() {

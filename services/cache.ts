@@ -39,7 +39,6 @@ class CacheManager {
     guides: { ttl: 60 * 60 * 1000, priority: 'high' as const }, // 1 hour
     categories: { ttl: 24 * 60 * 60 * 1000, priority: 'normal' as const }, // 24 hours
     search: { ttl: 10 * 60 * 1000, priority: 'low' as const }, // 10 minutes
-    user: { ttl: 5 * 60 * 1000, priority: 'high' as const }, // 5 minutes
   };
 
   private constructor() {
@@ -91,7 +90,6 @@ class CacheManager {
     if (endpoint.includes('/guides') || endpoint.includes('/articles')) return 'guides';
     if (endpoint.includes('/categories')) return 'categories';
     if (endpoint.includes('/search')) return 'search';
-    if (endpoint.includes('/auth') || endpoint.includes('/user')) return 'user';
     return 'guides'; // Default
   }
 
@@ -132,7 +130,6 @@ class CacheManager {
       
       return entry;
     } catch (error) {
-      console.warn('Cache storage read error:', error);
       return null;
     }
   }
@@ -161,7 +158,6 @@ class CacheManager {
       try {
         await AsyncStorage.setItem(`cache_${key}`, JSON.stringify(entry));
       } catch (error) {
-        console.warn('Cache storage write error:', error);
       }
     }
 
@@ -221,7 +217,6 @@ class CacheManager {
     try {
       await AsyncStorage.removeItem(`cache_${key}`);
     } catch (error) {
-      console.warn('Cache storage delete error:', error);
     }
 
     this.stats.size = this.memoryCache.size;
@@ -230,7 +225,7 @@ class CacheManager {
   /**
    * Clear all cache for a specific data type
    */
-  async clearType(dataType: keyof typeof this.defaultConfigs): Promise<void> {
+  async clearType(dataType: 'restaurants' | 'guides' | 'categories' | 'search'): Promise<void> {
     const keysToDelete: string[] = [];
     
     // Find keys that match the data type
@@ -255,7 +250,6 @@ class CacheManager {
       const cacheKeys = keys.filter(key => key.startsWith('cache_'));
       await AsyncStorage.multiRemove(cacheKeys);
     } catch (error) {
-      console.warn('Cache clear error:', error);
     }
 
     this.stats = {
@@ -286,7 +280,6 @@ class CacheManager {
     this.stats.lastCleanup = now;
     this.stats.size = this.memoryCache.size;
     
-    console.log(`🧹 Cache cleanup: removed ${keysToDelete.length} expired entries`);
   }
 
   /**
@@ -305,8 +298,7 @@ class CacheManager {
   /**
    * Preload critical data
    */
-  async preload(endpoints: { endpoint: string; params?: Record<string, any>; config?: CacheConfig }[]): Promise<void> {
-    console.log(`🚀 Preloading ${endpoints.length} cache entries...`);
+  async preload(): Promise<void> {
     
     // This would typically be called with fresh data from the API
     // For now, it's a placeholder for the caching mechanism

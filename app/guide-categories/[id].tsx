@@ -93,14 +93,13 @@ export default function GuideSpecificCategoriesScreen() {
   const loadGuide = async () => {
     try {
       setLoading(true);
-      console.log(`🔄 Loading guide with ID: ${guideId}`);
       
       const response = await apiClient.get<Guide>(`/guides/${guideId}`);
       setGuide(response);
       
-      console.log('✅ Guide loaded successfully:', response.title);
+      // Guide loaded successfully
     } catch (error) {
-      console.error('❌ Error loading guide:', error);
+      // Error loading guide
     } finally {
       setLoading(false);
     }

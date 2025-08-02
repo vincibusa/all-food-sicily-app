@@ -26,13 +26,6 @@ class ApiClient {
     this.baseUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.API_VERSION}`;
   }
 
-  private getAuthHeaders(): Record<string, string> {
-    const token = (global as any)['auth_token'];
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    return {};
-  }
 
   /**
    * Make a request to the API
@@ -46,17 +39,10 @@ class ApiClient {
       ...options,
       headers: {
         ...API_HEADERS,
-        ...this.getAuthHeaders(),
         ...options.headers,
       },
     };
 
-    console.log('🚀 API Request:', {
-      url,
-      method: config.method || 'GET',
-      headers: config.headers,
-      body: config.body
-    });
 
     try {
       const controller = new AbortController();
@@ -69,15 +55,9 @@ class ApiClient {
       
       clearTimeout(timeoutId);
 
-      console.log('📡 API Response:', {
-        url,
-        status: response.status,
-        ok: response.ok
-      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ API Error:', errorData);
         throw new ApiError(
           errorData.message || `HTTP error! status: ${response.status}`,
           response.status,
@@ -86,10 +66,8 @@ class ApiClient {
       }
 
       const data = await response.json();
-      console.log('✅ API Success:', data);
       return data;
     } catch (error) {
-      console.error('💥 API Exception:', error);
       
       if (error instanceof ApiError) {
         throw error;
@@ -131,24 +109,19 @@ class ApiClient {
     if (useCache && !forceRefresh) {
       const cached = await cacheManager.get<T>(endpoint, params, cacheConfig);
       if (cached) {
-        console.log(`💾 Cache ${cached.isStale ? 'STALE' : 'HIT'}:`, endpoint);
         
         // If stale, fetch fresh data in background
         if (cached.isStale && cacheConfig?.staleWhileRevalidate) {
           this.request<T>(url, { method: 'GET' })
             .then(freshData => {
               cacheManager.set(endpoint, freshData, cacheConfig);
-              console.log('🔄 Background refresh completed:', endpoint);
             })
             .catch(error => {
-              console.warn('⚠️ Background refresh failed:', error);
             });
         }
         
         return cached.data;
       }
-      
-      console.log('❌ Cache MISS:', endpoint);
     }
 
     // Fetch from API
@@ -157,7 +130,6 @@ class ApiClient {
     // Cache the result
     if (useCache) {
       await cacheManager.set(endpoint, data, cacheConfig);
-      console.log('💾 Cached:', endpoint);
     }
     
     return data;
@@ -186,7 +158,6 @@ class ApiClient {
       await Promise.all(
         options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
       );
-      console.log('🗑️ Invalidated cache:', options.invalidateCache);
     }
     
     return result;
@@ -210,7 +181,6 @@ class ApiClient {
       await Promise.all(
         options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
       );
-      console.log('🗑️ Invalidated cache:', options.invalidateCache);
     }
     
     return result;
@@ -230,7 +200,6 @@ class ApiClient {
       await Promise.all(
         options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
       );
-      console.log('🗑️ Invalidated cache:', options.invalidateCache);
     }
     
     return result;
@@ -239,13 +208,11 @@ class ApiClient {
   /**
    * Clear cache for specific data type
    */
-  async clearCache(dataType?: 'restaurants' | 'guides' | 'categories' | 'search' | 'user'): Promise<void> {
+  async clearCache(dataType?: 'restaurants' | 'guides' | 'categories' | 'search'): Promise<void> {
     if (dataType) {
       await cacheManager.clearType(dataType);
-      console.log(`🗑️ Cleared ${dataType} cache`);
     } else {
       await cacheManager.clear();
-      console.log('🗑️ Cleared all cache');
     }
   }
   

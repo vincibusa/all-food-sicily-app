@@ -56,7 +56,6 @@ class HapticManager {
       // Expo Haptics gestisce automaticamente la compatibilità Android
       this.isEnabled = true;
     } catch (error) {
-      console.warn('Haptic feedback not supported on this device');
       this.isEnabled = false;
     }
   }
@@ -116,7 +115,6 @@ class HapticManager {
       }
     } catch (error) {
       // Fail silently - haptics are non-critical
-      console.warn('Haptic feedback failed:', error);
     }
   }
 

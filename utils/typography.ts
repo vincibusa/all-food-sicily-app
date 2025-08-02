@@ -172,21 +172,21 @@ export function getDynamicLineHeight(
   contentType: TextContentType = TextContentType.BODY
 ): number {
   // Line height base dal design system
-  let baseLineHeight = TypographyTokens.lineHeight.normal;
+  let baseLineHeight: number = TypographyTokens.lineHeight.normal;
   
   // Aggiusta line height per tipo di contenuto
   switch (contentType) {
     case TextContentType.DISPLAY:
-      baseLineHeight = TypographyTokens.lineHeight.tight;
+      baseLineHeight = TypographyTokens.lineHeight.tight as number;
       break;
     case TextContentType.HEADING:
-      baseLineHeight = TypographyTokens.lineHeight.tight;
+      baseLineHeight = TypographyTokens.lineHeight.tight as number;
       break;
     case TextContentType.CAPTION:
-      baseLineHeight = TypographyTokens.lineHeight.relaxed;
+      baseLineHeight = TypographyTokens.lineHeight.relaxed as number;
       break;
     default:
-      baseLineHeight = TypographyTokens.lineHeight.normal;
+      baseLineHeight = TypographyTokens.lineHeight.normal as number;
   }
   
   return Math.round(fontSize * baseLineHeight);

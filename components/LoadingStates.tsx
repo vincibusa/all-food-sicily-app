@@ -237,7 +237,7 @@ export const LoadingState: React.FC<BaseLoadingProps> = ({
   overlay = false,
   visible = true,
 }) => {
-  const { colors, colorScheme } = useTheme();
+  const { colors } = useTheme();
   const textStyles = useTextStyles();
 
   const loadingColor = color || colors.primary;
@@ -301,7 +301,7 @@ export const LoadingState: React.FC<BaseLoadingProps> = ({
       entering={FadeIn.duration(300)}
       exiting={FadeOut.duration(200)}
     >
-      {overlay && colorScheme === 'light' && (
+      {overlay && (
         <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
       )}
       

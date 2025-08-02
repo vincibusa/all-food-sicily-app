@@ -85,38 +85,30 @@ export const SemanticColors = {
   // Success states
   success: {
     light: BrandColors.green[500],
-    dark: BrandColors.green[400],
     background: BrandColors.green[50],
-    darkBackground: BrandColors.green[900],
   },
   
   // Warning states  
   warning: {
     light: BrandColors.orange[500],
-    dark: BrandColors.orange[400],
     background: BrandColors.orange[50],
-    darkBackground: BrandColors.orange[900],
   },
   
   // Error states
   error: {
     light: BrandColors.red[600],
-    dark: BrandColors.red[400],
     background: BrandColors.red[50],
-    darkBackground: BrandColors.red[900],
   },
   
   // Info states
   info: {
     light: '#0ea5e9', // Sky blue
-    dark: '#38bdf8',
     background: '#f0f9ff',
-    darkBackground: '#0c4a6e',
   },
 } as const;
 
 // ==========================================
-// 📱 THEME TOKENS - Light & Dark
+// 📱 THEME TOKENS - Light Theme Only
 // ==========================================
 
 export const ThemeTokens = {
@@ -173,62 +165,6 @@ export const ThemeTokens = {
       primary: 'rgba(0, 0, 0, 0.1)',
       secondary: 'rgba(0, 0, 0, 0.05)',
       elevated: 'rgba(0, 0, 0, 0.15)',
-    },
-  },
-  
-  dark: {
-    // Surfaces
-    background: {
-      primary: NeutralColors.gray[950],
-      secondary: NeutralColors.gray[900],
-      tertiary: NeutralColors.gray[800],
-    },
-    
-    // Cards and elevated surfaces
-    surface: {
-      primary: NeutralColors.gray[900],
-      secondary: NeutralColors.gray[800],
-      elevated: NeutralColors.gray[800],
-    },
-    
-    // Text colors - WCAG AA compliant
-    text: {
-      primary: NeutralColors.gray[50],      // 18.7:1 ratio
-      secondary: NeutralColors.gray[200],   // 13.6:1 ratio
-      tertiary: NeutralColors.gray[400],    // 7.0:1 ratio
-      inverse: NeutralColors.gray[900],
-      disabled: NeutralColors.gray[600],    // 3.1:1 ratio (large text only)
-    },
-    
-    // Brand colors - PIÙ ACCESI come nella light mode!
-    brand: {
-      primary: BrandColors.red[600],        // Stesso rosso vivace della light mode
-      secondary: BrandColors.orange[600],   // Stesso arancione vivace della light mode  
-      accent: BrandColors.green[600],       // Stesso verde vivace della light mode
-    },
-    
-    // Interactive elements - BOTTONI PIÙ VIVACI
-    interactive: {
-      primary: BrandColors.red[600],        // #dc2626 - Rosso vivace come light mode
-      primaryHover: BrandColors.red[500],   // #ef4444 - Più chiaro al hover per dark mode
-      primaryActive: BrandColors.red[700],  // #b91c1c - Più scuro quando premuto
-      secondary: NeutralColors.gray[700],
-      secondaryHover: NeutralColors.gray[600],
-      disabled: NeutralColors.gray[700],
-    },
-    
-    // Borders and dividers  
-    border: {
-      primary: NeutralColors.gray[700],     // 2.4:1 ratio
-      secondary: NeutralColors.gray[800],
-      accent: BrandColors.red[600],         // Rosso vivace anche per accenti
-    },
-    
-    // Shadows
-    shadow: {
-      primary: 'rgba(0, 0, 0, 0.4)',
-      secondary: 'rgba(0, 0, 0, 0.2)',
-      elevated: 'rgba(0, 0, 0, 0.6)',
     },
   },
 } as const;
@@ -323,4 +259,4 @@ export const BorderRadiusTokens = {
 export type BrandColorKey = keyof typeof BrandColors;
 export type NeutralColorKey = keyof typeof NeutralColors;
 export type SemanticColorKey = keyof typeof SemanticColors;
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light';

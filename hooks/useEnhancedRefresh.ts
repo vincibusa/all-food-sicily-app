@@ -158,7 +158,7 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
 
   const executeRefresh = useCallback(async () => {
     if (isRefreshing || !onRefresh || typeof onRefresh !== 'function') {
-      console.warn('[useEnhancedRefresh] onRefresh is not a valid function');
+      // onRefresh is not a valid function
       return;
     }
     
@@ -177,10 +177,10 @@ export function useEnhancedRefresh(config: EnhancedRefreshConfig): EnhancedRefre
       ]);
       
       if (refreshResult.status === 'rejected') {
-        console.warn('Refresh failed:', refreshResult.reason);
+        // Refresh failed
       }
     } catch (error) {
-      console.error('Refresh error:', error);
+      // Refresh error
     } finally {
       setIsRefreshing(false);
       

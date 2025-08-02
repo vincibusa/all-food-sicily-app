@@ -113,14 +113,13 @@ export default function GuideSearchScreen() {
     
     try {
       setGuideLoading(true);
-      console.log(`🔄 Loading guide with ID: ${guideId}`);
       
       const response = await apiClient.get<any>(`/guides/${guideId}`);
       setGuide(response);
       
-      console.log('✅ Guide loaded successfully:', response.title);
+      // Guide loaded successfully
     } catch (error) {
-      console.error('❌ Error loading guide:', error);
+      // Error loading guide
     } finally {
       setGuideLoading(false);
     }
@@ -131,14 +130,13 @@ export default function GuideSearchScreen() {
     
     try {
       setLoading(true);
-      console.log(`🔄 Loading restaurants for guide: ${guideId}`);
 
       // Load the guide with its restaurants
       const guideResponse = await apiClient.get<any>(`/guides/${guideId}`);
       const guideData = guideResponse;
       
       if (!guideData.restaurants || guideData.restaurants.length === 0) {
-        console.log('ℹ️ No restaurants found for this guide');
+        // No restaurants found for this guide
         setResults([]);
         setHasSearched(true);
         return;
@@ -185,7 +183,7 @@ export default function GuideSearchScreen() {
       setResults(groupedResults);
       setHasSearched(true);
       
-      console.log(`✅ Loaded ${transformedRestaurants.length} restaurants for guide`);
+      // Loaded restaurants for guide
       
       // Extract cities for filtering
       const uniqueCities = [...new Set(guideData.restaurants.map((r: any) => r.city).filter(Boolean))].sort() as string[];
@@ -195,7 +193,7 @@ export default function GuideSearchScreen() {
       ]);
       
     } catch (error) {
-      console.error('Error loading guide restaurants:', error);
+      // Error loading guide restaurants
     } finally {
       setLoading(false);
     }
@@ -210,7 +208,6 @@ export default function GuideSearchScreen() {
       
       while (hasMore) {
         const url = `/restaurants/?page=${currentPage}&limit=100`;
-        console.log(`📄 Loading cities from page ${currentPage}...`);
         
         const response = await apiClient.get<any>(url);
         const pageData = Array.isArray(response) ? response : (response?.restaurants || response?.items || []);
@@ -228,12 +225,12 @@ export default function GuideSearchScreen() {
         
         // Safety break
         if (currentPage > 50) {
-          console.warn('⚠️ Stopped loading cities after 50 pages');
+          // Stopped loading cities after 50 pages to prevent infinite loops
           hasMore = false;
         }
       }
       
-      console.log(`✅ Loaded ${allRestaurants.length} restaurants for cities extraction`);
+      // Loaded restaurants for cities extraction
       
       // Estrai città uniche
       const uniqueCities = [...new Set(allRestaurants.map((r: any) => r.city).filter(Boolean))].sort() as string[];
@@ -243,9 +240,9 @@ export default function GuideSearchScreen() {
         ...uniqueCities.map((city) => ({ id: city, name: city }))
       ]);
       
-      console.log(`🏙️ Found ${uniqueCities.length} unique cities`);
+      // Found unique cities
     } catch (error) {
-      console.error('Error loading cities:', error);
+      // Error loading cities
       // Fallback con alcune città principali siciliane
       setCities([
         { id: '', name: 'Tutte le città' },
@@ -260,7 +257,6 @@ export default function GuideSearchScreen() {
   const loadAllRestaurants = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Loading all restaurants on page load...');
 
       // Carica tutti i ristoranti con paginazione
       let allRestaurants = [];
@@ -269,7 +265,6 @@ export default function GuideSearchScreen() {
       
       while (hasMore) {
         const url = `/restaurants/?page=${currentPage}&limit=100`;
-        console.log(`📄 Loading page ${currentPage}...`);
         
         const response = await apiClient.get<any>(url);
         const pageData = Array.isArray(response) ? response : (response?.restaurants || response?.items || []);
@@ -287,12 +282,12 @@ export default function GuideSearchScreen() {
         
         // Safety break
         if (currentPage > 50) {
-          console.warn('⚠️ Stopped loading after 50 pages');
+          // Stopped loading after 50 pages to prevent infinite loops
           hasMore = false;
         }
       }
 
-      console.log(`✅ Loaded ${allRestaurants.length} restaurants on page load`);
+      // Loaded restaurants on page load
 
       // Trasforma in formato ListItem
       const transformedRestaurants: ListItem[] = allRestaurants.map((restaurant: any) => ({
@@ -336,7 +331,7 @@ export default function GuideSearchScreen() {
       setHasSearched(true);
       
     } catch (error) {
-      console.error('Error loading all restaurants:', error);
+      // Error loading all restaurants
     } finally {
       setLoading(false);
     }
@@ -367,7 +362,7 @@ export default function GuideSearchScreen() {
 
       if (guideId) {
         // If we have a guideId, search within guide restaurants
-        console.log(`🔍 Searching within guide restaurants for guide: ${guideId}`);
+        // Searching within guide restaurants
         const guideResponse = await apiClient.get<any>(`/guides/${guideId}`);
         allRestaurants = guideResponse.restaurants || [];
       } else {
@@ -453,7 +448,7 @@ export default function GuideSearchScreen() {
       setResults(groupedResults);
       
     } catch (error) {
-      console.error('Error searching:', error);
+      // Error searching
       Alert.alert('Errore', 'Impossibile eseguire la ricerca. Riprova più tardi.');
     } finally {
       setLoading(false);

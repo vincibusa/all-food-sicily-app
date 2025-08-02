@@ -69,14 +69,13 @@ export default function GuideSponsorsScreen() {
     try {
       setLoading(true);
       setError(null);
-      console.log(`🔄 Loading sponsors for guide: ${guideId}`);
       
       const response = await apiClient.get<Sponsor[]>(`/guides/${guideId}/sponsors`);
       setSponsors(response.sort((a, b) => a.sort_order - b.sort_order));
       
-      console.log('✅ Sponsors loaded successfully:', response.length);
+      // Sponsors loaded successfully
     } catch (error) {
-      console.error('❌ Error loading sponsors:', error);
+      // Error loading sponsors
       setError('Impossibile caricare gli sponsor');
     } finally {
       setLoading(false);
@@ -94,7 +93,7 @@ export default function GuideSponsorsScreen() {
       try {
         await Linking.openURL(sponsor.website_url);
       } catch (error) {
-        console.error('Error opening URL:', error);
+        // Error opening URL
       }
     }
   };

@@ -79,13 +79,9 @@ export function useAccessibleText(): AccessibleTextHook {
         screenScale: scale || 1.0,
       });
       
-      console.log('[AccessibleText] System settings updated:', {
-        scaleLevel: detectedLevel,
-        fontScale: fontScale || 1.0,
-        isLargeText: detectedLevel !== TextScaleLevel.NORMAL
-      });
+      // System settings updated
     } catch (error) {
-      console.warn('[AccessibleText] Error detecting system settings:', error);
+      // Error detecting system settings
       // Fallback ai valori di default
       setScaleLevel(TextScaleLevel.NORMAL);
       setSystemInfo({
@@ -140,7 +136,7 @@ export function useAccessibleText(): AccessibleTextHook {
   ) => {
     try {
       if (!baseFontSize || typeof baseFontSize !== 'number') {
-        console.warn('[useAccessibleText] Invalid baseFontSize:', baseFontSize);
+        // Invalid baseFontSize
         return { fontSize: 16, color: options.color || '#000000' };
       }
       
@@ -149,7 +145,7 @@ export function useAccessibleText(): AccessibleTextHook {
         userScaleLevel: scaleLevel,
       });
     } catch (error) {
-      console.error('[useAccessibleText] Error creating text style:', error);
+      // Error creating text style
       return { fontSize: baseFontSize || 16, color: options.color || '#000000' };
     }
   }, [scaleLevel]);
@@ -202,7 +198,7 @@ export function useTextStyles() {
     try {
       return createStyle(fontSize, contentType, options);
     } catch (error) {
-      console.error('[useTextStyles] Error creating style:', error);
+      // Error creating style
       return { fontSize, color: options.color || '#000000' };
     }
   }, [createStyle]);

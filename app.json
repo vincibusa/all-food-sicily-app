@@ -7,11 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "allfoodsicily",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bacienz.allfoodsicily",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Questa app ha bisogno di accedere alla tua posizione per mostrarti i ristoranti vicini.",
@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "com.bacienz.allfoodsicily",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,7 +28,12 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCIQg6WsR2zWLJhynYbKyhh_bMhu7E8smE"
+        }
+      }
     },
     "web": {
       "bundler": "metro",

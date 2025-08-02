@@ -6,11 +6,7 @@ import Colors from '../../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
-interface HeroSectionProps {
-  colorScheme: string | null | undefined;
-}
-
-const HeroSection: React.FC<HeroSectionProps> = ({ colorScheme }) => {
+const HeroSection: React.FC = () => {
   const fadeAnim = useSharedValue(0);
   
   useEffect(() => {

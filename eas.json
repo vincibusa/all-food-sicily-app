@@ -20,6 +20,21 @@
         "android": {
           "buildType": "apk"
         }
+      },
+      "local": {
+        "distribution": "internal",
+        "ios": {
+          "buildConfiguration": "Release"
+        },
+        "android": {
+          "buildType": "apk",
+          "env": {
+            "ANDROID_HOME": "/Users/vincibusa/Library/Android/sdk",
+            "ANDROID_SDK_ROOT": "/Users/vincibusa/Library/Android/sdk",
+            "NODE_ENV": "production"
+          },
+          "prebuildCommand": "npx expo prebuild --platform android"
+        }
       }
     },
     "submit": {

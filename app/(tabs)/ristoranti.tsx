@@ -74,7 +74,6 @@ export default function RistorantiScreen() {
       
       // Load all restaurants with pagination
       let allRestaurants = [];
-      console.log('🔄 Loading all restaurants with pagination...');
       let currentPage = 1;
       let hasMore = true;
       
@@ -83,7 +82,6 @@ export default function RistorantiScreen() {
           ? `/restaurants/?category_id=${categoryId}&page=${currentPage}&limit=100` 
           : `/restaurants/?page=${currentPage}&limit=100`;
           
-        console.log(`📄 Loading page ${currentPage}...`);
         
         const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
         const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
@@ -102,22 +100,18 @@ export default function RistorantiScreen() {
         
         // Safety break to avoid infinite loops
         if (currentPage > 50) {
-          console.warn('⚠️ Stopped loading after 50 pages');
+          // Stopped loading after 50 pages to prevent infinite loops
           hasMore = false;
         }
       }
       
-      console.log(`✅ Loaded ${allRestaurants.length} restaurants across ${currentPage - 1} pages`);
+      // Loaded restaurants successfully
       
       // Load categories separately
       const categoriesResponse = await apiClient.get<any>('/categories/');
       const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
       
-      // Debug logging
-      console.log('🏪 Final Data:', {
-        totalRestaurants: allRestaurants.length,
-        categoriesCount: categoriesData.length
-      });
+      // Data loaded successfully
       // Transform data to match ListItem interface
       const transformedRestaurants = allRestaurants.map((restaurant: any) => ({
         id: restaurant.id,
@@ -163,7 +157,7 @@ export default function RistorantiScreen() {
         }))
       ]);
     } catch (error) {
-      console.error('Error loading data:', error);
+      // Error loading data
       Alert.alert('Errore', 'Impossibile caricare i ristoranti');
     } finally {
       setLoading(false);
@@ -178,9 +172,7 @@ export default function RistorantiScreen() {
   // Enhanced refresh hook
   const refreshState = useEnhancedRefresh({
     onRefresh: async () => {
-      console.log('🔄 Refreshing restaurants...');
       await handleRefresh();
-      console.log('✅ Restaurants refreshed');
     },
     threshold: 60, // Soglia ridotta per attivazione più facile
     hapticFeedback: true,
@@ -216,7 +208,7 @@ export default function RistorantiScreen() {
           text: 'Aggiorna', 
           onPress: () => {
             // La logica di aggiornamento è già gestita nell'hook useLocation del MapView
-            console.log('Richiesta aggiornamento posizione');
+            // Location update requested
           }
         }
       ]
@@ -261,13 +253,7 @@ export default function RistorantiScreen() {
 
   // Ordina per distanza se abbiamo la posizione dell'utente
   if (userLocation) {
-    console.log('🎯 Ordinamento ristoranti per distanza dalla posizione:', userLocation);
     filteredRestaurants = sortByDistance(filteredRestaurants, userLocation.latitude, userLocation.longitude);
-    console.log('📍 Primi 3 ristoranti ordinati:', filteredRestaurants.slice(0, 3).map(r => ({
-      name: r.title,
-      city: r.city,
-      coords: `${r.latitude},${r.longitude}`
-    })));
   }
 
   // Display restaurants with pagination

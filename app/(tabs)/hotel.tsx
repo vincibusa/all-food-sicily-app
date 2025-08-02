@@ -70,14 +70,12 @@ export default function HotelScreen() {
       
       // Load all hotels with pagination
       let allHotels = [];
-      console.log('🔄 Loading all hotels with pagination...');
       let currentPage = 1;
       let hasMore = true;
       
       while (hasMore) {
         const hotelsUrl = `/hotels/?page=${currentPage}&limit=100`;
           
-        console.log(`📄 Loading page ${currentPage}...`);
         
         const hotelsResponse = await apiClient.get<any>(hotelsUrl);
         const pageData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
@@ -96,17 +94,12 @@ export default function HotelScreen() {
         
         // Safety break to avoid infinite loops
         if (currentPage > 50) {
-          console.warn('⚠️ Stopped loading after 50 pages');
+          // Stopped loading after 50 pages to prevent infinite loops
           hasMore = false;
         }
       }
       
-      console.log(`✅ Loaded ${allHotels.length} hotels across ${currentPage - 1} pages`);
-      
-      // Debug logging
-      console.log('🏨 Final Data:', {
-        totalHotels: allHotels.length
-      });
+      // Loaded hotels successfully
 
       // Transform data to match ListItem interface
       const transformedHotels = allHotels.map((hotel: any) => ({
@@ -158,7 +151,7 @@ export default function HotelScreen() {
       ]);
 
     } catch (error) {
-      console.error('Error loading data:', error);
+      // Error loading data
       Alert.alert('Errore', 'Impossibile caricare gli hotel');
     } finally {
       setLoading(false);
@@ -172,9 +165,7 @@ export default function HotelScreen() {
   // Enhanced refresh hook
   const refreshState = useEnhancedRefresh({
     onRefresh: async () => {
-      console.log('🔄 Refreshing hotels...');
       await handleRefresh();
-      console.log('✅ Hotels refreshed');
     },
     threshold: 60,
     hapticFeedback: true,
@@ -207,7 +198,7 @@ export default function HotelScreen() {
         { 
           text: 'Aggiorna', 
           onPress: () => {
-            console.log('Richiesta aggiornamento posizione');
+            // Location update requested
           }
         }
       ]
@@ -256,13 +247,7 @@ export default function HotelScreen() {
 
   // Ordina per distanza se abbiamo la posizione dell'utente
   if (userLocation) {
-    console.log('🏨 Ordinamento hotel per distanza dalla posizione:', userLocation);
     filteredHotels = sortByDistance(filteredHotels, userLocation.latitude, userLocation.longitude);
-    console.log('🏨 Primi 3 hotel ordinati:', filteredHotels.slice(0, 3).map(h => ({
-      name: h.title,
-      city: h.city,
-      coords: `${h.latitude},${h.longitude}`
-    })));
   }
 
   // Display hotels with pagination

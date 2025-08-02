@@ -32,7 +32,9 @@ Esplora i migliori ristoranti, trattorie e locali tipici dell'isola con le nostr
 📍 Tutta la Sicilia
 
 Dalla street food di Palermo ai ristoranti stellati, scopri i sapori che rendono unica la cucina siciliana.`,
-    image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    featured_image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    gallery: []
   },
   'premi-speciali': {
     title: 'Premi Speciali',
@@ -49,7 +51,9 @@ Dalla street food di Palermo ai ristoranti stellati, scopri i sapori che rendono
 Ogni premio racconta una storia di passione, dedizione e amore per la cucina autentica.
 
 Scopri i criteri di selezione e le categorie premiate.`,
-    image: 'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    featured_image: 'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    gallery: []
   },
   'vincitori': {
     title: 'I Vincitori',
@@ -65,7 +69,9 @@ Scopri i criteri di selezione e le categorie premiate.`,
 🏝️ Valorizzazione del Territorio
 
 Ogni vincitore è un'eccellenza che rappresenta il meglio della tradizione e dell'innovazione culinaria siciliana.`,
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    featured_image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    gallery: []
   },
   'presentazione': {
     title: 'Chi Siamo',
@@ -83,7 +89,9 @@ Ogni vincitore è un'eccellenza che rappresenta il meglio della tradizione e del
 Creare un ponte tra tradizione e innovazione, valorizzando i prodotti locali e le ricette tramandate nel tempo.
 
 Per noi il cibo è cultura, storia e identità. Raccontiamo la Sicilia attraverso i suoi sapori autentici.`,
-    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    featured_image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    gallery: []
   },
   'sponsor': {
     title: 'I Nostri Partner',
@@ -105,7 +113,9 @@ Per noi il cibo è cultura, storia e identità. Raccontiamo la Sicilia attravers
 ✓ Tradizione siciliana
 
 Scopri i nostri partner e i prodotti di eccellenza che sosteniamo.`,
-    image: 'https://images.unsplash.com/photo-1552566097-141f072e8fc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1552566097-141f072e8fc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    featured_image: 'https://images.unsplash.com/photo-1552566097-141f072e8fc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    gallery: []
   },
   'iniziative': {
     title: 'Le Nostre Iniziative',
@@ -127,7 +137,9 @@ Scopri i nostri partner e i prodotti di eccellenza che sosteniamo.`,
 • Festa del Prodotto Tipico
 
 Partecipa alle nostre iniziative per vivere esperienze culinarie autentiche.`,
-    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    featured_image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    gallery: []
   }
 };
 
@@ -136,7 +148,10 @@ interface GuideSection {
   title: string;
   content: string;
   featured_image?: string;
-  gallery: string[];
+  gallery?: string[];
+  image?: string;
+  color?: string;
+  icon?: string;
 }
 
 export default function GuideCategoryScreen() {
@@ -166,14 +181,13 @@ export default function GuideCategoryScreen() {
     try {
       setLoading(true);
       setError(null);
-      console.log(`🔄 Loading section ${id} for guide ${guideId}`);
       
       const response = await apiClient.get<GuideSection>(`/guides/${guideId}/sections/${id}`);
       setSection(response);
       
-      console.log('✅ Section loaded successfully:', response.title);
+      // Section loaded successfully
     } catch (error) {
-      console.error('❌ Error loading section:', error);
+      // Error loading section
       setError('Impossibile caricare la sezione');
     } finally {
       setLoading(false);
@@ -296,7 +310,7 @@ export default function GuideCategoryScreen() {
         </Animated.View>
 
         {/* Gallery se disponibile */}
-        {displayData.gallery && displayData.gallery.length > 0 && (
+        {displayData.gallery && displayData.gallery?.length > 0 && (
           <Animated.View 
             style={styles.gallerySection}
             entering={FadeInDown.delay(300)}
@@ -309,7 +323,7 @@ export default function GuideCategoryScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.galleryScroll}
             >
-              {displayData.gallery.map((imageUrl, index) => (
+              {displayData.gallery?.map((imageUrl: string, index: number) => (
                 <Image
                   key={index}
                   source={{ uri: imageUrl }}

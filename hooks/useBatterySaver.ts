@@ -80,7 +80,7 @@ export const useBatterySaver = () => {
         setSettings(JSON.parse(savedSettings));
       }
     } catch (error) {
-      console.warn('Failed to load battery saver configuration:', error);
+      // Failed to load battery saver configuration
     }
   };
 
@@ -89,7 +89,7 @@ export const useBatterySaver = () => {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfig(newConfig);
     } catch (error) {
-      console.warn('Failed to save battery saver configuration:', error);
+      // Failed to save battery saver configuration
     }
   };
 
@@ -98,20 +98,20 @@ export const useBatterySaver = () => {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings));
       setSettings(newSettings);
     } catch (error) {
-      console.warn('Failed to save battery saver settings:', error);
+      // Failed to save battery saver settings
     }
   };
 
   const enableBatterySaver = useCallback(async () => {
     const newConfig = { ...config, enabled: true };
     await saveConfiguration(newConfig);
-    console.log('🔋 Battery saver enabled');
+    // Battery saver enabled
   }, [config]);
 
   const disableBatterySaver = useCallback(async () => {
     const newConfig = { ...config, enabled: false };
     await saveConfiguration(newConfig);
-    console.log('🔋 Battery saver disabled');
+    // Battery saver disabled
   }, [config]);
 
   const toggleBatterySaver = useCallback(async () => {

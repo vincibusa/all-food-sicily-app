@@ -120,7 +120,7 @@ export default function GuidesListScreen() {
         ...uniqueCities.map((city) => ({ id: city as string, name: city as string }))
       ]);
     } catch (error) {
-      console.error('Error loading guides:', error);
+      // Error loading guides
       Alert.alert('Errore', 'Impossibile caricare le guide');
     } finally {
       setLoading(false);

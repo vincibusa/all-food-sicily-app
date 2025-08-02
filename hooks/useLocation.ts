@@ -30,31 +30,23 @@ export const useLocation = () => {
 
   const requestLocationPermission = async (): Promise<boolean> => {
     try {
-      console.log('🔐 Richiesta permessi geolocalizzazione...');
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       // Controlla permessi attuali
-      console.log('🔍 Controllo permessi esistenti...');
       const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
-      console.log('📄 Status permessi esistenti:', existingStatus);
       
       if (existingStatus === 'granted') {
-        console.log('✅ Permessi già concessi');
         setState(prev => ({ ...prev, hasPermission: true, loading: false }));
         return true;
       }
 
       // Richiedi permessi se non già concessi
-      console.log('🙋‍♂️ Richiesta nuovi permessi...');
       const { status } = await Location.requestForegroundPermissionsAsync();
-      console.log('📝 Risposta richiesta permessi:', status);
       
       if (status === 'granted') {
-        console.log('✅ Permessi concessi con successo');
         setState(prev => ({ ...prev, hasPermission: true, loading: false }));
         return true;
       } else {
-        console.log('❌ Permessi negati dall\'utente');
         setState(prev => ({ 
           ...prev, 
           hasPermission: false, 
@@ -71,7 +63,6 @@ export const useLocation = () => {
             { 
               text: 'Impostazioni', 
               onPress: () => {
-                console.log('🔧 Apertura impostazioni...');
                 if (Platform.OS === 'ios') {
                   Location.requestForegroundPermissionsAsync();
                 }
@@ -82,7 +73,6 @@ export const useLocation = () => {
         return false;
       }
     } catch (error) {
-      console.error('❌ Errore richiesta permessi:', error);
       setState(prev => ({ 
         ...prev, 
         hasPermission: false, 
@@ -95,29 +85,22 @@ export const useLocation = () => {
 
   const getCurrentLocation = async (): Promise<UserLocation | null> => {
     try {
-      console.log('🎯 Avvio rilevamento posizione...');
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       // Verifica che i permessi siano stati concessi
       if (!state.hasPermission) {
-        console.log('⚠️ Permessi non presenti, richiesta in corso...');
         const hasPermission = await requestLocationPermission();
         if (!hasPermission) {
-          console.log('❌ Permessi negati');
           return null;
         }
-        console.log('✅ Permessi ottenuti');
       }
 
-      console.log('📍 Richiesta posizione corrente...');
       // Ottieni posizione corrente
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeInterval: 15000, // 15 secondi timeout
-        maximumAge: 60000, // Accetta posizioni di massimo 1 minuto fa
       });
 
-      console.log('📍 Posizione ottenuta:', location.coords);
 
       const userLocation: UserLocation = {
         latitude: location.coords.latitude,
@@ -132,14 +115,11 @@ export const useLocation = () => {
         error: null
       }));
 
-      console.log('✅ Posizione salvata nello stato');
       return userLocation;
     } catch (error) {
-      console.error('❌ Errore nel rilevamento posizione:', error);
       
       let errorMessage = 'Impossibile ottenere la posizione attuale';
       if (error instanceof Error) {
-        console.log('🔍 Dettagli errore:', error.message);
         if (error.message.includes('timeout')) {
           errorMessage = 'Timeout nel rilevamento della posizione';
         } else if (error.message.includes('denied')) {
@@ -155,7 +135,6 @@ export const useLocation = () => {
         error: errorMessage
       }));
 
-      console.log('🔄 Usando posizione fallback (centro Sicilia)');
       // Fallback: usa posizione centrale Sicilia se non riusciamo a ottenere la posizione
       const fallbackLocation: UserLocation = {
         latitude: 37.5,
@@ -195,7 +174,6 @@ export const useLocation = () => {
 
       return subscription;
     } catch (error) {
-      console.error('Error watching location:', error);
       return null;
     }
   };
