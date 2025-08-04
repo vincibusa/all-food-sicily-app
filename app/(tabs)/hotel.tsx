@@ -5,9 +5,9 @@ import { useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiClient } from "../../services/api";
-import ListCard from '../../components/ListCard';
+import { HotelListCard } from '../../components/HotelListCard';
 import { ListItem } from '../../components/ListCard';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { FadeInDown } from 'react-native-reanimated';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
 import { SkeletonVariant } from '../../components/skeleton/SkeletonCards';
 import AdvancedFilters from '../../components/AdvancedFilters';
@@ -458,14 +458,13 @@ export default function HotelScreen() {
               )
             }
             renderItem={({ item: hotel, index }) => (
-              <ListCard
+              <HotelListCard
                 item={hotel}
-                delay={index * 100}
-                enableSwipe={false}
                 onPress={() => {
                   onTap();
                   router.push(`/hotel/${hotel.id}`);
                 }}
+
               />
             )}
             ListFooterComponent={

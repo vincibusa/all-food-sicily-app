@@ -51,7 +51,6 @@ app/
 │   ├── ristoranti.tsx   # Restaurants list
 │   ├── guide.tsx        # Guides/articles list  
 │   └── profilo.tsx      # User profile
-├── articoli/[id].tsx    # Article detail (dynamic route)
 ├── ristoranti/[id].tsx  # Restaurant detail (dynamic route)
 ├── guide/[id].tsx       # Guide detail (dynamic route)
 └── account/             # Account management screens

@@ -35,14 +35,6 @@ export default function RootLayout() {
         
         {/* Pagine di dettaglio fuori dalla tab bar */}
         <Stack.Screen 
-          name="articoli/[id]" 
-          options={{ 
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        
-        <Stack.Screen 
           name="ristoranti/[id]" 
           options={{ 
             headerShown: false,

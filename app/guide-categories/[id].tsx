@@ -160,7 +160,7 @@ export default function GuideSpecificCategoriesScreen() {
                 activeOpacity={0.7}
                 disabled={loading}
               >
-                <View style={[styles.iconContainer, { backgroundColor: category.color }]}>
+                <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
                   <MaterialIcons
                     name={category.icon as any}
                     size={28}

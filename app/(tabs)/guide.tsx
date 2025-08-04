@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { apiClient } from '../../services/api';
 import { FontAwesome } from '@expo/vector-icons';
-import ListCard from '../../components/ListCard';
+import { GuideListCard } from '../../components/GuideListCard';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
 import AdvancedFilters from '../../components/AdvancedFilters';
 import { useHaptics } from '../../utils/haptics';
@@ -94,7 +94,7 @@ export default function GuidesListScreen() {
         category: guide.category_name ? {
           id: guide.category_id || 'unknown',
           name: guide.category_name,
-          color: categoriesData.find((cat: any) => cat.name === guide.category_name)?.color || colors.primary
+          color: colors.primary
         } : null
       }));
       
@@ -163,15 +163,13 @@ export default function GuidesListScreen() {
   };
 
 
-  const renderGuideItem = ({ item, index }: { item: Guide; index: number }) => (
-    <ListCard
+  const renderGuideItem = ({ item }: { item: Guide }) => (
+    <GuideListCard
       item={item}
-      enableSwipe={false}
       onPress={() => {
         onTap();
         router.push(`/guide/${item.id}`);
       }}
-      delay={index * 100}
     />
   );
 

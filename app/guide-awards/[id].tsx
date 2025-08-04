@@ -133,13 +133,13 @@ export default function GuideAwardsScreen() {
               {item.restaurant.city}, {item.restaurant.province}
             </Text>
             {item.restaurant.category && (
-              <View style={[
-                styles.categoryPill, 
-                { backgroundColor: item.restaurant.category.color + '20' }
+              <View               style={[
+                styles.categoryPill,
+                { backgroundColor: colors.primary + '20' }
               ]}>
                 <Text style={[
                   styles.categoryText,
-                  { color: item.restaurant.category.color },
+                  { color: colors.primary },
                   textStyles.label()
                 ]}>
                   {item.restaurant.category.name}

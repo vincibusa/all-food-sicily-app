@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { useTheme } from '../../app/context/ThemeContext';
 import { 
   SkeletonBase, 
@@ -49,19 +49,20 @@ export const SkeletonHeroCard: React.FC<{ variant?: SkeletonVariant }> = ({
 export const SkeletonGuideCard: React.FC<{ variant?: SkeletonVariant }> = ({ 
   variant = SkeletonVariant.SHIMMER 
 }) => {
-  const { colors } = useTheme();
-  
   return (
-    <View style={[styles.guideCard, { backgroundColor: colors.card }]}>
-      <SkeletonImage 
-        width="100%" 
-        height={200}
-        borderRadius={12}
-        variant={variant}
-      />
+    <View style={styles.guideCard}>
+      {/* Container immagine con ombra separata */}
+      <View style={styles.guideImageContainer}>
+        <SkeletonImage 
+          width="100%" 
+          height={200}
+          borderRadius={12}
+          variant={variant}
+        />
+      </View>
+      {/* Container testo senza ombra */}
       <View style={styles.guideCardInfo}>
         <SkeletonText width="80%" lineHeight={16} variant={variant} />
-        <SkeletonText width="60%" lineHeight={12} variant={variant} style={{ marginTop: 8 }} />
       </View>
     </View>
   );
@@ -73,20 +74,51 @@ export const SkeletonGuideCard: React.FC<{ variant?: SkeletonVariant }> = ({
 export const SkeletonRestaurantCard: React.FC<{ variant?: SkeletonVariant }> = ({ 
   variant = SkeletonVariant.SHIMMER 
 }) => {
-  const { colors } = useTheme();
-  const { width } = require('react-native').Dimensions.get('window');
   const cardWidth = width * 0.55 > 200 ? 200 : width * 0.55;
   const imageHeight = cardWidth * (9/16);
   
   return (
-    <View style={[styles.restaurantCard, { backgroundColor: colors.card }]}>
-      <SkeletonImage 
-        width="100%" 
-        height={imageHeight}
-        borderRadius={12}
-        variant={variant}
-      />
+    <View style={styles.restaurantCard}>
+      {/* Container immagine con ombra separata */}
+      <View style={[styles.restaurantImageContainer, { height: imageHeight }]}>
+        <SkeletonImage 
+          width="100%" 
+          height={imageHeight}
+          borderRadius={12}
+          variant={variant}
+        />
+      </View>
+      {/* Container testo senza ombra */}
       <View style={styles.restaurantCardInfo}>
+        <SkeletonText width="85%" lineHeight={16} variant={variant} />
+        <SkeletonText width="70%" lineHeight={12} variant={variant} style={{ marginTop: 8 }} />
+      </View>
+    </View>
+  );
+};
+
+/**
+ * Skeleton per le card degli hotel (16:9)
+ */
+export const SkeletonHotelCard: React.FC<{ variant?: SkeletonVariant }> = ({ 
+  variant = SkeletonVariant.SHIMMER 
+}) => {
+  const cardWidth = width * 0.55 > 200 ? 200 : width * 0.55;
+  const imageHeight = cardWidth * (9/16);
+  
+  return (
+    <View style={styles.hotelCard}>
+      {/* Container immagine con ombra separata */}
+      <View style={[styles.hotelImageContainer, { height: imageHeight }]}>
+        <SkeletonImage 
+          width="100%" 
+          height={imageHeight}
+          borderRadius={12}
+          variant={variant}
+        />
+      </View>
+      {/* Container testo senza ombra */}
+      <View style={styles.hotelCardInfo}>
         <SkeletonText width="85%" lineHeight={16} variant={variant} />
         <SkeletonText width="70%" lineHeight={12} variant={variant} style={{ marginTop: 8 }} />
       </View>
@@ -278,6 +310,8 @@ export const SkeletonProfileStats: React.FC<{ variant?: SkeletonVariant }> = ({
 // 🎨 STYLES
 // ==========================================
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   // Hero Card
   heroCard: {
@@ -294,38 +328,86 @@ const styles = StyleSheet.create({
   
   // Guide Card
   guideCard: {
-    width: 180,
-    minHeight: 280,
+    width: width * 0.45 > 180 ? 180 : width * 0.45,
+    minHeight: 260,
     marginRight: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  },
+  
+  guideImageContainer: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+    } : {
+      elevation: 2,
+    }),
   },
   
   guideCardInfo: {
     padding: 12,
-    minHeight: 80,
+    minHeight: 60,
+    justifyContent: 'center',
   },
   
   // Restaurant Card
   restaurantCard: {
-    width: 200,
-    minHeight: 280,
+    width: width * 0.55 > 200 ? 200 : width * 0.55,
+    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16) + 80,
     marginRight: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    overflow: 'hidden',
+  },
+  
+  restaurantImageContainer: {
+    width: '100%',
+    borderRadius: 12,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+    } : {
+      elevation: 2,
+    }),
   },
   
   restaurantCardInfo: {
     padding: 12,
-    minHeight: 80,
+    height: 80,
+    justifyContent: 'center',
+  },
+  
+  // Hotel Card
+  hotelCard: {
+    width: width * 0.55 > 200 ? 200 : width * 0.55,
+    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16) + 80,
+    marginRight: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  
+  hotelImageContainer: {
+    width: '100%',
+    borderRadius: 12,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+    } : {
+      elevation: 2,
+    }),
+  },
+  
+  hotelCardInfo: {
+    padding: 12,
+    height: 80,
+    justifyContent: 'center',
   },
   
   // Hero Section

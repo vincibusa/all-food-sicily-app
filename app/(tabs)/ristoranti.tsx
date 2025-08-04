@@ -5,9 +5,9 @@ import { useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiClient } from "../../services/api";
-import ListCard from '../../components/ListCard';
+import { RestaurantListCard } from '../../components/RestaurantListCard';
 import { ListItem } from '../../components/ListCard';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { FadeInDown } from 'react-native-reanimated';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
 import { SkeletonVariant } from '../../components/skeleton/SkeletonCards';
 import AdvancedFilters from '../../components/AdvancedFilters';
@@ -121,7 +121,7 @@ export default function RistorantiScreen() {
         category: restaurant.category_name ? {
           id: restaurant.category_id || 'unknown',
           name: restaurant.category_name,
-          color: categoriesData.find((cat: any) => cat.id === restaurant.category_id)?.color || colors.primary
+          color: colors.primary
         } : null,
         city: restaurant.city,
         province: restaurant.province,
@@ -461,15 +461,15 @@ export default function RistorantiScreen() {
               )
             }
             renderItem={({ item: restaurant, index }) => (
-              <ListCard
+              <RestaurantListCard
                 item={restaurant}
-                delay={index * 100}
-                enableSwipe={false}
+          
                 onPress={() => {
                   onTap();
                   // Navigazione al dettaglio del ristorante
                   router.push(`/ristoranti/${restaurant.id}`);
                 }}
+         
               />
             )}
             ListFooterComponent={
@@ -684,99 +684,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  restaurantCard: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
-    overflow: 'hidden',
-  },
-  restaurantImage: {
-    width: 120,
-    height: 140,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
-  },
-  restaurantContent: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  restaurantTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    lineHeight: 24,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  locationText: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginRight: 6,
-  },
-  tagText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  moreTagsText: {
-    fontSize: 10,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  priceText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
-  },
-  loadingText: {
-    fontSize: 16,
   },
   emptyText: {
     fontSize: 18,

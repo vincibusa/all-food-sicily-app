@@ -35,10 +35,10 @@ class CacheManager {
   
   // Default configurations for different data types
   private defaultConfigs = {
-    restaurants: { ttl: 30 * 60 * 1000, priority: 'high' as const }, // 30 minutes
-    guides: { ttl: 60 * 60 * 1000, priority: 'high' as const }, // 1 hour
-    categories: { ttl: 24 * 60 * 60 * 1000, priority: 'normal' as const }, // 24 hours
-    search: { ttl: 10 * 60 * 1000, priority: 'low' as const }, // 10 minutes
+    restaurants: { ttl: 15 * 60 * 1000, priority: 'high' as const }, // 15 minutes (reduced for fresher data)
+    guides: { ttl: 30 * 60 * 1000, priority: 'high' as const }, // 30 minutes (reduced for fresher data)
+    categories: { ttl: 24 * 60 * 60 * 1000, priority: 'normal' as const }, // 24 hours (unchanged, rarely change)
+    search: { ttl: 5 * 60 * 1000, priority: 'low' as const }, // 5 minutes (reduced for fresher search)
   };
 
   private constructor() {

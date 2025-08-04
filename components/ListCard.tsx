@@ -126,7 +126,7 @@ export default function ListCard({
         <View style={styles.overlayContent}>
           {/* Top Row: Category and Rating */}
           <View style={styles.topRow}>
-            <View style={[styles.categoryBadge, { backgroundColor: item.category?.color || colors.primary }]}>
+            <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
               <Text style={[styles.categoryText, textStyles.label('white')]}>
                 {item.category?.name || (item.cuisine_type?.[0] || 'Elemento')}
               </Text>
@@ -215,7 +215,7 @@ export default function ListCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
-    marginBottom: 28,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,

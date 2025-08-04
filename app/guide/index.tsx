@@ -107,7 +107,7 @@ export default function GuidesListScreen() {
         
         <View style={styles.guideContent}>
           {/* Category Badge */}
-          <View style={[styles.categoryBadge, { backgroundColor: item.category?.color || colors.primary }]}>
+                      <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
             <Text style={styles.categoryText}>{item.category?.name || 'Guida'}</Text>
           </View>
           

@@ -226,7 +226,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             >
               {categories.map((item, index) => {
                 const isSelected = selectedCategory === item.name;
-                const categoryColor = item.color || colors.primary;
+                const categoryColor = colors.primary;
                 
                 return (
                   <Animated.View

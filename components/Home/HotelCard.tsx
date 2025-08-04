@@ -8,28 +8,30 @@ import { useTextStyles } from '../../hooks/useAccessibleText';
 
 const { width } = Dimensions.get('window');
 
-interface Restaurant {
+interface Hotel {
   id: string;
   name: string;
   featured_image: string;
   city: string;
   province: string;
   rating: string | number;
+  star_rating?: number;
   price_range: number;
+  hotel_type: string[];
   category_name: string;
   category_color?: string;
   latitude?: number;
   longitude?: number;
 }
 
-interface RestaurantCardProps {
-  item: Restaurant;
+interface HotelCardProps {
+  item: Hotel;
   onImageLoaded?: (uri: string) => void;
   onImageError?: (uri: string) => void;
   animationProps?: any;
 }
 
-export const RestaurantCard: React.FC<RestaurantCardProps> = ({
+export const HotelCard: React.FC<HotelCardProps> = ({
   item,
   onImageLoaded,
   onImageError,
@@ -41,35 +43,43 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
   return (
     <Animated.View {...animationProps}>
-      <Link href={{ pathname: '/ristoranti/[id]', params: { id: item.id } }} asChild>
+      <Link href={{ pathname: '/hotel/[id]', params: { id: item.id } }} asChild>
         <TouchableOpacity 
-          style={styles.restaurantCard}
+          style={styles.hotelCard}
           onPress={() => onTap()}
         >
           {/* Container immagine con ombra separata */}
           <View style={styles.imageContainer}>
             <ImageBackground
               source={{ 
-                uri: item.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
+                uri: item.featured_image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' 
               }}
-              style={styles.restaurantImage}
+              style={styles.hotelImage}
               imageStyle={{ borderRadius: 12 }}
               onLoad={() => item.featured_image && onImageLoaded?.(item.featured_image)}
               onError={() => item.featured_image && onImageError?.(item.featured_image)}
             >
-              <View style={[styles.restaurantCategoryPill, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.restaurantCategoryText, textStyles.label('white')]}>
-                  {item.category_name || 'Ristorante'}
+              <View style={[styles.hotelCategoryPill, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.hotelCategoryText, textStyles.label('white')]}>
+                  {item.hotel_type?.[0]?.charAt(0).toUpperCase() + item.hotel_type?.[0]?.slice(1).replace('&', ' & ') || 'Hotel'}
                 </Text>
               </View>
+              {/* Star rating overlay */}
+              {item.star_rating && (
+                <View style={styles.starRatingOverlay}>
+                  {Array.from({ length: item.star_rating }, (_, i) => (
+                    <Text key={i} style={styles.starIcon}>⭐</Text>
+                  ))}
+                </View>
+              )}
             </ImageBackground>
           </View>
           {/* Container testo senza ombra */}
-          <View style={styles.restaurantInfo}>
-            <Text style={[styles.restaurantTitle, textStyles.subtitle(colors.text)]} numberOfLines={2}>
+          <View style={styles.hotelInfo}>
+            <Text style={[styles.hotelTitle, textStyles.subtitle(colors.text)]} numberOfLines={2}>
               {item.name}
             </Text>
-            <Text style={[styles.restaurantLocation, textStyles.caption(colors.text + '80')]} numberOfLines={1}>
+            <Text style={[styles.hotelLocation, textStyles.caption(colors.text + '80')]} numberOfLines={1}>
               {item.city}, {item.province}
             </Text>
           </View>
@@ -80,8 +90,8 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  restaurantCard: {
-    width: width * 0.55 > 200 ? 200 : width * 0.55, // Same width as other cards
+  hotelCard: {
+    width: width * 0.55 > 200 ? 200 : width * 0.55, // Same width as restaurant cards
     height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16) + 80, // 16:9 image + text area
     marginRight: 16,
     borderRadius: 12,
@@ -101,11 +111,11 @@ const styles = StyleSheet.create({
       elevation: 2, // Ombra solo sull'immagine su Android
     }),
   },
-  restaurantImage: {
+  hotelImage: {
     width: '100%',
     height: '100%',
   },
-  restaurantCategoryPill: {
+  hotelCategoryPill: {
     position: 'absolute',
     top: 6,
     left: 6,
@@ -114,22 +124,36 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     overflow: 'hidden',
   },
-  restaurantCategoryText: {
+  hotelCategoryText: {
     color: 'white',
     fontSize: 8,
     fontWeight: 'bold',
   },
-  restaurantInfo: {
+  starRatingOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  starIcon: {
+    color: '#FFD700',
+    fontSize: 10,
+  },
+  hotelInfo: {
     padding: 12,
     height: 80, // Fixed height for text area
     justifyContent: 'center',
   },
-  restaurantTitle: {
+  hotelTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  restaurantLocation: {
+  hotelLocation: {
     fontSize: 12,
     opacity: 0.8,
   },

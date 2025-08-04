@@ -151,7 +151,7 @@ export default function GuideDetailScreen() {
           <BackButton style={styles.backButton} />
           
           {/* Category Badge */}
-          <View style={[styles.categoryBadge, { backgroundColor: guide.category?.color || colors.primary }]}>
+                      <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
             <Text style={styles.categoryBadgeText}>{guide.category?.name || 'Guida'}</Text>
           </View>
         </Animated.View>

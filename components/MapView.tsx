@@ -134,7 +134,7 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
             {/* Marker personalizzato */}
             <View style={[
               styles.customMarker, 
-              { backgroundColor: restaurant.category?.color || colors.primary }
+              { backgroundColor: colors.primary }
             ]}>
               <MaterialIcons 
                 name={getMarkerIcon(restaurant)} 

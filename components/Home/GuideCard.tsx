@@ -8,28 +8,26 @@ import { useTextStyles } from '../../hooks/useAccessibleText';
 
 const { width } = Dimensions.get('window');
 
-interface Restaurant {
+interface Guide {
   id: string;
-  name: string;
+  title: string;
   featured_image: string;
+  category: {
+    name: string;
+    color?: string;
+  };
   city: string;
   province: string;
-  rating: string | number;
-  price_range: number;
-  category_name: string;
-  category_color?: string;
-  latitude?: number;
-  longitude?: number;
 }
 
-interface RestaurantCardProps {
-  item: Restaurant;
+interface GuideCardProps {
+  item: Guide;
   onImageLoaded?: (uri: string) => void;
   onImageError?: (uri: string) => void;
   animationProps?: any;
 }
 
-export const RestaurantCard: React.FC<RestaurantCardProps> = ({
+export const GuideCard: React.FC<GuideCardProps> = ({
   item,
   onImageLoaded,
   onImageError,
@@ -41,36 +39,27 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
   return (
     <Animated.View {...animationProps}>
-      <Link href={{ pathname: '/ristoranti/[id]', params: { id: item.id } }} asChild>
+      <Link href={`/guide-categories/${item.id}`} asChild>
         <TouchableOpacity 
-          style={styles.restaurantCard}
+          style={styles.guideCard}
           onPress={() => onTap()}
         >
           {/* Container immagine con ombra separata */}
           <View style={styles.imageContainer}>
             <ImageBackground
               source={{ 
-                uri: item.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
+                uri: item.featured_image || 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
               }}
-              style={styles.restaurantImage}
+              style={styles.guideImage}
               imageStyle={{ borderRadius: 12 }}
               onLoad={() => item.featured_image && onImageLoaded?.(item.featured_image)}
               onError={() => item.featured_image && onImageError?.(item.featured_image)}
-            >
-              <View style={[styles.restaurantCategoryPill, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.restaurantCategoryText, textStyles.label('white')]}>
-                  {item.category_name || 'Ristorante'}
-                </Text>
-              </View>
-            </ImageBackground>
+            />
           </View>
           {/* Container testo senza ombra */}
-          <View style={styles.restaurantInfo}>
-            <Text style={[styles.restaurantTitle, textStyles.subtitle(colors.text)]} numberOfLines={2}>
-              {item.name}
-            </Text>
-            <Text style={[styles.restaurantLocation, textStyles.caption(colors.text + '80')]} numberOfLines={1}>
-              {item.city}, {item.province}
+          <View style={styles.guideInfo}>
+            <Text style={[styles.guideTitle, textStyles.subtitle(colors.text)]}>
+              {item.title}
             </Text>
           </View>
         </TouchableOpacity>
@@ -80,16 +69,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  restaurantCard: {
-    width: width * 0.55 > 200 ? 200 : width * 0.55, // Same width as other cards
-    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16) + 80, // 16:9 image + text area
+  guideCard: {
+    width: width * 0.45 > 180 ? 180 : width * 0.45, // Smaller width for guide cards
+    minHeight: 260, // Reduced height since we only have title
     marginRight: 16,
     borderRadius: 12,
 
   },
   imageContainer: {
     width: '100%',
-    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16), // 16:9 aspect ratio
+    height: 200, // Fixed height for image
     borderRadius: 12,
 
     ...(Platform.OS === 'ios' ? {
@@ -101,36 +90,18 @@ const styles = StyleSheet.create({
       elevation: 2, // Ombra solo sull'immagine su Android
     }),
   },
-  restaurantImage: {
+  guideImage: {
     width: '100%',
     height: '100%',
   },
-  restaurantCategoryPill: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    overflow: 'hidden',
-  },
-  restaurantCategoryText: {
-    color: 'white',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
-  restaurantInfo: {
+  guideInfo: {
     padding: 12,
-    height: 80, // Fixed height for text area
+    minHeight: 60, // Reduced height since we only have title
     justifyContent: 'center',
   },
-  restaurantTitle: {
+  guideTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 4,
-  },
-  restaurantLocation: {
-    fontSize: 12,
-    opacity: 0.8,
   },
 });

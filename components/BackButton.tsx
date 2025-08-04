@@ -18,7 +18,7 @@ export default function BackButton({ style }: BackButtonProps) {
   const navigation = useNavigation();
   return (
     <Pressable style={[styles.backButton, style]} onPress={() => navigation.goBack()}>
-      <Ionicons name="arrow-back" size={24} color="white" />
+      <Ionicons name="arrow-back" size={24} color="black" />
     </Pressable>
   );
 }
