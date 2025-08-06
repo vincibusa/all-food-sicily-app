@@ -4,7 +4,7 @@
 
 // Backend API configuration
 export const API_CONFIG = {
-  BASE_URL: 'https://all-food-backend--all-food-sicily.europe-west4.hosted.app/',
+  BASE_URL: 'http://192.168.1.156:8000',
   API_VERSION: '/api/v1',
   
   // Endpoints
@@ -40,6 +40,15 @@ export const API_CONFIG = {
     },
     SEARCH: {
       UNIFIED: '/search/unified',
+    },
+    COUPONS: {
+      ACTIVE: '/coupons/active',
+      RESTAURANT: '/coupons/restaurant/{restaurantId}',
+      DETAIL: '/coupons/{id}',
+      BY_CODE: '/coupons/code/{code}',
+      CATEGORIES: '/coupons/meta/categories',
+      VALIDATE: '/coupons/{id}/validate',
+      USE: '/coupons/{id}/use',
     },
   },
 };

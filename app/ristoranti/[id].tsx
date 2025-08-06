@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Share, Linking, Platform, ActionSheetIOS } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Share, Linking, Platform, ActionSheetIOS, FlatList } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
@@ -7,6 +7,9 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { apiClient } from "../../services/api";
+import { couponService } from "../../services/coupon.service";
+import { Coupon } from "../../types";
+import { CouponCard } from "../../components/CouponCard";
 import BackButton from "../../components/BackButton";
 
 const { width } = Dimensions.get('window');
@@ -35,18 +38,31 @@ interface RestaurantDetail {
 }
 
 export default function RestaurantScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams();
+  const id = params?.id as string;
   const { colors } = useTheme();
   const router = useRouter();
   const [restaurant, setRestaurant] = useState<RestaurantDetail | null>(null);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'info' | 'photos'>('info');
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'info' | 'photos' | 'coupons'>('info');
 
   useEffect(() => {
     if (id) {
       loadRestaurantDetail();
+    } else {
+      console.error('Restaurant ID is undefined');
+      Alert.alert('Errore', 'ID ristorante non valido');
+      router.back();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (restaurant && activeTab === 'coupons') {
+      loadRestaurantCoupons();
+    }
+  }, [restaurant, activeTab]);
 
   const loadRestaurantDetail = async () => {
     try {
@@ -59,6 +75,22 @@ export default function RestaurantScreen() {
       router.back();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRestaurantCoupons = async () => {
+    if (!id) return;
+    
+    try {
+      setCouponsLoading(true);
+      const restaurantCoupons = await couponService.getRestaurantCoupons(id);
+      setCoupons(restaurantCoupons);
+    } catch (error) {
+      console.error('Error loading restaurant coupons:', error);
+      // Non mostriamo errore all'utente, solo log
+      setCoupons([]);
+    } finally {
+      setCouponsLoading(false);
     }
   };
 
@@ -283,6 +315,57 @@ export default function RestaurantScreen() {
             )}
           </Animated.View>
         );
+
+      case 'coupons':
+        return (
+          <Animated.View 
+            style={styles.contentContainer}
+            entering={FadeIn.duration(500)}
+          >
+            {couponsLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.loadingText, { color: colors.text }]}>
+                  Caricamento coupon...
+                </Text>
+              </View>
+            ) : coupons.length > 0 ? (
+              <View>
+                <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 16 }]}>
+                  Coupon disponibili ({coupons.length})
+                </Text>
+                <FlatList
+                  data={coupons}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <CouponCard
+                      coupon={item}
+                      style={{ marginBottom: 16 }}
+                      showRestaurantName={false}
+                      onDownload={(coupon) => {
+                        console.log('Coupon scaricato:', coupon.title);
+                      }}
+                      onUse={(coupon) => {
+                        console.log('Coupon utilizzato:', coupon.title);
+                        // Ricarica i coupon dopo l'uso
+                        loadRestaurantCoupons();
+                      }}
+                    />
+                  )}
+                  scrollEnabled={false}
+                  ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+                />
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <MaterialIcons name="local-offer" size={48} color={colors.text + '40'} />
+                <Text style={[styles.emptyText, { color: colors.text + '60', marginTop: 16 }]}>
+                  Nessun coupon disponibile per questo ristorante
+                </Text>
+              </View>
+            )}
+          </Animated.View>
+        );
     }
   };
 
@@ -404,6 +487,22 @@ export default function RestaurantScreen() {
                   ]}
                 >
                   Foto
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.tabItem, 
+                  activeTab === 'coupons' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
+                ]}
+                onPress={() => setActiveTab('coupons')}
+              >
+                <Text 
+                  style={[
+                    styles.tabText, 
+                    { color: activeTab === 'coupons' ? colors.primary : colors.text }
+                  ]}
+                >
+                  Coupon
                 </Text>
               </TouchableOpacity>
             </Animated.View>
@@ -546,6 +645,18 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   sectionTitle: {
     fontSize: 20,

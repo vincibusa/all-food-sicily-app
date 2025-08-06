@@ -58,6 +58,32 @@ export interface Hotel {
   };
 }
 
+// Tipi per i coupon
+export interface Coupon {
+  id: string;
+  restaurant_id: string;
+  title: string;
+  description?: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: string | number;
+  min_order_amount?: string | number | null;
+  max_discount_amount?: string | number | null;
+  usage_limit?: number | null;
+  usage_count: number;
+  code: string;
+  category?: 'aperitivo' | 'cena' | 'pizza' | 'dessert' | 'altro' | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  restaurant?: {
+    id: string;
+    name: string;
+    city: string;
+    province: string;
+    featured_image?: string;
+  };
+}
+
 // Tipi per renderItem in FlatList
 export interface RenderItemInfo<T> {
   item: T;

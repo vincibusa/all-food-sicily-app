@@ -43,7 +43,10 @@
     "react-native-web": "^0.20.0",
     "expo-linear-gradient": "~14.1.5",
     "expo-application": "~6.1.5",
-    "expo-device": "~7.1.4"
+    "expo-device": "~7.1.4",
+    "expo-file-system": "~18.1.11",
+    "expo-sharing": "~13.1.5",
+    "react-native-view-shot": "4.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
