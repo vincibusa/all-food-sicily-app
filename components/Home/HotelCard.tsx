@@ -76,7 +76,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({
           </View>
           {/* Container testo senza ombra */}
           <View style={styles.hotelInfo}>
-            <Text style={[styles.hotelTitle, textStyles.subtitle(colors.text)]} numberOfLines={2}>
+            <Text style={[styles.hotelTitle, textStyles.body(colors.text), { fontWeight: 'bold' }]} numberOfLines={2}>
               {item.name}
             </Text>
             <Text style={[styles.hotelLocation, textStyles.caption(colors.text + '80')]} numberOfLines={1}>
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   hotelTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   hotelLocation: {
     fontSize: 12,

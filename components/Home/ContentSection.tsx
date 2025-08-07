@@ -51,7 +51,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
   return (
     <Animated.View style={styles.section} {...animationProps}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, textStyles.title(colors.text)]}>
+        <Text style={[styles.sectionTitle, textStyles.subtitle(colors.text)]}>
           {title}
         </Text>
         <Link href={linkHref as any} asChild>
@@ -101,8 +101,8 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
 
 const styles = StyleSheet.create({
   section: {
-    marginBottom: 24,
-    paddingVertical: 8,
+    marginBottom: 16,
+    paddingVertical: 2,
   },
   sectionHeader: {
     flexDirection: 'row',

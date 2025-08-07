@@ -56,12 +56,7 @@ export const GuideCard: React.FC<GuideCardProps> = ({
               onError={() => item.featured_image && onImageError?.(item.featured_image)}
             />
           </View>
-          {/* Container testo senza ombra */}
-          <View style={styles.guideInfo}>
-            <Text style={[styles.guideTitle, textStyles.subtitle(colors.text)]}>
-              {item.title}
-            </Text>
-          </View>
+
         </TouchableOpacity>
       </Link>
     </Animated.View>
@@ -70,9 +65,9 @@ export const GuideCard: React.FC<GuideCardProps> = ({
 
 const styles = StyleSheet.create({
   guideCard: {
-    width: width * 0.45 > 180 ? 180 : width * 0.45, // Smaller width for guide cards
-    minHeight: 260, // Reduced height since we only have title
-    marginRight: 16,
+    width: width * 0.55 > 190 ? 190 : width * 0.55, // Increased width for guide cards
+    height: 200, // Fixed height since we removed title
+    marginRight: 0,
     borderRadius: 12,
 
   },
@@ -94,14 +89,5 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  guideInfo: {
-    padding: 12,
-    minHeight: 60, // Reduced height since we only have title
-    justifyContent: 'center',
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
+
 });

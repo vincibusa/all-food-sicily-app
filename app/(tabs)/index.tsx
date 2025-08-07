@@ -269,7 +269,7 @@ export default function Index() {
 
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar style="dark" />
       
       {/* Enhanced Refresh Indicator - Solo Icona */}
@@ -288,6 +288,7 @@ export default function Index() {
 
       <ScrollView 
         style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 0 }}
         showsVerticalScrollIndicator={false}
         onScroll={(event) => {
           scrollY.value = event.nativeEvent.contentOffset.y;
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapSection: {
-    marginBottom: 20,
+    marginBottom: 12,
     paddingHorizontal: 16,
     paddingTop: 10,
     position: 'relative',

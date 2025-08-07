@@ -66,7 +66,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           </View>
           {/* Container testo senza ombra */}
           <View style={styles.restaurantInfo}>
-            <Text style={[styles.restaurantTitle, textStyles.subtitle(colors.text)]} numberOfLines={2}>
+            <Text style={[styles.restaurantTitle, textStyles.body(colors.text), { fontWeight: 'bold' }]} numberOfLines={2}>
               {item.name}
             </Text>
             <Text style={[styles.restaurantLocation, textStyles.caption(colors.text + '80')]} numberOfLines={1}>
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   restaurantTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   restaurantLocation: {
     fontSize: 12,
