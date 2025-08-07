@@ -18,7 +18,7 @@ import { useHaptics } from '../utils/haptics';
 import { useTextStyles } from '../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { apiClient } from '../services/api';
-import ListCard from '../components/ListCard';
+import { RestaurantListCard } from '../components/RestaurantListCard';
 import { ListItem } from '../components/ListCard';
 import ListCardSkeleton from '../components/ListCardSkeleton';
 import { SkeletonVariant } from '../components/skeleton/SkeletonCards';
@@ -86,7 +86,6 @@ export default function GuideSearchScreen() {
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedPrizes, setSelectedPrizes] = useState<string[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
   
   // Stati per i risultati
   const [results, setResults] = useState<GroupedResults[]>([]);
@@ -355,7 +354,6 @@ export default function GuideSearchScreen() {
     onTap();
     setLoading(true);
     setHasSearched(true);
-    setShowFilters(false);
 
     try {
       let allRestaurants = [];
@@ -509,10 +507,8 @@ export default function GuideSearchScreen() {
   );
 
   const renderRestaurantItem = ({ item, index }: { item: ListItem, index: number }) => (
-    <ListCard
+    <RestaurantListCard
       item={item}
-      delay={index * 100}
-      enableSwipe={false}
       onPress={() => {
         onTap();
         router.push(`/ristoranti/${item.id}`);
@@ -573,57 +569,13 @@ export default function GuideSearchScreen() {
           )}
         </Animated.View>
 
-        {/* Filters Toggle Button */}
-        <Animated.View
-            entering={FadeInDown.delay(150)}
-            style={styles.filtersToggleContainer}
-          >
-            <TouchableOpacity
-              style={[styles.filtersToggleButton, { backgroundColor: colors.card }]}
-              onPress={() => {
-                onTap();
-                setShowFilters(!showFilters);
-              }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="tune" size={18} color={colors.primary} />
-              <Text style={[styles.filtersToggleText, textStyles.body(colors.text)]}>
-                Filtri {showFilters ? 'avanzati' : ''}
-              </Text>
-              {(selectedCity || selectedPrizes.length > 0) && (
-                <View style={[styles.activeFiltersIndicator, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.activeFiltersCount}>
-                    {(selectedCity ? 1 : 0) + selectedPrizes.length}
-                  </Text>
-                </View>
-              )}
-              <MaterialIcons 
-                name={showFilters ? "expand-less" : "expand-more"} 
-                size={20} 
-                color={colors.text + '80'} 
-              />
-            </TouchableOpacity>
-          </Animated.View>
-
-        {/* Filtri collassabili */}
-        {showFilters && (
+        {/* Filtri sempre visibili */}
           <>
             {/* City Select */}
             <Animated.View
               entering={FadeInDown.delay(200)}
               style={styles.citiesSection}
             >
-              <View style={styles.citiesHeader}>
-                <MaterialIcons name="location-on" size={20} color={colors.primary} />
-                <Text style={[styles.citiesHeaderText, textStyles.body(colors.text)]}>
-                  Città:
-                </Text>
-                {selectedCity && (
-                  <View style={[styles.selectedCityIndicator, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.selectedCityText}>1</Text>
-                  </View>
-                )}
-              </View>
               
               <FlatList
                 data={cities}
@@ -680,7 +632,7 @@ export default function GuideSearchScreen() {
               <View style={styles.prizesHeader}>
                 <MaterialIcons name="emoji-events" size={20} color={colors.primary} />
                 <Text style={[styles.prizesHeaderText, textStyles.body(colors.text)]}>
-                  Tipi di Premio:
+                Premio:
                 </Text>
                 {selectedPrizes.length > 0 && (
                   <View style={[styles.selectedCount, { backgroundColor: colors.primary }]}>
@@ -699,7 +651,6 @@ export default function GuideSearchScreen() {
               />
             </Animated.View>
           </>
-        )}
 
       </View>
 
@@ -809,63 +760,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  filtersToggleContainer: {
-    marginBottom: 16,
-  },
-  filtersToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    gap: 8,
-  },
-  filtersToggleText: {
-    fontWeight: '600',
-    flex: 1,
-  },
-  activeFiltersIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeFiltersCount: {
-    color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
+
   citiesSection: {
     marginBottom: 16,
-  },
-  citiesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  citiesHeaderText: {
-    marginLeft: 8,
-    fontWeight: '600',
-    flex: 1,
-  },
-  selectedCityIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedCityText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   citiesList: {
     paddingHorizontal: 4,

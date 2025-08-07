@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, ScrollView, Alert, Dimensions } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { router } from "expo-router";
@@ -14,7 +15,7 @@ import { RestaurantMapView } from "../../components/MapView";
 import { ListItem } from "../../components/ListCard";
 import { useLocation } from "../../hooks/useLocation";
 import { useHomeData } from "../../hooks/useHomeData";
-import { SearchSection, GuideCard, RestaurantCard, HotelCard, ContentSection } from "../../components/Home";
+import { SearchSection, CategoryFilters, GuideCard, RestaurantCard, HotelCard, ContentSection } from "../../components/Home";
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +28,7 @@ export default function Index() {
   const [containerHeight, setContainerHeight] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
 
   // Hook per geolocalizzazione
   const { location: userLocation, getCurrentLocation, calculateDistance } = useLocation();
@@ -56,9 +58,9 @@ export default function Index() {
       title: restaurant.name,
       featured_image: restaurant.featured_image || '',
       category: {
-        id: restaurant.id,
-        name: restaurant.category_name || 'Ristorante',
-        color: colors.primary
+        id: restaurant.category_id || restaurant.id,
+        name: restaurant.category_name || 'Non categorizzato',
+        color: restaurant.category_color || colors.primary
       },
       city: restaurant.city || '',
       province: restaurant.province || '',
@@ -169,6 +171,23 @@ export default function Index() {
       });
     }
   };
+
+  // Handle category filter selection
+  const handleCategorySelect = (categoryId: string) => {
+    if (selectedCategory === categoryId) {
+      // Deselect if already selected
+      setSelectedCategory(undefined);
+    } else {
+      setSelectedCategory(categoryId);
+    }
+  };
+
+  // Reset filter selection when returning from navigation
+  useEffect(() => {
+    const resetSelection = () => setSelectedCategory(undefined);
+    // Reset selection when component remounts (e.g., returning from navigation)
+    resetSelection();
+  }, []);
   
   // Safety timeout - show content after 4 seconds even if images aren't loaded
   useEffect(() => {
@@ -291,6 +310,13 @@ export default function Index() {
           onCloseResults={() => setShowSearchResults(false)}
           filteredResults={filteredResults}
           onSelectResult={handleSearchResultSelect}
+        />
+        
+        {/* Category Filters */}
+        <CategoryFilters
+          selectedCategory={selectedCategory}
+          onCategorySelect={handleCategorySelect}
+          enableNavigation={true}
         />
         
         {/* Small Map */}

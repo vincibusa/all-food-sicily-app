@@ -23,6 +23,7 @@ interface Restaurant {
   rating: string | number;
   price_range: number;
   category_name: string;
+  category_id?: string;
   category_color?: string;
   latitude?: number;
   longitude?: number;
@@ -39,6 +40,7 @@ interface Hotel {
   price_range: number;
   hotel_type: string[];
   category_name: string;
+  category_id?: string;
   category_color?: string;
   latitude?: number;
   longitude?: number;
@@ -177,14 +179,18 @@ export const useHomeData = (): UseHomeDataReturn => {
       
       const allRestaurantsTransformed = restaurantsData.map((r: any) => ({
         ...r,
-        category_color: colors.primary,
+        category_name: r.category?.name || r.category_name,
+        category_id: r.category?.id || r.category_id,
+        category_color: r.category?.color || colors.primary,
         latitude: r.latitude,
         longitude: r.longitude
       }));
       
       const allHotelsTransformed = hotelsData.map((h: any) => ({
         ...h,
-        category_color: colors.primary,
+        category_name: h.category?.name || h.category_name,
+        category_id: h.category?.id || h.category_id,
+        category_color: h.category?.color || colors.primary,
         latitude: h.latitude,
         longitude: h.longitude
       }));

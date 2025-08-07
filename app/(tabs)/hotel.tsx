@@ -317,49 +317,53 @@ export default function HotelScreen() {
             />
 
 
-            {/* Results Count e Filtri Attivi */}
-            <View style={styles.resultsSection}>
+            {/* Results Count */}
+            <View style={styles.resultsCountSection}>
               <Text style={[styles.resultsText, { color: colors.text + '80' }]}> 
                 {displayedHotels.length} di {filteredHotels.length} hotel
               </Text>
-              
-              {/* Indicatori Filtri Attivi */}
-              <View style={styles.activeFiltersContainer}>
-                {selectedCity && selectedCity !== 'Tutte' && (
-                  <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
-                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
-                    <TouchableOpacity onPress={() => {
-                      onTap();
-                      setSelectedCity('Tutte');
-                    }}>
-                      <MaterialIcons name="close" size={14} color={colors.primary} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {selectedHotelType && selectedHotelType !== 'Tutti' && (
-                  <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
-                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedHotelType}</Text>
-                    <TouchableOpacity onPress={() => {
-                      onTap();
-                      setSelectedHotelType('Tutti');
-                    }}>
-                      <MaterialIcons name="close" size={14} color={colors.primary} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {selectedStarRating && selectedStarRating !== 'Tutte' && (
-                  <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
-                    <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedStarRating}</Text>
-                    <TouchableOpacity onPress={() => {
-                      onTap();
-                      setSelectedStarRating('Tutte');
-                    }}>
-                      <MaterialIcons name="close" size={14} color={colors.primary} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
             </View>
+            
+            {/* Indicatori Filtri Attivi */}
+            {(selectedCity !== 'Tutte' || selectedHotelType !== 'Tutti' || selectedStarRating !== 'Tutte') && (
+              <View style={styles.activeFiltersSection}>
+                <View style={styles.activeFiltersContainer}>
+                  {selectedCity && selectedCity !== 'Tutte' && (
+                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
+                      <TouchableOpacity onPress={() => {
+                        onTap();
+                        setSelectedCity('Tutte');
+                      }}>
+                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {selectedHotelType && selectedHotelType !== 'Tutti' && (
+                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedHotelType}</Text>
+                      <TouchableOpacity onPress={() => {
+                        onTap();
+                        setSelectedHotelType('Tutti');
+                      }}>
+                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {selectedStarRating && selectedStarRating !== 'Tutte' && (
+                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedStarRating}</Text>
+                      <TouchableOpacity onPress={() => {
+                        onTap();
+                        setSelectedStarRating('Tutte');
+                      }}>
+                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
 
             {/* Enhanced Refresh Indicator */}
             {refreshState.shouldShowIndicator && (
@@ -637,10 +641,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
-  resultsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  resultsCountSection: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  activeFiltersSection: {
     marginHorizontal: 16,
     marginBottom: 8,
   },
@@ -648,8 +653,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
   },
   activeFilter: {
     flexDirection: 'row',
@@ -657,7 +661,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
-    marginLeft: 6,
+    marginRight: 8,
     marginBottom: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },

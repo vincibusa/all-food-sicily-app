@@ -31,6 +31,52 @@ export class CouponService {
   }
 
   /**
+   * Ottiene coupon per tipo specifico (filtri UI)
+   */
+  static async getCouponsByType(couponType: string): Promise<{ coupons: Coupon[]; pagination: any }> {
+    try {
+      let filters = {};
+
+      switch (couponType) {
+        case 'up-to-50':
+          // Ottieni tutti i coupon e filtra client-side per discount <= 50%
+          const result = await this.getActiveCoupons();
+          const filteredCoupons = result.coupons.filter(coupon => 
+            coupon.discount_type === 'percentage' && 
+            Number(coupon.discount_value) <= 50
+          );
+          return { coupons: filteredCoupons, pagination: result.pagination };
+        
+        case '2-for-1':
+          // Cerca coupon con categoria specifica o titolo che contiene "2"
+          filters = { category: '2-for-1' };
+          break;
+        
+        case 'special':
+          filters = { category: 'special' };
+          break;
+        
+        case 'promo':
+          filters = { category: 'promo' };
+          break;
+        
+        case 'free':
+          filters = { category: 'free' };
+          break;
+        
+        default:
+          // Fallback per tutti i coupon attivi
+          return await this.getActiveCoupons();
+      }
+
+      return await this.getActiveCoupons(filters);
+    } catch (error) {
+      console.error('Error fetching coupons by type:', error);
+      throw new Error('Errore nel caricamento dei coupon per tipo');
+    }
+  }
+
+  /**
    * Ottiene i coupon per un ristorante specifico
    */
   static async getRestaurantCoupons(restaurantId: string): Promise<Coupon[]> {
@@ -121,6 +167,7 @@ export class CouponService {
 // Istanza singleton per compatibilità
 export const couponService = {
   getActiveCoupons: CouponService.getActiveCoupons.bind(CouponService),
+  getCouponsByType: CouponService.getCouponsByType.bind(CouponService),
   getRestaurantCoupons: CouponService.getRestaurantCoupons.bind(CouponService),
   getCouponById: CouponService.getCouponById.bind(CouponService),
   getCouponByCode: CouponService.getCouponByCode.bind(CouponService),
