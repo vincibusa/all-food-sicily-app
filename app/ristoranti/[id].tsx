@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Share, Linking, Platform, ActionSheetIOS, FlatList } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Share, Linking, Platform, ActionSheetIOS, FlatList, Modal } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
@@ -25,6 +25,10 @@ interface RestaurantDetail {
   address: string;
   phone: string;
   website: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
+  twitter_url?: string;
   opening_hours: string;
   rating: string | number;
   price_range: number;
@@ -35,6 +39,12 @@ interface RestaurantDetail {
   longitude: number;
   created_at: string;
   updated_at: string;
+  guide_awards?: {
+    guide: {
+      id: string;
+      title: string;
+    };
+  }[];
 }
 
 export default function RestaurantScreen() {
@@ -46,7 +56,8 @@ export default function RestaurantScreen() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [couponsLoading, setCouponsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'photos' | 'coupons'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'photos'>('info');
+  const [showCouponModal, setShowCouponModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -58,11 +69,7 @@ export default function RestaurantScreen() {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (restaurant && activeTab === 'coupons') {
-      loadRestaurantCoupons();
-    }
-  }, [restaurant, activeTab]);
+  // Removed automatic coupon loading - now loaded only when modal opens
 
   const loadRestaurantDetail = async () => {
     try {
@@ -92,6 +99,12 @@ export default function RestaurantScreen() {
     } finally {
       setCouponsLoading(false);
     }
+  };
+
+  const handleGeneraScontoPress = () => {
+    setShowCouponModal(true);
+    // Carica i coupon solo quando viene aperto il modal
+    loadRestaurantCoupons();
   };
 
   const handleShare = async () => {
@@ -269,6 +282,51 @@ export default function RestaurantScreen() {
               </View>
             )}
             
+            {/* Social Media Links */}
+            {(restaurant.facebook_url || restaurant.instagram_url || restaurant.tiktok_url || restaurant.twitter_url) && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Social Media</Text>
+                <View style={styles.socialMediaContainer}>
+                  {restaurant.facebook_url && (
+                    <TouchableOpacity
+                      style={[styles.socialButton, { backgroundColor: '#1877F2' + '20' }]}
+                      onPress={() => Linking.openURL(restaurant.facebook_url!)}
+                    >
+                      <MaterialIcons name="facebook" size={24} color="#1877F2" />
+                      <Text style={[styles.socialText, { color: '#1877F2' }]}>Facebook</Text>
+                    </TouchableOpacity>
+                  )}
+                  {restaurant.instagram_url && (
+                    <TouchableOpacity
+                      style={[styles.socialButton, { backgroundColor: '#E4405F' + '20' }]}
+                      onPress={() => Linking.openURL(restaurant.instagram_url!)}
+                    >
+                      <MaterialIcons name="camera-alt" size={24} color="#E4405F" />
+                      <Text style={[styles.socialText, { color: '#E4405F' }]}>Instagram</Text>
+                    </TouchableOpacity>
+                  )}
+                  {restaurant.tiktok_url && (
+                    <TouchableOpacity
+                      style={[styles.socialButton, { backgroundColor: '#000000' + '20' }]}
+                      onPress={() => Linking.openURL(restaurant.tiktok_url!)}
+                    >
+                      <MaterialIcons name="music-note" size={24} color="#000000" />
+                      <Text style={[styles.socialText, { color: '#000000' }]}>TikTok</Text>
+                    </TouchableOpacity>
+                  )}
+                  {restaurant.twitter_url && (
+                    <TouchableOpacity
+                      style={[styles.socialButton, { backgroundColor: '#1DA1F2' + '20' }]}
+                      onPress={() => Linking.openURL(restaurant.twitter_url!)}
+                    >
+                      <MaterialIcons name="alternate-email" size={24} color="#1DA1F2" />
+                      <Text style={[styles.socialText, { color: '#1DA1F2' }]}>Twitter</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
+            
             {/* Cuisine Type */}
             {restaurant.cuisine_type && restaurant.cuisine_type.length > 0 && (
               <>
@@ -316,56 +374,6 @@ export default function RestaurantScreen() {
           </Animated.View>
         );
 
-      case 'coupons':
-        return (
-          <Animated.View 
-            style={styles.contentContainer}
-            entering={FadeIn.duration(500)}
-          >
-            {couponsLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={[styles.loadingText, { color: colors.text }]}>
-                  Caricamento coupon...
-                </Text>
-              </View>
-            ) : coupons.length > 0 ? (
-              <View>
-                <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 16 }]}>
-                  Coupon disponibili ({coupons.length})
-                </Text>
-                <FlatList
-                  data={coupons}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => (
-                    <CouponCard
-                      coupon={item}
-                      style={{ marginBottom: 16 }}
-                      showRestaurantName={false}
-                      onDownload={(coupon) => {
-                        console.log('Coupon scaricato:', coupon.title);
-                      }}
-                      onUse={(coupon) => {
-                        console.log('Coupon utilizzato:', coupon.title);
-                        // Ricarica i coupon dopo l'uso
-                        loadRestaurantCoupons();
-                      }}
-                    />
-                  )}
-                  scrollEnabled={false}
-                  ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-                />
-              </View>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <MaterialIcons name="local-offer" size={48} color={colors.text + '40'} />
-                <Text style={[styles.emptyText, { color: colors.text + '60', marginTop: 16 }]}>
-                  Nessun coupon disponibile per questo ristorante
-                </Text>
-              </View>
-            )}
-          </Animated.View>
-        );
     }
   };
 
@@ -410,7 +418,17 @@ export default function RestaurantScreen() {
             {/* Title and Location */}
             <Animated.View entering={FadeInDown.delay(200)}>
               <View style={styles.titleRow}>
-                <Text style={[styles.title, { color: colors.text }]}>{restaurant.name}</Text>
+                <View style={styles.titleContainer}>
+                  <Text style={[styles.title, { color: colors.text }]}>{restaurant.name}</Text>
+                  {restaurant.guide_awards && restaurant.guide_awards.length > 0 && (
+                    <View style={styles.guidesContainer}>
+                      <MaterialIcons name="menu-book" size={16} color={colors.primary} />
+                      <Text style={[styles.guidesText, { color: colors.primary }]}>
+                        Citato in: {restaurant.guide_awards.map(award => award.guide.title).join(', ')}
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <View style={styles.ratingContainer}>
                   <FontAwesome name="star" size={16} color="#FFD700" />
                   <Text style={[styles.ratingText, { color: colors.text }]}>
@@ -489,28 +507,89 @@ export default function RestaurantScreen() {
                   Foto
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[
-                  styles.tabItem, 
-                  activeTab === 'coupons' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-                ]}
-                onPress={() => setActiveTab('coupons')}
-              >
-                <Text 
-                  style={[
-                    styles.tabText, 
-                    { color: activeTab === 'coupons' ? colors.primary : colors.text }
-                  ]}
-                >
-                  Coupon
-                </Text>
-              </TouchableOpacity>
             </Animated.View>
             
             {/* Tab Content */}
             {renderTabContent()}
           </View>
         </ScrollView>
+
+        {/* Fixed "Genera Sconto" Button */}
+        <Animated.View 
+          entering={FadeInUp.delay(600)}
+          style={styles.fixedButton}
+        >
+          <TouchableOpacity
+            style={[styles.generateButton, { backgroundColor: colors.primary }]}
+            onPress={handleGeneraScontoPress}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="local-offer" size={24} color="white" />
+            <Text style={styles.generateButtonText}>Genera Sconto</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Coupon Modal */}
+        <Modal
+          visible={showCouponModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowCouponModal(false)}
+        >
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Coupon Disponibili
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowCouponModal(false)}
+                style={styles.closeButton}
+              >
+                <MaterialIcons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalContent}>
+              {couponsLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={[styles.loadingText, { color: colors.text }]}>
+                    Caricamento coupon...
+                  </Text>
+                </View>
+              ) : coupons.length > 0 ? (
+                <View style={styles.couponsContainer}>
+                  {coupons.map((coupon) => (
+                    <CouponCard
+                      key={coupon.id}
+                      coupon={coupon}
+                      style={{ marginBottom: 16 }}
+                      showRestaurantName={false}
+                      onDownload={(coupon) => {
+                        console.log('Coupon scaricato:', coupon.title);
+                      }}
+                      onUse={(coupon) => {
+                        console.log('Coupon utilizzato:', coupon.title);
+                        // Ricarica i coupon dopo l'uso
+                        loadRestaurantCoupons();
+                      }}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="local-offer" size={64} color={colors.text + '40'} />
+                  <Text style={[styles.emptyText, { color: colors.text + '60', marginTop: 16 }]}>
+                    Nessun coupon disponibile per questo ristorante
+                  </Text>
+                  <Text style={[styles.emptySubText, { color: colors.text + '40', marginTop: 8 }]}>
+                    Torna presto per nuove offerte!
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </>
   );
@@ -722,5 +801,98 @@ const styles = StyleSheet.create({
     top: 20,
     left: 20,
     zIndex: 1000,
+  },
+  fixedButton: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 32,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: 'transparent',
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  generateButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  couponsContainer: {
+    paddingVertical: 16,
+  },
+  emptySubText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  titleContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  guidesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  guidesText: {
+    fontSize: 12,
+    marginLeft: 4,
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  socialMediaContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    gap: 8,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    minWidth: '47%',
+    justifyContent: 'center',
+  },
+  socialText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
   },
 }); 

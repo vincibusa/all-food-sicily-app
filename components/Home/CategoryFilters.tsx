@@ -25,6 +25,13 @@ interface CategoryFiltersProps {
 
 const defaultCategories: CategoryFilter[] = [
   {
+    id: 'sconti',
+    name: 'Sconti',
+    icon: 'local-offer',
+    color: '#E91E63',
+    backgroundColor: '#FCE4EC',
+  },
+  {
     id: 'up-to-50',
     name: 'Fino al 50%',
     icon: 'percent',
@@ -77,15 +84,27 @@ export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
     
     // Se la navigazione è abilitata, naviga alla pagina dei ristoranti con filtro coupon
     if (enableNavigation) {
-      const params: { category: string; couponType?: string } = { 
-        category: categoryId,
-        couponType: categoryId  // Tutti i filtri sono ora basati sui coupon
-      };
-      
-      router.push({
-        pathname: '/(tabs)/ristoranti',
-        params
-      });
+      if (categoryId === 'sconti') {
+        // Il filtro "sconti" mostra tutti i ristoranti con coupon attivi
+        router.push({
+          pathname: '/(tabs)/ristoranti',
+          params: { 
+            category: categoryId,
+            showOnlyWithCoupons: 'true'
+          }
+        });
+      } else {
+        // Altri filtri specifici per tipo di coupon
+        const params: { category: string; couponType?: string } = { 
+          category: categoryId,
+          couponType: categoryId
+        };
+        
+        router.push({
+          pathname: '/(tabs)/ristoranti',
+          params
+        });
+      }
     }
   };
 
