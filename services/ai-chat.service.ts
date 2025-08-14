@@ -82,7 +82,7 @@ FORMATO RISPOSTA:
   // Chiama Gemini 2.5 Flash via Firebase AI Logic
   private async callGeminiAPI(context: AIContext): Promise<string> {
     try {
-      // Costruisci il prompt con il contesto Supabase
+      // Costruisci il prompt con il contesto Supabase e informazioni geografiche
       const contextData = JSON.stringify({
         restaurants: context.restaurants,
         hotels: context.hotels,
@@ -91,14 +91,26 @@ FORMATO RISPOSTA:
         coupons: context.coupons
       }, null, 2);
 
+      // Informazioni sulla ricerca geografica
+      const locationInfo = context.nearbyInfo ? `
+INFORMAZIONI GEOLOCALIZZAZIONE:
+- ${context.nearbyInfo.locationDescription}
+- Hai accesso alla posizione: ${context.nearbyInfo.hasLocation ? 'SÌ' : 'NO'}
+${context.nearbyInfo.searchRadius ? `- Raggio ricerca: ${context.nearbyInfo.searchRadius}km` : ''}
+${context.restaurants.length > 0 && context.userLocation ? `- I ristoranti sono già ordinati per distanza dalla posizione attuale` : ''}
+${context.hotels.length > 0 && context.userLocation ? `- Gli hotel sono già ordinati per distanza dalla posizione attuale` : ''}
+` : '';
+
       const fullPrompt = `${this.SYSTEM_PROMPT}
+
+${locationInfo}
 
 CONTESTO DATI DISPONIBILI:
 ${contextData}
 
 DOMANDA UTENTE: ${context.query}
 
-Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti nel contesto.`;
+Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti nel contesto. Se la ricerca è basata su posizione geografica, menziona che i risultati sono ordinati per vicinanza.`;
 
       console.log('Sending prompt to Gemini:', fullPrompt.substring(0, 200) + '...');
 
@@ -139,10 +151,10 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
   }
 
   // Invia messaggio e ottieni risposta
-  async sendMessage(userMessage: string): Promise<ChatMessage> {
+  async sendMessage(userMessage: string, userLocation?: { latitude: number; longitude: number }): Promise<ChatMessage> {
     try {
-      // 1. Costruisci il contesto dai dati Supabase
-      const context = await contextBuilder.buildContext(userMessage);
+      // 1. Costruisci il contesto dai dati Supabase con posizione utente
+      const context = await contextBuilder.buildContext(userMessage, userLocation);
       
       // 2. Chiama Gemini con il contesto
       const aiResponse = await this.callGeminiAPI(context);
@@ -196,18 +208,29 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
     }
   }
 
-  // Ottieni suggerimenti di domande quick
-  getQuickSuggestions(): string[] {
-    return [
+  // Ottieni suggerimenti di domande quick basati su posizione
+  getQuickSuggestions(hasLocation: boolean = false): string[] {
+    const generalSuggestions = [
       "Migliori pizzerie a Catania",
       "Ristoranti di pesce a Palermo", 
       "Hotel con vista mare a Taormina",
       "Dove mangiare cannoli a Palermo",
       "Ristoranti stellati in Sicilia",
-      "Hotel di lusso a Siracusa",
-      "Locali con musica dal vivo a Palermo",
-      "Dove dormire a Cefalù"
+      "Hotel di lusso a Siracusa"
     ];
+
+    const locationBasedSuggestions = [
+      "Cosa c'è nelle vicinanze?",
+      "Ristoranti vicini a me",
+      "Hotel qui intorno",
+      "Dove mangiare nelle vicinanze?",
+      "Locali con musica dal vivo vicini",
+      "Pizzerie qui intorno"
+    ];
+
+    return hasLocation 
+      ? [...locationBasedSuggestions, ...generalSuggestions.slice(0, 2)]
+      : generalSuggestions;
   }
 
   // Pulisci cronologia conversazione

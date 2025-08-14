@@ -16,6 +16,7 @@ import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
+import { useLocation } from '../../hooks/useLocation';
 import { aiChatService, ChatMessage, RestaurantSuggestion, HotelSuggestion } from '../../services/ai-chat.service';
 import { RestaurantCard } from '../../components/Home/RestaurantCard';
 import { HotelCard } from '../../components/Home/HotelCard';
@@ -24,11 +25,12 @@ export default function ChatScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { onTap } = useHaptics();
+  const { location, getCurrentLocation, hasPermission, calculateDistance } = useLocation();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [quickSuggestions] = useState(aiChatService.getQuickSuggestions());
+  const [quickSuggestions, setQuickSuggestions] = useState(aiChatService.getQuickSuggestions());
   
   const flatListRef = useRef<FlatList>(null);
 
@@ -42,6 +44,11 @@ export default function ChatScreen() {
     };
     setMessages([welcomeMessage]);
   }, []);
+
+  // Aggiorna quick suggestions quando cambia la disponibilità della posizione
+  useEffect(() => {
+    setQuickSuggestions(aiChatService.getQuickSuggestions(hasPermission && !!location));
+  }, [hasPermission, location]);
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || inputText.trim();
@@ -63,8 +70,14 @@ export default function ChatScreen() {
     setIsLoading(true);
 
     try {
-      // Chiama il servizio AI
-      const aiResponse = await aiChatService.sendMessage(textToSend);
+      // Ottieni posizione corrente se disponibile
+      let currentLocation = location;
+      if (!currentLocation && hasPermission) {
+        currentLocation = await getCurrentLocation();
+      }
+
+      // Chiama il servizio AI con posizione
+      const aiResponse = await aiChatService.sendMessage(textToSend, currentLocation);
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -220,6 +233,13 @@ export default function ChatScreen() {
                 Il tuo assistente gastronomico siciliano
               </Text>
             </View>
+            {/* Indicatore posizione */}
+            {hasPermission && location && (
+              <View style={[styles.locationIndicator, { backgroundColor: colors.tint + '20' }]}>
+                <MaterialIcons name="location-on" size={16} color={colors.tint} />
+                <Text style={[styles.locationText, { color: colors.tint }]}>GPS</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -313,6 +333,19 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     marginTop: 2,
+  },
+  locationIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 12,
+  },
+  locationText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   messagesList: {
     flex: 1,
