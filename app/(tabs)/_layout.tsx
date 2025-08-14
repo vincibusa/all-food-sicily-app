@@ -57,6 +57,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <FontAwesome name="book" size={24} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: "Chat AI",
+          tabBarIcon: ({ color }) => <MaterialIcons name="smart-toy" size={24} color={color} />,
+        }}
+      />
     </Tabs>
   );
 } 
