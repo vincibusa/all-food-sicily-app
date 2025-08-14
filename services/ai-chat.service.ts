@@ -69,8 +69,12 @@ REGOLE IMPORTANTI:
 7. Mantieni un tono entusiasta verso la gastronomia siciliana
 
 FORMATO RISPOSTA:
+- NON usare markdown (**, *, #, etc.) - scrivi in testo semplice
+- Usa emoji per rendere il testo più accattivante
+- Scrivi in paragrafi scorrevoli e naturali
+- Evita liste numerate o con trattini
 - Descrizioni coinvolgenti dei luoghi suggeriti
-- Dettagli specifici (rating, tipo cucina, città)
+- Dettagli specifici (rating, tipo cucina, città) integrati nel testo
 - Consigli pratici (fascia prezzo, specialità)
 - Suggerimenti di approfondimento quando appropriato
 `;
@@ -105,7 +109,10 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
 
       console.log('Gemini response received:', text.substring(0, 100) + '...');
 
-      return text || 'Mi dispiace, non sono riuscito a generare una risposta appropriata.';
+      // Pulisci la risposta dal markdown e formattazione
+      const cleanedText = this.cleanGeminiResponse(text);
+
+      return cleanedText || 'Mi dispiace, non sono riuscito a generare una risposta appropriata.';
       
     } catch (error) {
       console.error('Error calling Gemini API:', error);

@@ -9,13 +9,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { aiChatService, ChatMessage, RestaurantSuggestion, HotelSuggestion } from '../../services/ai-chat.service';
+import { RestaurantCard } from '../../components/Home/RestaurantCard';
+import { HotelCard } from '../../components/Home/HotelCard';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -87,6 +90,31 @@ export default function ChatScreen() {
     handleSendMessage(suggestion);
   };
 
+  // Mappa le suggestion ai formati card
+  const mapRestaurantSuggestionToCard = (suggestion: RestaurantSuggestion) => ({
+    id: suggestion.id,
+    name: suggestion.name,
+    featured_image: suggestion.featured_image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+    city: suggestion.city,
+    province: 'Sicily', // Default per la Sicilia
+    rating: suggestion.rating,
+    price_range: 2, // Default medio
+    category_name: suggestion.cuisine_type?.[0] || 'Ristorante'
+  });
+
+  const mapHotelSuggestionToCard = (suggestion: HotelSuggestion) => ({
+    id: suggestion.id,
+    name: suggestion.name,
+    featured_image: suggestion.featured_image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    city: suggestion.city,
+    province: 'Sicily', // Default per la Sicilia
+    rating: suggestion.rating,
+    star_rating: suggestion.star_rating,
+    price_range: 3, // Default medio-alto per hotel
+    hotel_type: suggestion.hotel_type || ['hotel'],
+    category_name: suggestion.hotel_type?.[0] || 'Hotel'
+  });
+
   const renderMessage = ({ item }: { item: ChatMessage }) => (
     <View style={[
       styles.messageContainer,
@@ -104,65 +132,40 @@ export default function ChatScreen() {
       {item.suggestions && (
         <View style={styles.suggestionsContainer}>
           {/* Restaurant suggestions */}
-          {item.suggestions.restaurants && item.suggestions.restaurants.map((suggestion) => (
-            <TouchableOpacity
-              key={suggestion.id}
-              style={[styles.suggestionCard, { backgroundColor: colors.background, borderColor: colors.border }]}
-              onPress={() => {
-                onTap();
-                router.push(`/ristoranti/${suggestion.id}`);
-              }}
-            >
-              <View style={styles.suggestionHeader}>
-                <Text style={[styles.suggestionName, { color: colors.text }]}>
-                  {suggestion.name}
-                </Text>
-                <MaterialIcons name="arrow-forward-ios" size={16} color={colors.text + '40'} />
+          {item.suggestions.restaurants && item.suggestions.restaurants.length > 0 && (
+            <>
+              <Text style={[styles.suggestionsSectionTitle, { color: colors.text }]}>
+                🍽️ Ristoranti consigliati
+              </Text>
+              <View style={styles.suggestionsGrid}>
+                {item.suggestions.restaurants.map((suggestion) => (
+                  <View key={suggestion.id} style={styles.suggestionCardWrapper}>
+                    <RestaurantCard
+                      item={mapRestaurantSuggestionToCard(suggestion)}
+                    />
+                  </View>
+                ))}
               </View>
-              <Text style={[styles.suggestionDetails, { color: colors.text + '80' }]}>
-                📍 {suggestion.city} • ⭐ {suggestion.rating}/5
-              </Text>
-              {suggestion.cuisine_type && (
-                <Text style={[styles.suggestionCuisine, { color: colors.text + '60' }]}>
-                  🍽️ {suggestion.cuisine_type.join(', ')}
-                </Text>
-              )}
-              <Text style={[styles.tapHint, { color: colors.tint }]}>
-                Tocca per vedere i dettagli
-              </Text>
-            </TouchableOpacity>
-          ))}
+            </>
+          )}
           
           {/* Hotel suggestions */}
-          {item.suggestions.hotels && item.suggestions.hotels.map((suggestion) => (
-            <TouchableOpacity
-              key={suggestion.id}
-              style={[styles.suggestionCard, styles.hotelCard, { backgroundColor: colors.background, borderColor: colors.border }]}
-              onPress={() => {
-                onTap();
-                router.push(`/hotel/${suggestion.id}`);
-              }}
-            >
-              <View style={styles.suggestionHeader}>
-                <Text style={[styles.suggestionName, { color: colors.text }]}>
-                  🏨 {suggestion.name}
-                </Text>
-                <MaterialIcons name="arrow-forward-ios" size={16} color={colors.text + '40'} />
+          {item.suggestions.hotels && item.suggestions.hotels.length > 0 && (
+            <>
+              <Text style={[styles.suggestionsSectionTitle, { color: colors.text, marginTop: item.suggestions.restaurants ? 16 : 0 }]}>
+                🏨 Hotel consigliati
+              </Text>
+              <View style={styles.suggestionsGrid}>
+                {item.suggestions.hotels.map((suggestion) => (
+                  <View key={suggestion.id} style={styles.suggestionCardWrapper}>
+                    <HotelCard
+                      item={mapHotelSuggestionToCard(suggestion)}
+                    />
+                  </View>
+                ))}
               </View>
-              <Text style={[styles.suggestionDetails, { color: colors.text + '80' }]}>
-                📍 {suggestion.city} • ⭐ {suggestion.rating}/5
-                {suggestion.star_rating && ` • ${suggestion.star_rating} stelle`}
-              </Text>
-              {suggestion.hotel_type && (
-                <Text style={[styles.suggestionCuisine, { color: colors.text + '60' }]}>
-                  🏨 {suggestion.hotel_type.join(', ')}
-                </Text>
-              )}
-              <Text style={[styles.tapHint, { color: colors.tint }]}>
-                Tocca per vedere i dettagli
-              </Text>
-            </TouchableOpacity>
-          ))}
+            </>
+          )}
         </View>
       )}
       
@@ -343,40 +346,18 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     marginTop: 12,
-    gap: 8,
   },
-  suggestionCard: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  hotelCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#FF6B35',
-  },
-  suggestionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  suggestionName: {
+  suggestionsSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    flex: 1,
+    marginBottom: 12,
   },
-  suggestionDetails: {
-    fontSize: 14,
-    marginBottom: 2,
+  suggestionsGrid: {
+    gap: 12,
   },
-  suggestionCuisine: {
-    fontSize: 13,
-    marginBottom: 6,
-  },
-  tapHint: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 4,
+  suggestionCardWrapper: {
+    width: '100%',
+    alignItems: 'center',
   },
   quickSuggestionsContainer: {
     marginTop: 20,
