@@ -15,7 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { apiClient } from '../../services/api';
+import { guideService, GuideSection } from '../../services/guide.service';
 
 const categoryContent = {
   'guida': {
@@ -143,8 +143,8 @@ Partecipa alle nostre iniziative per vivere esperienze culinarie autentiche.`,
   }
 };
 
-interface GuideSection {
-  id: string;
+// Local interface for static content fallback
+interface StaticContent {
   title: string;
   content: string;
   featured_image?: string;
@@ -165,7 +165,7 @@ export default function GuideCategoryScreen() {
   const [error, setError] = useState<string | null>(null);
 
   // Fallback al contenuto statico se non c'è guideId
-  const category = categoryContent[id as keyof typeof categoryContent];
+  const category: StaticContent = categoryContent[id as keyof typeof categoryContent];
 
   useEffect(() => {
     if (guideId && (id === 'presentazione' || id === 'premi-speciali' || id === 'iniziative')) {
@@ -182,7 +182,7 @@ export default function GuideCategoryScreen() {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.get<GuideSection>(`/guides/${guideId}/sections/${id}`);
+      const response = await guideService.getGuideSection(guideId, id);
       setSection(response);
       
       // Section loaded successfully
@@ -195,7 +195,15 @@ export default function GuideCategoryScreen() {
   };
 
   // Usa i dati dinamici se disponibili, altrimenti fallback statico  
-  const displayData = section || category;
+  const displayData = section ? {
+    title: section.title,
+    content: section.content || '',
+    featured_image: section.featured_image || category.featured_image,
+    image: section.featured_image || category.image,
+    gallery: section.gallery || category.gallery,
+    color: category.color,
+    icon: category.icon
+  } : category;
 
   if (loading) {
     return (

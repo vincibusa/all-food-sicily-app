@@ -7,7 +7,6 @@ import {
   TextInput,
   FlatList,
   SectionList,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,13 +16,13 @@ import { useTheme } from './context/ThemeContext';
 import { useHaptics } from '../utils/haptics';
 import { useTextStyles } from '../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { apiClient } from '../services/api';
+import { guideService } from '../services/guide.service';
+import { restaurantService, Restaurant } from '../services/restaurant.service';
 import { RestaurantListCard } from '../components/RestaurantListCard';
 import { ListItem } from '../components/ListCard';
 import ListCardSkeleton from '../components/ListCardSkeleton';
 import { SkeletonVariant } from '../components/skeleton/SkeletonCards';
 
-const { width } = Dimensions.get('window');
 
 // Tipi di premi disponibili per la ricerca
 const prizeTypes = [
@@ -93,13 +92,10 @@ export default function GuideSearchScreen() {
   const [hasSearched, setHasSearched] = useState(false);
   
   // Stati per la guida
-  const [guide, setGuide] = useState<any>(null);
-  const [guideLoading, setGuideLoading] = useState(false);
   
   // Caricamento iniziale
   useEffect(() => {
     if (guideId) {
-      loadGuide();
       loadGuideRestaurants();
     } else {
       loadCities();
@@ -107,42 +103,30 @@ export default function GuideSearchScreen() {
     }
   }, [guideId]);
 
-  const loadGuide = async () => {
-    if (!guideId) return;
-    
-    try {
-      setGuideLoading(true);
-      
-      const response = await apiClient.get<any>(`/guides/${guideId}`);
-      setGuide(response);
-      
-      // Guide loaded successfully
-    } catch (error) {
-      // Error loading guide
-    } finally {
-      setGuideLoading(false);
-    }
-  };
-
   const loadGuideRestaurants = async () => {
     if (!guideId) return;
     
     try {
       setLoading(true);
 
-      // Load the guide with its restaurants
-      const guideResponse = await apiClient.get<any>(`/guides/${guideId}`);
-      const guideData = guideResponse;
+      // Load the guide with its restaurant IDs
+      const guideData = await guideService.getGuide(guideId);
       
-      if (!guideData.restaurants || guideData.restaurants.length === 0) {
+      if (!guideData.restaurant_ids || guideData.restaurant_ids.length === 0) {
         // No restaurants found for this guide
         setResults([]);
         setHasSearched(true);
         return;
       }
 
-      // Transform guide restaurants to ListItem format
-      const transformedRestaurants: ListItem[] = guideData.restaurants.map((restaurant: any) => ({
+      // Load all restaurants associated with this guide
+      const restaurantPromises = guideData.restaurant_ids.map(restaurantId =>
+        restaurantService.getRestaurant(restaurantId)
+      );
+      const restaurants = await Promise.all(restaurantPromises);
+
+      // Transform restaurants to ListItem format
+      const transformedRestaurants: ListItem[] = restaurants.map((restaurant: any) => ({
         id: restaurant.id,
         title: restaurant.name,
         name: restaurant.name,
@@ -185,7 +169,7 @@ export default function GuideSearchScreen() {
       // Loaded restaurants for guide
       
       // Extract cities for filtering
-      const uniqueCities = [...new Set(guideData.restaurants.map((r: any) => r.city).filter(Boolean))].sort() as string[];
+      const uniqueCities = [...new Set(restaurants.map((r: any) => r.city).filter(Boolean))].sort() as string[];
       setCities([
         { id: '', name: 'Tutte le città' },
         ...uniqueCities.map((city: string) => ({ id: city, name: city }))
@@ -201,33 +185,7 @@ export default function GuideSearchScreen() {
   const loadCities = async () => {
     try {
       // Carica tutte le città dai ristoranti con paginazione
-      let allRestaurants = [];
-      let currentPage = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const url = `/restaurants/?page=${currentPage}&limit=100`;
-        
-        const response = await apiClient.get<any>(url);
-        const pageData = Array.isArray(response) ? response : (response?.restaurants || response?.items || []);
-        
-        if (pageData.length === 0) {
-          hasMore = false;
-        } else {
-          allRestaurants.push(...pageData);
-          currentPage++;
-          
-          if (response?.has_more === false || pageData.length < 100) {
-            hasMore = false;
-          }
-        }
-        
-        // Safety break
-        if (currentPage > 50) {
-          // Stopped loading cities after 50 pages to prevent infinite loops
-          hasMore = false;
-        }
-      }
+      const { items: allRestaurants } = await restaurantService.getRestaurants();
       
       // Loaded restaurants for cities extraction
       
@@ -257,34 +215,8 @@ export default function GuideSearchScreen() {
     try {
       setLoading(true);
 
-      // Carica tutti i ristoranti con paginazione
-      let allRestaurants = [];
-      let currentPage = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const url = `/restaurants/?page=${currentPage}&limit=100`;
-        
-        const response = await apiClient.get<any>(url);
-        const pageData = Array.isArray(response) ? response : (response?.restaurants || response?.items || []);
-        
-        if (pageData.length === 0) {
-          hasMore = false;
-        } else {
-          allRestaurants.push(...pageData);
-          currentPage++;
-          
-          if (response?.has_more === false || pageData.length < 100) {
-            hasMore = false;
-          }
-        }
-        
-        // Safety break
-        if (currentPage > 50) {
-          // Stopped loading after 50 pages to prevent infinite loops
-          hasMore = false;
-        }
-      }
+      // Carica tutti i ristoranti
+      const { items: allRestaurants } = await restaurantService.getRestaurants();
 
       // Loaded restaurants on page load
 
@@ -356,38 +288,25 @@ export default function GuideSearchScreen() {
     setHasSearched(true);
 
     try {
-      let allRestaurants = [];
+      let allRestaurants: Restaurant[] = [];
 
       if (guideId) {
         // If we have a guideId, search within guide restaurants
         // Searching within guide restaurants
-        const guideResponse = await apiClient.get<any>(`/guides/${guideId}`);
-        allRestaurants = guideResponse.restaurants || [];
+        const guideData = await guideService.getGuide(guideId);
+        
+        if (guideData.restaurant_ids && guideData.restaurant_ids.length > 0) {
+          const restaurantPromises = guideData.restaurant_ids.map(restaurantId =>
+            restaurantService.getRestaurant(restaurantId)
+          );
+          allRestaurants = await Promise.all(restaurantPromises);
+        } else {
+          allRestaurants = [];
+        }
       } else {
         // Original search logic for all restaurants
-        let currentPage = 1;
-        let hasMore = true;
-        
-        while (hasMore) {
-          const url = `/restaurants/?page=${currentPage}&limit=100`;
-          const response = await apiClient.get<any>(url);
-          const pageData = Array.isArray(response) ? response : (response?.restaurants || response?.items || []);
-          
-          if (pageData.length === 0) {
-            hasMore = false;
-          } else {
-            allRestaurants.push(...pageData);
-            currentPage++;
-            
-            if (response?.has_more === false || pageData.length < 100) {
-              hasMore = false;
-            }
-          }
-          
-          if (currentPage > 50) {
-            hasMore = false;
-          }
-        }
+        const { items } = await restaurantService.getRestaurants();
+        allRestaurants = items;
       }
 
       // Filter results
@@ -506,7 +425,7 @@ export default function GuideSearchScreen() {
     </View>
   );
 
-  const renderRestaurantItem = ({ item, index }: { item: ListItem, index: number }) => (
+  const renderRestaurantItem = ({ item }: { item: ListItem }) => (
     <RestaurantListCard
       item={item}
       onPress={() => {
@@ -515,8 +434,6 @@ export default function GuideSearchScreen() {
       }}
     />
   );
-
-  const totalResults = results.reduce((sum, section) => sum + section.data.length, 0);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>

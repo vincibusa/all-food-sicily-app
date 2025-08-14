@@ -4,10 +4,9 @@ import { useTheme } from "../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { apiClient } from "../../services/api";
+import { hotelService } from "../../services/hotel.service";
 import { HotelListCard } from '../../components/HotelListCard';
 import { ListItem } from '../../components/ListCard';
-import { FadeInDown } from 'react-native-reanimated';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
 import { SkeletonVariant } from '../../components/skeleton/SkeletonCards';
 import AdvancedFilters from '../../components/AdvancedFilters';
@@ -68,38 +67,8 @@ export default function HotelScreen() {
     try {
       setLoading(true);
       
-      // Load all hotels with pagination
-      let allHotels = [];
-      let currentPage = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const hotelsUrl = `/hotels/?page=${currentPage}&limit=100`;
-          
-        
-        const hotelsResponse = await apiClient.get<any>(hotelsUrl);
-        const pageData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
-        
-        if (pageData.length === 0) {
-          hasMore = false;
-        } else {
-          allHotels.push(...pageData);
-          currentPage++;
-          
-          // Check if there are more pages
-          if (hotelsResponse?.has_more === false || pageData.length < 100) {
-            hasMore = false;
-          }
-        }
-        
-        // Safety break to avoid infinite loops
-        if (currentPage > 50) {
-          // Stopped loading after 50 pages to prevent infinite loops
-          hasMore = false;
-        }
-      }
-      
-      // Loaded hotels successfully
+      // Use hotelService directly instead of apiClient
+      const allHotels = await hotelService.getAllHotels();
 
       // Transform data to match ListItem interface
       const transformedHotels = allHotels.map((hotel: any) => ({
@@ -107,10 +76,10 @@ export default function HotelScreen() {
         title: hotel.name,
         name: hotel.name,
         featured_image: hotel.featured_image,
-        category: hotel.category_name ? {
-          id: hotel.category_id || 'unknown',
-          name: hotel.category_name,
-          color: colors.primary
+        category: hotel.category ? {
+          id: hotel.category.id,
+          name: hotel.category.name,
+          color: hotel.category.color || colors.primary
         } : null,
         city: hotel.city,
         province: hotel.province,
@@ -461,7 +430,7 @@ export default function HotelScreen() {
                 </View>
               )
             }
-            renderItem={({ item: hotel, index }) => (
+            renderItem={({ item: hotel }) => (
               <HotelListCard
                 item={hotel}
                 onPress={() => {

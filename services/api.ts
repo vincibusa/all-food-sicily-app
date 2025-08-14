@@ -1,9 +1,12 @@
-import { API_CONFIG, API_HEADERS, API_TIMEOUT } from './api.config';
-import { cacheManager, CacheConfig } from './cache';
+// Temporary compatibility layer - will be removed after migration
+import { restaurantService } from './restaurant.service';
+import { hotelService } from './hotel.service';
+import { guideService } from './guide.service';
+import { categoryService } from './category.service';
+import { couponService } from './coupon.service';
 
-/**
- * Custom error class for API errors
- */
+console.log('[MIGRATION] Using temporary API compatibility layer');
+
 export class ApiError extends Error {
   statusCode?: number;
   response?: any;
@@ -16,213 +19,122 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Base API client with common functionality
- */
-class ApiClient {
-  private baseUrl: string;
-
-  constructor() {
-    this.baseUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.API_VERSION}`;
-  }
-
-
-  /**
-   * Make a request to the API
-   */
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const config: RequestInit = {
-      ...options,
-      headers: {
-        ...API_HEADERS,
-        ...options.headers,
-      },
-    };
-
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-      
-      const response = await fetch(url, {
-        ...config,
-        signal: controller.signal,
+// Simple compatibility layer
+export const apiClient = {
+  async get<T>(endpoint: string, params?: any): Promise<T> {
+    console.log('[API Compat] GET:', endpoint, params);
+    
+    if (endpoint.startsWith('/restaurants')) {
+      if (endpoint.includes('/search')) {
+        return await restaurantService.searchRestaurants({ q: params?.q || '', limit: params?.limit }) as T;
+      }
+      if (endpoint.match(/\/restaurants\/[^\/]+$/)) {
+        const id = endpoint.split('/').pop()!;
+        return await restaurantService.getRestaurant(id) as T;
+      }
+      const result = await restaurantService.getRestaurants({ 
+        skip: params?.page ? (params.page - 1) * (params?.limit || 20) : 0,
+        limit: params?.limit || 1000,
+        city: params?.city,
+        cuisine_type: params?.cuisine_type,
+        price_range: params?.price_range
       });
-      
-      clearTimeout(timeoutId);
-
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new ApiError(
-          errorData.message || `HTTP error! status: ${response.status}`,
-          response.status,
-          errorData
-        );
+      return result.items as T;
+    }
+    
+    if (endpoint.startsWith('/categories')) {
+      if (endpoint.match(/\/categories\/[^\/]+$/)) {
+        const id = endpoint.split('/').pop()!;
+        return await categoryService.getCategory(id) as T;
       }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      
-      if (error instanceof ApiError) {
-        throw error;
+      return await categoryService.getCategories() as T;
+    }
+    
+    if (endpoint.startsWith('/guides')) {
+      if (endpoint.match(/\/guides\/[^\/]+$/)) {
+        const id = endpoint.split('/').pop()!;
+        return await guideService.getGuide(id) as T;
       }
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new ApiError('Request timeout');
-        }
-        throw new ApiError(error.message);
+      return await guideService.getGuides() as T;
+    }
+    
+    if (endpoint.startsWith('/hotels')) {
+      if (endpoint.includes('/featured')) {
+        return await hotelService.getFeaturedHotels(params?.limit || 3) as T;
       }
-      
-      throw new ApiError('Unknown error occurred');
+      if (endpoint.includes('/search')) {
+        return await hotelService.searchHotels({ q: params?.q || '', limit: params?.limit }) as T;
+      }
+      if (endpoint.includes('/category/')) {
+        const categoryId = endpoint.split('/category/')[1];
+        const result = await hotelService.getHotelsByCategory(categoryId, { 
+          page: params?.page || 1, 
+          limit: params?.limit || 20 
+        });
+        return result.hotels as T;
+      }
+      if (endpoint.match(/\/hotels\/[^\/]+$/)) {
+        const id = endpoint.split('/').pop()!;
+        return await hotelService.getHotel(id) as T;
+      }
+      const result = await hotelService.getHotels({
+        page: params?.page || 1,
+        limit: params?.limit || 20,
+        city: params?.city,
+        hotel_type: params?.hotel_type,
+        star_rating: params?.star_rating,
+        price_range: params?.price_range,
+        category_id: params?.category_id
+      });
+      return result.hotels as T;
     }
-  }
-
-  /**
-   * GET request with intelligent caching
-   */
-  async get<T>(
-    endpoint: string, 
-    params?: Record<string, any>,
-    cacheConfig?: CacheConfig & { useCache?: boolean; forceRefresh?: boolean }
-  ): Promise<T> {
-    let url = endpoint;
-    if (params) {
-      const queryString = new URLSearchParams(
-        Object.entries(params).filter(([_, value]) => value != null)
-      ).toString();
-      if (queryString) {
-        url += `?${queryString}`;
+    
+    if (endpoint.startsWith('/coupons')) {
+      if (endpoint.includes('/active')) {
+        const result = await couponService.getActiveCoupons({
+          category: params?.category,
+          restaurantId: params?.restaurant_id,
+          page: params?.page,
+          limit: params?.limit
+        });
+        return result as T;
+      }
+      if (endpoint.includes('/restaurant/')) {
+        const restaurantId = endpoint.split('/restaurant/')[1];
+        return await couponService.getRestaurantCoupons(restaurantId) as T;
+      }
+      if (endpoint.includes('/code/')) {
+        const code = endpoint.split('/code/')[1];
+        return await couponService.getCouponByCode(code) as T;
+      }
+      if (endpoint.includes('/categories')) {
+        return await couponService.getCouponCategories() as T;
+      }
+      if (endpoint.match(/\/coupons\/[^\/]+$/)) {
+        const id = endpoint.split('/').pop()!;
+        return await couponService.getCouponById(id) as T;
       }
     }
-
-    const useCache = cacheConfig?.useCache !== false; // Default to true
-    const forceRefresh = cacheConfig?.forceRefresh === true;
-
-    // Try cache first (unless force refresh)
-    if (useCache && !forceRefresh) {
-      const cached = await cacheManager.get<T>(endpoint, params, cacheConfig);
-      if (cached) {
-        
-        // If stale, fetch fresh data in background
-        if (cached.isStale && cacheConfig?.staleWhileRevalidate) {
-          this.request<T>(url, { method: 'GET' })
-            .then(freshData => {
-              cacheManager.set(endpoint, freshData, cacheConfig);
-            })
-            .catch(error => {
-            });
-        }
-        
-        return cached.data;
-      }
-    }
-
-    // Fetch from API
-    const data = await this.request<T>(url, { method: 'GET' });
     
-    // Cache the result
-    if (useCache) {
-      await cacheManager.set(endpoint, data, cacheConfig);
-    }
-    
-    return data;
-  }
-
-  /**
-   * POST request (invalidates related cache)
-   */
-  async post<T>(
-    endpoint: string, 
-    data?: any, 
-    options?: { headers?: Record<string, string>; invalidateCache?: string[] }
-  ): Promise<T> {
-    const body = options?.headers?.['Content-Type'] === 'application/x-www-form-urlencoded' 
-      ? data 
-      : (data ? JSON.stringify(data) : undefined);
-      
-    const result = await this.request<T>(endpoint, {
-      method: 'POST',
-      body,
-      headers: options?.headers,
-    });
-    
-    // Invalidate related cache entries
-    if (options?.invalidateCache) {
-      await Promise.all(
-        options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
-      );
-    }
-    
-    return result;
-  }
-
-  /**
-   * PUT request (invalidates related cache)
-   */
-  async put<T>(
-    endpoint: string, 
-    data?: any,
-    options?: { invalidateCache?: string[] }
-  ): Promise<T> {
-    const result = await this.request<T>(endpoint, {
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-    
-    // Invalidate related cache entries
-    if (options?.invalidateCache) {
-      await Promise.all(
-        options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
-      );
-    }
-    
-    return result;
-  }
-
-  /**
-   * DELETE request (invalidates related cache)
-   */
-  async delete<T>(
-    endpoint: string,
-    options?: { invalidateCache?: string[] }
-  ): Promise<T> {
-    const result = await this.request<T>(endpoint, { method: 'DELETE' });
-    
-    // Invalidate related cache entries
-    if (options?.invalidateCache) {
-      await Promise.all(
-        options.invalidateCache.map(cacheKey => cacheManager.delete(cacheKey))
-      );
-    }
-    
-    return result;
-  }
+    throw new ApiError(`Endpoint not supported: ${endpoint}`);
+  },
   
-  /**
-   * Clear cache for specific data type
-   */
-  async clearCache(dataType?: 'restaurants' | 'guides' | 'categories' | 'search'): Promise<void> {
-    if (dataType) {
-      await cacheManager.clearType(dataType);
-    } else {
-      await cacheManager.clear();
+  async post<T>(endpoint: string, data?: any): Promise<T> {
+    console.log('[API Compat] POST:', endpoint, data);
+    
+    if (endpoint.includes('/coupons/') && endpoint.includes('/use')) {
+      const couponId = endpoint.split('/coupons/')[1].split('/use')[0];
+      return await couponService.useCoupon(couponId) as T;
     }
-  }
+    
+    throw new ApiError(`POST endpoint not supported: ${endpoint}`);
+  },
   
-  /**
-   * Get cache statistics
-   */
+  async clearCache(): Promise<void> {
+    console.log('[API Compat] Cache clear requested - no-op');
+  },
+  
   getCacheStats() {
-    return cacheManager.getStats();
+    return { size: 0, hits: 0, misses: 0 };
   }
-}
-
-// Singleton instance
-export const apiClient = new ApiClient();
+};

@@ -17,19 +17,14 @@ import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { apiClient } from '../../services/api';
+import { guideService, GuideSponsor } from '../../services/guide.service';
 
 const { width } = Dimensions.get('window');
 
-interface Sponsor {
-  id: string;
-  name: string;
-  logo_url?: string;
-  website_url?: string;
+type Sponsor = GuideSponsor & {
   description: string;
   sponsor_type: string;
-  sort_order: number;
-}
+};
 
 const sponsorTypeIcons = {
   fornitore: 'local-shipping',
@@ -70,8 +65,14 @@ export default function GuideSponsorsScreen() {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.get<Sponsor[]>(`/guides/${guideId}/sponsors`);
-      setSponsors(response.sort((a, b) => a.sort_order - b.sort_order));
+      const response = await guideService.getGuideSponsors(guideId);
+      // Convert to expected format with default values
+      const sponsorsWithDefaults = response.map(sponsor => ({
+        ...sponsor,
+        description: sponsor.description || '',
+        sponsor_type: sponsor.sponsor_type || 'partner'
+      }));
+      setSponsors(sponsorsWithDefaults);
       
       // Sponsors loaded successfully
     } catch (error) {

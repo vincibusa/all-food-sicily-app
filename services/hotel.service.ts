@@ -1,28 +1,26 @@
-import { apiClient } from './api';
-import { API_CONFIG } from './api.config';
-import { ApiError } from './api';
+import { supabase } from './supabase.config';
 
 export interface Hotel {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   address: string;
   city: string;
-  province: string;
-  postal_code?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-  hotel_type: string[];
-  star_rating?: number;
-  rating: string | number;
+  province: string | null;
+  postal_code?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  hotel_type: string[] | null;
+  star_rating?: number | null;
+  rating: number | null;
   review_count: number;
-  price_range?: number;
+  price_range?: number | null;
   is_active: boolean;
-  featured_image?: string;
-  gallery?: string[];
-  latitude?: number;
-  longitude?: number;
+  featured_image?: string | null;
+  gallery?: string[] | null;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at: string;
   updated_at: string;
   category?: {
@@ -30,12 +28,7 @@ export interface Hotel {
     name: string;
     color: string;
     icon?: string;
-  };
-  created_by_user?: {
-    id: string;
-    full_name: string;
-    email: string;
-  };
+  } | null;
 }
 
 export interface HotelCategory {
@@ -78,28 +71,57 @@ export interface HotelSearchFilters {
 class HotelService {
   async getHotels(filters?: HotelFilters): Promise<{ hotels: Hotel[]; total: number }> {
     try {
-      const params = {
-        page: filters?.page || 1,
-        limit: filters?.limit || 20,
-        ...(filters?.city && { city: filters.city }),
-        ...(filters?.hotel_type && { hotel_type: filters.hotel_type }),
-        ...(filters?.star_rating && { star_rating: filters.star_rating }),
-        ...(filters?.price_range && { price_range: filters.price_range }),
-        ...(filters?.category_id && { category_id: filters.category_id }),
-      };
+      let query = supabase
+        .from('hotels')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-      const response = await apiClient.get<any>('/hotels/', params);
-      
-      // Adatta la risposta del backend al formato atteso dall'app
-      const hotels = Array.isArray(response) ? response : response.data || response.hotels || [];
-      const pagination = response.pagination || { total: hotels.length };
+      // Apply filters
+      if (filters?.city) {
+        query = query.eq('city', filters.city);
+      }
+      if (filters?.hotel_type) {
+        query = query.contains('hotel_type', [filters.hotel_type]);
+      }
+      if (filters?.star_rating) {
+        query = query.eq('star_rating', filters.star_rating);
+      }
+      if (filters?.price_range) {
+        query = query.eq('price_range', filters.price_range);
+      }
+      if (filters?.category_id) {
+        query = query.eq('category_id', filters.category_id);
+      }
+
+      // Apply pagination
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch hotels');
+      }
 
       return {
-        hotels,
-        total: pagination.total || hotels.length
+        hotels: data || [],
+        total: count || data?.length || 0
       };
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch hotels');
       }
       throw new Error('Network error');
@@ -108,35 +130,28 @@ class HotelService {
 
   async getAllHotels(): Promise<Hotel[]> {
     try {
-      // Load all hotels with pagination
-      let allHotels = [];
-      let currentPage = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const response = await this.getHotels({ page: currentPage, limit: 100 });
-        
-        if (response.hotels.length === 0) {
-          hasMore = false;
-        } else {
-          allHotels.push(...response.hotels);
-          currentPage++;
-          
-          // Check if there are more pages
-          if (response.hotels.length < 100) {
-            hasMore = false;
-          }
-        }
-        
-        // Safety break to avoid infinite loops
-        if (currentPage > 50) {
-          hasMore = false;
-        }
+      const { data, error } = await supabase
+        .from('hotels')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch all hotels');
       }
-      
-      return allHotels;
+
+      return data || [];
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch all hotels');
       }
       throw new Error('Network error');
@@ -145,13 +160,32 @@ class HotelService {
 
   async getHotel(id: string): Promise<Hotel> {
     try {
-      const response = await apiClient.get<any>(`/hotels/${id}`);
-      return response.data || response;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        if (error.statusCode === 404) {
+      const { data, error } = await supabase
+        .from('hotels')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('id', id)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
           throw new Error('Hotel not found');
         }
+        throw new Error(error.message || 'Failed to fetch hotel');
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch hotel');
       }
       throw new Error('Network error');
@@ -160,19 +194,40 @@ class HotelService {
 
   async searchHotels(filters: HotelSearchFilters): Promise<Hotel[]> {
     try {
-      const params = {
-        q: filters.q,
-        ...(filters.limit && { limit: filters.limit }),
-        ...(filters.lat && { lat: filters.lat }),
-        ...(filters.lng && { lng: filters.lng }),
-        ...(filters.radius && { radius: filters.radius }),
-      };
+      let query = supabase
+        .from('hotels')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('is_active', true);
 
-      const response = await apiClient.get<any>('/hotels/search/hotels', params);
-      const hotels = Array.isArray(response) ? response : response.data || response.hotels || [];
-      return hotels;
+      // Search in name, description, city
+      if (filters.q) {
+        query = query.or(`name.ilike.%${filters.q}%,description.ilike.%${filters.q}%,city.ilike.%${filters.q}%`);
+      }
+
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      query = query.order('name', { ascending: true });
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(error.message || 'Search failed');
+      }
+
+      return data || [];
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Search failed');
       }
       throw new Error('Network error');
@@ -181,11 +236,29 @@ class HotelService {
 
   async getFeaturedHotels(limit: number = 3): Promise<Hotel[]> {
     try {
-      const response = await apiClient.get<any>('/hotels/featured/top', { limit });
-      const hotels = Array.isArray(response) ? response : response.data || response.hotels || [];
-      return hotels;
+      const { data, error } = await supabase
+        .from('hotels')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('is_active', true)
+        .order('rating', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch featured hotels');
+      }
+
+      return data || [];
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch featured hotels');
       }
       throw new Error('Network error');
@@ -194,24 +267,43 @@ class HotelService {
 
   async getHotelsByCategory(categoryId: string, pagination?: { page: number; limit: number }): Promise<PaginatedHotelResponse<Hotel>> {
     try {
-      const params = {
-        page: pagination?.page || 1,
-        limit: pagination?.limit || 20,
-      };
+      const page = pagination?.page || 1;
+      const limit = pagination?.limit || 20;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
 
-      const response = await apiClient.get<any>(`/hotels/category/${categoryId}`, params);
-      
+      const { data, error, count } = await supabase
+        .from('hotels')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('category_id', categoryId)
+        .eq('is_active', true)
+        .range(from, to)
+        .order('name', { ascending: true });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch hotels by category');
+      }
+
       return {
-        hotels: response.data || response.hotels || [],
-        pagination: response.pagination || { 
-          page: params.page, 
-          limit: params.limit, 
-          total: (response.data || response.hotels || []).length,
-          totalPages: 1
+        hotels: data || [],
+        pagination: {
+          page,
+          limit,
+          total: count || data?.length || 0,
+          totalPages: Math.ceil((count || data?.length || 0) / limit)
         }
       };
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch hotels by category');
       }
       throw new Error('Network error');

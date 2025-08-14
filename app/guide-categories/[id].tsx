@@ -14,7 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { apiClient } from '../../services/api';
+import { guideService, Guide } from '../../services/guide.service';
 
 const { width } = Dimensions.get('window');
 
@@ -63,47 +63,12 @@ const categories = [
   },
 ];
 
-interface Guide {
-  id: string;
-  title: string;
-  featured_image?: string;
-  category?: {
-    name: string;
-    color?: string;
-  };
-  city?: string;
-  province?: string;
-}
 
 export default function GuideSpecificCategoriesScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const textStyles = useTextStyles();
   const { id: guideId } = useLocalSearchParams<{ id: string }>();
-  
-  const [guide, setGuide] = useState<Guide | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (guideId) {
-      loadGuide();
-    }
-  }, [guideId]);
-
-  const loadGuide = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await apiClient.get<Guide>(`/guides/${guideId}`);
-      setGuide(response);
-      
-      // Guide loaded successfully
-    } catch (error) {
-      // Error loading guide
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCategoryPress = (categoryId: string) => {
     onTap();
@@ -158,7 +123,6 @@ export default function GuideSpecificCategoriesScreen() {
                 style={[styles.categoryCard, { backgroundColor: colors.card }]}
                 onPress={() => handleCategoryPress(category.id)}
                 activeOpacity={0.7}
-                disabled={loading}
               >
                 <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
                   <MaterialIcons

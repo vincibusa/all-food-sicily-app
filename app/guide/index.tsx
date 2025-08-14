@@ -13,8 +13,7 @@ import {
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import Colors from '../../constants/Colors';
-import { apiClient } from '../../services/api';
+import { guideService } from '../../services/guide.service';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -53,11 +52,18 @@ export default function GuidesListScreen() {
   const loadGuides = async () => {
     try {
       setLoading(true);
-      const guidesResponse = await apiClient.get<any>('/guides/');
+      const guidesData = await guideService.getGuides();
       
-      // Handle different response structures
-      const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.items || []);
-      setGuides(guidesData);
+      // Transform data to match expected structure
+      const transformedGuides = guidesData.map((guide: any) => ({
+        ...guide,
+        category: guide.category ? {
+          id: guide.category.id,
+          name: guide.category.name,
+          color: guide.category.color
+        } : null
+      }));
+      setGuides(transformedGuides);
     } catch (error) {
       // Error loading guides
       Alert.alert('Errore', 'Impossibile caricare le guide');

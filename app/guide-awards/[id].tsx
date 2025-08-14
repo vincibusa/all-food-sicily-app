@@ -16,29 +16,11 @@ import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { apiClient } from '../../services/api';
+import { guideService, GuideAward } from '../../services/guide.service';
 
 const { width } = Dimensions.get('window');
 
-interface Award {
-  id: string;
-  award_type: string;
-  title: string;
-  description: string;
-  year: number;
-  is_winner: boolean;
-  restaurant: {
-    id: string;
-    name: string;
-    featured_image?: string;
-    city: string;
-    province: string;
-    category?: {
-      name: string;
-      color: string;
-    };
-  };
-}
+type Award = GuideAward;
 
 export default function GuideAwardsScreen() {
   const { colors } = useTheme();
@@ -63,7 +45,7 @@ export default function GuideAwardsScreen() {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.get<Award[]>(`/guides/${guideId}/awards`);
+      const response = await guideService.getGuideAwards(guideId);
       setAwards(response);
       
       // Awards loaded successfully
@@ -93,7 +75,7 @@ export default function GuideAwardsScreen() {
     >
       <TouchableOpacity
         style={[styles.awardCard, { backgroundColor: colors.card }]}
-        onPress={() => handleRestaurantPress(item.restaurant.id)}
+        onPress={() => handleRestaurantPress(item.restaurant?.id || '')}
         activeOpacity={0.7}
       >
         {/* Award Header */}
@@ -120,19 +102,19 @@ export default function GuideAwardsScreen() {
         <View style={styles.restaurantSection}>
           <Image
             source={{
-              uri: item.restaurant.featured_image || 
+              uri: item.restaurant?.featured_image || 
                    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80'
             }}
             style={styles.restaurantImage}
           />
           <View style={styles.restaurantInfo}>
             <Text style={[styles.restaurantName, textStyles.subtitle(colors.text)]}>
-              {item.restaurant.name}
+              {item.restaurant?.name}
             </Text>
             <Text style={[styles.restaurantLocation, textStyles.caption(colors.text + '80')]}>
-              {item.restaurant.city}, {item.restaurant.province}
+              {item.restaurant?.city}, {item.restaurant?.province}
             </Text>
-            {item.restaurant.category && (
+            {item.restaurant?.category && (
               <View               style={[
                 styles.categoryPill,
                 { backgroundColor: colors.primary + '20' }
@@ -142,7 +124,7 @@ export default function GuideAwardsScreen() {
                   { color: colors.primary },
                   textStyles.label()
                 ]}>
-                  {item.restaurant.category.name}
+                  {item.restaurant?.category?.name}
                 </Text>
               </View>
             )}

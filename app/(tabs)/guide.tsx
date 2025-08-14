@@ -12,7 +12,8 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import { apiClient } from '../../services/api';
+import { guideService } from '../../services/guide.service';
+import { categoryService } from '../../services/category.service';
 import { FontAwesome } from '@expo/vector-icons';
 import { GuideListCard } from '../../components/GuideListCard';
 import ListCardSkeleton from '../../components/ListCardSkeleton';
@@ -74,27 +75,21 @@ export default function GuidesListScreen() {
     try {
       setLoading(true);
       
-      // Use API-based filtering when a specific category is selected
-      const guidesUrl = categoryId && categoryId !== 'all' 
-        ? `/guides/?category_id=${categoryId}` 
-        : '/guides/';
-      
-      const [guidesResponse, categoriesResponse] = await Promise.all([
-        apiClient.get<any>(guidesUrl),
-        apiClient.get<any>('/categories/')
+      // Use guideService directly instead of apiClient
+      const [guidesData, categoriesData] = await Promise.all([
+        categoryId && categoryId !== 'all' 
+          ? guideService.getGuidesByCategory(categoryId)
+          : guideService.getGuides(),
+        categoryService.getCategories()
       ]);
-      
-      // Handle different response structures - backend returns {guides: [...], pagination: {...}}
-      const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.guides || guidesResponse?.items || []);
-      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
       
       // Transform guides data to match expected structure
       const transformedGuides = guidesData.map((guide: any) => ({
         ...guide,
-        category: guide.category_name ? {
-          id: guide.category_id || 'unknown',
-          name: guide.category_name,
-          color: colors.primary
+        category: guide.category ? {
+          id: guide.category.id,
+          name: guide.category.name,
+          color: guide.category.color || colors.primary
         } : null
       }));
       

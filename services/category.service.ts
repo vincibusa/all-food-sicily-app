@@ -1,6 +1,4 @@
-import { apiClient } from './api';
-import { API_CONFIG } from './api.config';
-import { ApiError } from './api';
+import { supabase } from './supabase.config';
 
 export interface Category {
   id: string;
@@ -15,12 +13,19 @@ export interface Category {
 class CategoryService {
   async getCategories(): Promise<Category[]> {
     try {
-      const response = await apiClient.get<Category[]>(
-        API_CONFIG.ENDPOINTS.CATEGORIES.LIST
-      );
-      return response;
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch categories');
+      }
+
+      return data || [];
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch categories');
       }
       throw new Error('Network error');
@@ -29,14 +34,23 @@ class CategoryService {
 
   async getCategory(id: string): Promise<Category> {
     try {
-      const endpoint = API_CONFIG.ENDPOINTS.CATEGORIES.DETAIL.replace('{id}', id);
-      const response = await apiClient.get<Category>(endpoint);
-      return response;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        if (error.statusCode === 404) {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('id', id)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
           throw new Error('Category not found');
         }
+        throw new Error(error.message || 'Failed to fetch category');
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch category');
       }
       throw new Error('Network error');
@@ -45,14 +59,23 @@ class CategoryService {
 
   async getCategoryBySlug(slug: string): Promise<Category> {
     try {
-      const endpoint = API_CONFIG.ENDPOINTS.CATEGORIES.DETAIL_BY_SLUG.replace('{slug}', slug);
-      const response = await apiClient.get<Category>(endpoint);
-      return response;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        if (error.statusCode === 404) {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
           throw new Error('Category not found');
         }
+        throw new Error(error.message || 'Failed to fetch category');
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch category');
       }
       throw new Error('Network error');

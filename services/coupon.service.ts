@@ -1,5 +1,4 @@
-import { apiClient } from './api';
-import { API_CONFIG } from './api.config';
+import { supabase } from './supabase.config';
 import { Coupon } from '../types';
 
 export class CouponService {
@@ -13,17 +12,43 @@ export class CouponService {
     limit?: number;
   }): Promise<{ coupons: Coupon[]; pagination: any }> {
     try {
-      const params = new URLSearchParams();
-      
-      if (filters?.category) params.append('category', filters.category);
-      if (filters?.restaurantId) params.append('restaurant_id', filters.restaurantId);
-      if (filters?.page) params.append('page', filters.page.toString());
-      if (filters?.limit) params.append('limit', filters.limit.toString());
+      let query = supabase
+        .from('coupons')
+        .select('*')
+        .eq('is_active', true);
 
-      const queryString = params.toString();
-      const url = `${API_CONFIG.ENDPOINTS.COUPONS.ACTIVE}${queryString ? `?${queryString}` : ''}`;
-      
-      return await apiClient.get(url);
+      // Apply filters
+      if (filters?.category) {
+        query = query.eq('category', filters.category);
+      }
+      if (filters?.restaurantId) {
+        query = query.eq('restaurant_id', filters.restaurantId);
+      }
+
+      // Apply pagination
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        throw new Error(error.message || 'Errore nel caricamento dei coupon');
+      }
+
+      return {
+        coupons: data || [],
+        pagination: {
+          page,
+          limit,
+          total: count || data?.length || 0,
+          totalPages: Math.ceil((count || data?.length || 0) / limit)
+        }
+      };
     } catch (error) {
       console.error('Error fetching active coupons:', error);
       throw new Error('Errore nel caricamento dei coupon');
@@ -81,8 +106,18 @@ export class CouponService {
    */
   static async getRestaurantCoupons(restaurantId: string): Promise<Coupon[]> {
     try {
-      const url = `${API_CONFIG.ENDPOINTS.COUPONS.RESTAURANT.replace('{restaurantId}', restaurantId)}`;
-      return await apiClient.get<Coupon[]>(url);
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message || 'Errore nel caricamento dei coupon del ristorante');
+      }
+
+      return data || [];
     } catch (error) {
       console.error('Error fetching restaurant coupons:', error);
       throw new Error('Errore nel caricamento dei coupon del ristorante');
@@ -94,8 +129,21 @@ export class CouponService {
    */
   static async getCouponById(id: string): Promise<Coupon> {
     try {
-      const url = `${API_CONFIG.ENDPOINTS.COUPONS.DETAIL.replace('{id}', id)}`;
-      return await apiClient.get<Coupon>(url);
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('id', id)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('Coupon non trovato');
+        }
+        throw new Error(error.message || 'Errore nel caricamento del coupon');
+      }
+
+      return data;
     } catch (error) {
       console.error('Error fetching coupon by ID:', error);
       throw new Error('Errore nel caricamento del coupon');
@@ -107,8 +155,21 @@ export class CouponService {
    */
   static async getCouponByCode(code: string): Promise<Coupon> {
     try {
-      const url = `${API_CONFIG.ENDPOINTS.COUPONS.BY_CODE.replace('{code}', code)}`;
-      return await apiClient.get<Coupon>(url);
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', code)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('Coupon non trovato');
+        }
+        throw new Error(error.message || 'Coupon non trovato');
+      }
+
+      return data;
     } catch (error) {
       console.error('Error fetching coupon by code:', error);
       throw new Error('Coupon non trovato');
@@ -120,8 +181,25 @@ export class CouponService {
    */
   static async getCouponCategories(): Promise<{ name: string; count: number }[]> {
     try {
-      const url = `${API_CONFIG.ENDPOINTS.COUPONS.CATEGORIES}`;
-      return await apiClient.get<{ name: string; count: number }[]>(url);
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('category')
+        .eq('is_active', true)
+        .not('category', 'is', null);
+
+      if (error) {
+        throw new Error(error.message || 'Errore nel caricamento delle categorie');
+      }
+
+      // Group by category and count
+      const categoryCounts: { [key: string]: number } = {};
+      (data || []).forEach((item: { category: string }) => {
+        if (item.category) {
+          categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1;
+        }
+      });
+
+      return Object.entries(categoryCounts).map(([name, count]) => ({ name, count }));
     } catch (error) {
       console.error('Error fetching coupon categories:', error);
       throw new Error('Errore nel caricamento delle categorie');
@@ -133,11 +211,21 @@ export class CouponService {
    */
   static async validateCoupon(id: string): Promise<{ valid: boolean; message?: string }> {
     try {
-      const url = `${API_CONFIG.ENDPOINTS.COUPONS.VALIDATE.replace('{id}', id)}`;
-      return await apiClient.get<{ valid: boolean; message?: string }>(url);
+      const coupon = await this.getCouponById(id);
+      
+      // Basic validation
+      if (!coupon.is_active) {
+        return { valid: false, message: 'Coupon non attivo' };
+      }
+      
+      if (coupon.usage_limit && coupon.usage_count >= coupon.usage_limit) {
+        return { valid: false, message: 'Coupon esaurito' };
+      }
+      
+      return { valid: true };
     } catch (error) {
       console.error('Error validating coupon:', error);
-      throw new Error('Errore nella validazione del coupon');
+      return { valid: false, message: 'Coupon non trovato' };
     }
   }
 
@@ -146,8 +234,24 @@ export class CouponService {
    */
   static async useCoupon(id: string): Promise<{ message: string; usage_count: number }> {
     try {
-      const url = `${API_CONFIG.ENDPOINTS.COUPONS.USE.replace('{id}', id)}`;
-      return await apiClient.post<{ message: string; usage_count: number }>(url);
+      // Since we don't have authentication, this is just for display purposes
+      // In a real app, you'd want proper authentication and RLS
+      const coupon = await this.getCouponById(id);
+      const newUsageCount = coupon.usage_count + 1;
+      
+      const { error } = await supabase
+        .from('coupons')
+        .update({ usage_count: newUsageCount })
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(error.message || 'Errore nell\'utilizzo del coupon');
+      }
+
+      return { 
+        message: 'Coupon utilizzato con successo', 
+        usage_count: newUsageCount 
+      };
     } catch (error) {
       console.error('Error using coupon:', error);
       throw new Error('Errore nell\'utilizzo del coupon');

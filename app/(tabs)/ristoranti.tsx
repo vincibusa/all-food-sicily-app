@@ -5,6 +5,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiClient } from "../../services/api";
+import { restaurantService } from "../../services/restaurant.service";
+import { categoryService } from "../../services/category.service";
 import { CouponService } from "../../services/coupon.service";
 import { RestaurantListCard } from '../../components/RestaurantListCard';
 import { ListItem } from '../../components/ListCard';
@@ -174,8 +176,11 @@ export default function RistorantiScreen() {
           : `/restaurants/?page=${currentPage}&limit=100`;
           
         
-        const restaurantsResponse = await apiClient.get<any>(restaurantsUrl);
-        const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
+        const restaurantsResult = await restaurantService.getRestaurants({ 
+          skip: (currentPage - 1) * 100, 
+          limit: 100 
+        });
+        const pageData = restaurantsResult.items;
         
         if (pageData.length === 0) {
           hasMore = false;
@@ -184,7 +189,7 @@ export default function RistorantiScreen() {
           currentPage++;
           
           // Check if there are more pages
-          if (restaurantsResponse?.has_more === false || pageData.length < 100) {
+          if (pageData.length < 100) {
             hasMore = false;
           }
         }
@@ -199,8 +204,7 @@ export default function RistorantiScreen() {
       // Loaded restaurants successfully
       
       // Load categories separately
-      const categoriesResponse = await apiClient.get<any>('/categories/');
-      const categoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.categories || categoriesResponse?.items || []);
+      const categoriesData = await categoryService.getCategories();
       
       // Data loaded successfully
       // Transform data to match ListItem interface

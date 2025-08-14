@@ -1,27 +1,27 @@
-import { apiClient } from './api';
-import { API_CONFIG } from './api.config';
-import { ApiError } from './api';
+import { supabase } from './supabase.config';
 
 export interface Restaurant {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   address: string;
   city: string;
-  province: string;
-  phone: string;
-  email: string;
-  website?: string;
-  price_range: number;
-  cuisine_type: string;
-  latitude: number;
-  longitude: number;
-  images: string[];
+  province: string | null;
+  phone: string | null;
+  email: string | null;
+  website?: string | null;
+  price_range: number | null;
+  cuisine_type: string[] | null;
+  latitude: number | null;
+  longitude: number | null;
+  featured_image: string | null;
+  gallery: string[] | null;
+  rating: number | null;
+  review_count: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  categories?: Category[];
-  articles?: Article[];
+  category?: Category | null;
 }
 
 export interface Category {
@@ -33,17 +33,6 @@ export interface Category {
   icon?: string;
 }
 
-export interface Article {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  excerpt: string;
-  featured_image?: string;
-  is_published: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -71,27 +60,60 @@ export interface SearchFilters {
 class RestaurantService {
   async getRestaurants(filters?: RestaurantFilters): Promise<{ items: Restaurant[]; total: number }> {
     try {
-      const params = {
-        skip: filters?.skip || 0,
-        limit: filters?.limit || 1000,
-        ...(filters?.city && { city: filters.city }),
-        ...(filters?.cuisine_type && { cuisine_type: filters.cuisine_type }),
-        ...(filters?.price_range && { price_range: filters.price_range }),
-      };
-
-      const response = await apiClient.get<any>(
-        API_CONFIG.ENDPOINTS.RESTAURANTS.LIST,
-        params
-      );
+      console.log('[RestaurantService] getRestaurants called with filters:', filters);
+      let query = supabase
+        .from('restaurants')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
       
-      // Adatta la risposta del backend al formato atteso dall'app
-      const restaurants = Array.isArray(response) ? response : response.restaurants || [];
-      return {
-        items: restaurants,
-        total: restaurants.length
+      console.log('[RestaurantService] Query built, executing...');
+
+      // Apply filters
+      if (filters?.city) {
+        query = query.eq('city', filters.city);
+      }
+      if (filters?.cuisine_type) {
+        query = query.contains('cuisine_type', [filters.cuisine_type]);
+      }
+      if (filters?.price_range) {
+        query = query.eq('price_range', filters.price_range);
+      }
+
+      // Apply pagination
+      const skip = filters?.skip || 0;
+      const limit = filters?.limit || 1000;
+      query = query.range(skip, skip + limit - 1);
+
+      const { data, error, count } = await query;
+      
+      console.log('[RestaurantService] Query executed. Error:', error);
+      console.log('[RestaurantService] Data length:', data?.length);
+      console.log('[RestaurantService] Count:', count);
+
+      if (error) {
+        console.error('[RestaurantService] Supabase error:', error);
+        throw new Error(error.message || 'Failed to fetch restaurants');
+      }
+
+      const result = {
+        items: data || [],
+        total: count || data?.length || 0
       };
+      
+      console.log('[RestaurantService] Returning result:', result);
+      return result;
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch restaurants');
       }
       throw new Error('Network error');
@@ -100,14 +122,32 @@ class RestaurantService {
 
   async getRestaurant(id: string): Promise<Restaurant> {
     try {
-      const endpoint = API_CONFIG.ENDPOINTS.RESTAURANTS.DETAIL.replace('{id}', id);
-      const response = await apiClient.get<Restaurant>(endpoint);
-      return response;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        if (error.statusCode === 404) {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('id', id)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
           throw new Error('Restaurant not found');
         }
+        throw new Error(error.message || 'Failed to fetch restaurant');
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Failed to fetch restaurant');
       }
       throw new Error('Network error');
@@ -116,18 +156,40 @@ class RestaurantService {
 
   async searchRestaurants(filters: SearchFilters): Promise<Restaurant[]> {
     try {
-      const params = {
-        q: filters.q,
-        ...(filters.limit && { limit: filters.limit }),
-      };
+      let query = supabase
+        .from('restaurants')
+        .select(`
+          *,
+          category:categories(
+            id,
+            name,
+            slug,
+            color,
+            icon
+          )
+        `)
+        .eq('is_active', true);
 
-      const response = await apiClient.get<Restaurant[]>(
-        API_CONFIG.ENDPOINTS.RESTAURANTS.SEARCH,
-        params
-      );
-      return response;
+      // Search in name, description, city, or cuisine_type
+      if (filters.q) {
+        query = query.or(`name.ilike.%${filters.q}%,description.ilike.%${filters.q}%,city.ilike.%${filters.q}%`);
+      }
+
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      query = query.order('name', { ascending: true });
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(error.message || 'Search failed');
+      }
+
+      return data || [];
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         throw new Error(error.message || 'Search failed');
       }
       throw new Error('Network error');

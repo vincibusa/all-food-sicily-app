@@ -13,41 +13,33 @@ import {
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import Colors from '../../constants/Colors';
-import { apiClient } from '../../services/api';
+import { guideService, Guide } from '../../services/guide.service';
+import { restaurantService, Restaurant } from '../../services/restaurant.service';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import BackButton from '../../components/BackButton';
 
 const { width } = Dimensions.get('window');
 
-interface GuideDetail {
-  id: string;
-  title: string;
-  content: string;
-  featured_image: string;
-  gallery: string[];
+// Type for the guide data with category information as returned by the service
+type GuideWithCategory = Guide & {
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+    icon: string;
+  } | null;
+};
+
+// Type for the transformed guide data
+type GuideDetail = Guide & {
   category: {
     id: string;
     name: string;
     color: string;
-  };
-  city: string;
-  province: string;
-  tags: string[];
-  restaurant_ids: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-interface Restaurant {
-  id: string;
-  name: string;
-  featured_image: string;
-  city: string;
-  address: string;
-  rating: string | number;
-}
+  } | null;
+};
 
 export default function GuideDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -66,13 +58,23 @@ export default function GuideDetailScreen() {
   const loadGuideDetail = async () => {
     try {
       setLoading(true);
-      const guideData = await apiClient.get<GuideDetail>(`/guides/${id}`);
-      setGuide(guideData);
+      const guideData = await guideService.getGuide(id) as GuideWithCategory;
+      
+      // Transform guide data to match expected structure
+      const transformedGuide: GuideDetail = {
+        ...guideData,
+        category: guideData.category ? {
+          id: guideData.category.id,
+          name: guideData.category.name,
+          color: guideData.category.color
+        } : null
+      };
+      setGuide(transformedGuide);
 
       // Load associated restaurants if any
       if (guideData.restaurant_ids && guideData.restaurant_ids.length > 0) {
         const restaurantPromises = guideData.restaurant_ids.map(restaurantId =>
-          apiClient.get<Restaurant>(`/restaurants/${restaurantId}`)
+          restaurantService.getRestaurant(restaurantId)
         );
         const restaurantsData = await Promise.all(restaurantPromises);
         setRestaurants(restaurantsData);
@@ -204,7 +206,7 @@ export default function GuideDetailScreen() {
           {restaurants.length > 0 && (
             <Animated.View entering={FadeInDown.delay(600)} style={styles.restaurantsContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Locali Correlati</Text>
-              {restaurants.map((restaurant, index) => (
+              {restaurants.map((restaurant) => (
                 <TouchableOpacity
                   key={restaurant.id}
                   style={[styles.restaurantCard, { backgroundColor: colors.card }]}
@@ -237,7 +239,7 @@ export default function GuideDetailScreen() {
             <Text style={[styles.dateText, { color: colors.text + '60' }]}>
               Pubblicata il {new Date(guide.created_at).toLocaleDateString('it-IT')}
             </Text>
-            {guide.updated_at !== guide.created_at && (
+            {guide.updated_at && guide.updated_at !== guide.created_at && (
               <Text style={[styles.dateText, { color: colors.text + '60' }]}>
                 Aggiornata il {new Date(guide.updated_at).toLocaleDateString('it-IT')}
               </Text>

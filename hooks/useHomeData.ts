@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '../services/api';
+import { guideService } from '../services/guide.service';
+import { restaurantService } from '../services/restaurant.service';
+import { hotelService } from '../services/hotel.service';
 import { useTheme } from '../app/context/ThemeContext';
 
 interface Guide {
@@ -83,87 +85,28 @@ export const useHomeData = (): UseHomeDataReturn => {
 
   const loadData = async (forceRefresh: boolean = false) => {
     try {
+      console.log('[useHomeData] Loading data, forceRefresh:', forceRefresh);
       setLoading(true);
       setError(null);
       
-      // Clear cache if force refresh is requested
-      if (forceRefresh) {
-        await Promise.all([
-          apiClient.clearCache('guides'),
-          apiClient.clearCache('restaurants'),
-        ]);
-      }
+      // Load guides first
+      console.log('[useHomeData] Loading guides...');
+      const guidesResponse = await guideService.getGuides();
+      console.log('[useHomeData] Guides loaded:', guidesResponse.length);
       
-      // Load guides and categories first
-      const [guidesResponse, categoriesResponse] = await Promise.all([
-        apiClient.get<any>('/guides/', {}, { forceRefresh }),
-        apiClient.get<any>('/categories/', {}, { forceRefresh: false })
-      ]);
-      
-      // Load all restaurants with pagination
-      let allRestaurantsData = [];
-      try {
-        let currentPage = 1;
-        let hasMore = true;
-        
-        while (hasMore) {
-          const restaurantsUrl = `/restaurants/?page=${currentPage}&limit=100`;
-          const restaurantsResponse = await apiClient.get<any>(restaurantsUrl, {}, { forceRefresh });
-          const pageData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
-          
-          if (pageData.length === 0) {
-            hasMore = false;
-          } else {
-            allRestaurantsData.push(...pageData);
-            currentPage++;
-            
-            if (restaurantsResponse?.has_more === false || pageData.length < 100) {
-              hasMore = false;
-            }
-          }
-          
-          if (currentPage > 50) {
-            hasMore = false;
-          }
-        }
-      } catch (error) {
-        const restaurantsResponse = await apiClient.get<any>('/restaurants/?limit=100', {}, { forceRefresh });
-        allRestaurantsData = Array.isArray(restaurantsResponse) ? restaurantsResponse : (restaurantsResponse?.restaurants || restaurantsResponse?.items || []);
-      }
+      // Load all restaurants
+      console.log('[useHomeData] Loading restaurants...');
+      const restaurantsResult = await restaurantService.getRestaurants({ limit: 1000 });
+      const allRestaurantsData = restaurantsResult.items;
+      console.log('[useHomeData] Restaurants loaded:', allRestaurantsData.length);
 
-      // Load all hotels with pagination
-      let allHotelsData = [];
-      try {
-        let currentPage = 1;
-        let hasMore = true;
-        
-        while (hasMore) {
-          const hotelsUrl = `/hotels/?page=${currentPage}&limit=100`;
-          const hotelsResponse = await apiClient.get<any>(hotelsUrl, {}, { forceRefresh });
-          const pageData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
-          
-          if (pageData.length === 0) {
-            hasMore = false;
-          } else {
-            allHotelsData.push(...pageData);
-            currentPage++;
-            
-            if (hotelsResponse?.has_more === false || pageData.length < 100) {
-              hasMore = false;
-            }
-          }
-          
-          if (currentPage > 50) {
-            hasMore = false;
-          }
-        }
-      } catch (error) {
-        const hotelsResponse = await apiClient.get<any>('/hotels/?limit=100', {}, { forceRefresh });
-        allHotelsData = Array.isArray(hotelsResponse) ? hotelsResponse : (hotelsResponse?.data || hotelsResponse?.hotels || hotelsResponse?.items || []);
-      }
+      // Load all hotels
+      console.log('[useHomeData] Loading hotels...');
+      const allHotelsData = await hotelService.getAllHotels();
+      console.log('[useHomeData] Hotels loaded:', allHotelsData.length);
       
-      // Handle different response structures
-      const guidesData = Array.isArray(guidesResponse) ? guidesResponse : (guidesResponse?.guides || guidesResponse?.items || []);
+      // Use data directly from services
+      const guidesData = guidesResponse;
       const restaurantsData = allRestaurantsData;
       const hotelsData = allHotelsData;
       
