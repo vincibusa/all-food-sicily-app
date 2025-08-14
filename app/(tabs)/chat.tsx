@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  ActivityIndicator,
   ScrollView
 } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
@@ -70,6 +69,25 @@ export default function ChatScreen() {
     setInputText('');
     setIsLoading(true);
 
+    // Timestamp di inizio thinking per calcolare la durata
+    const thinkingStartTime = Date.now();
+
+    // Crea messaggio temporaneo di "thinking" che appare subito
+    const thinkingMessageId = `thinking-${Date.now()}`;
+    const thinkingMessage: ChatMessage = {
+      id: thinkingMessageId,
+      text: '', // Vuoto perché mostreremo solo il thinking
+      isUser: false,
+      timestamp: new Date(),
+      thinking: {
+        content: '🤔 Sto analizzando la tua richiesta...\n\n⏳ Il modello sta elaborando i dati dal database e formulando una risposta personalizzata.',
+        tokensUsed: 0,
+        isVisible: true // Mostra subito il thinking
+      }
+    };
+
+    setMessages(prev => [...prev, thinkingMessage]);
+
     try {
       // Ottieni posizione corrente se disponibile
       let currentLocation = location;
@@ -79,7 +97,27 @@ export default function ChatScreen() {
 
       // Chiama il servizio AI con posizione (converti null a undefined)
       const aiResponse = await aiChatService.sendMessage(textToSend, currentLocation || undefined);
-      setMessages(prev => [...prev, aiResponse]);
+      console.log('📱 Chat received AI response with thinking:', !!aiResponse.thinking);
+      if (aiResponse.thinking) {
+        console.log('🧠 Thinking visible:', aiResponse.thinking.isVisible);
+        console.log('📝 Thinking content preview:', aiResponse.thinking.content.substring(0, 50) + '...');
+      }
+      
+      // Calcola durata del thinking e crea un riassunto compatto
+      const elapsedSeconds = Math.max(1, Math.round((Date.now() - thinkingStartTime) / 1000));
+      const aiResponseWithSummary: ChatMessage = aiResponse.thinking ? {
+        ...aiResponse,
+        thinking: {
+          content: `Il modello ha pensato per ${elapsedSeconds} secondi`,
+          tokensUsed: aiResponse.thinking.tokensUsed,
+          isVisible: false
+        }
+      } : aiResponse;
+      
+      // Sostituisci il messaggio temporaneo con la risposta finale
+      setMessages(prev => prev.map(msg => 
+        msg.id === thinkingMessageId ? aiResponseWithSummary : msg
+      ));
     } catch (error) {
       console.error('Error sending message:', error);
       
@@ -89,7 +127,11 @@ export default function ChatScreen() {
         isUser: false,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      // Sostituisci il messaggio temporaneo con l'errore
+      setMessages(prev => prev.map(msg => 
+        msg.id === thinkingMessageId ? errorMessage : msg
+      ));
     } finally {
       setIsLoading(false);
     }
@@ -243,7 +285,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
@@ -281,18 +323,7 @@ export default function ChatScreen() {
           ListFooterComponent={messages.length === 1 ? renderQuickSuggestions : null}
         />
 
-        {/* Loading Indicator */}
-        {isLoading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.tint} />
-            <View style={styles.loadingTextContainer}>
-              <MaterialIcons name="psychology" size={16} color={colors.tint} style={styles.loadingIcon} />
-              <Text style={[styles.loadingText, { color: colors.text + '80' }]}>
-                AI sta pensando e scrivendo...
-              </Text>
-            </View>
-          </View>
-        )}
+{/* Loading rimosso: ora il thinking appare direttamente nei messaggi */}
 
         {/* Input Area */}
         <View style={[styles.inputContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>

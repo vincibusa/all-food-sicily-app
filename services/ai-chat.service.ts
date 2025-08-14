@@ -208,31 +208,29 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
           }
         }
         
-        // TEMP: Crea thinking fittizio per testare l'UI
-        if (!thinkingData) {
-          console.log('❌ No thinking found, creating mock thinking for testing');
-          thinkingData = {
-            content: `Sto analizzando la richiesta dell'utente: "${context.query}"
+        // TEMP: Crea thinking fittizio per testare l'UI (SEMPRE per ora)
+        console.log('🧠 Creating mock thinking for testing UI');
+        thinkingData = {
+          content: `🤔 Sto analizzando la richiesta dell'utente: "${context.query}"
 
-Prima di tutto, controllo i dati disponibili nel database:
+📊 Prima di tutto, controllo i dati disponibili nel database:
 - Ristoranti: ${context.restaurants.length} trovati
 - Hotel: ${context.hotels.length} trovati  
 - Guide: ${context.guides.length} trovati
 
 ${context.userLocation ? 
-  `L'utente ha fornito la posizione GPS (${context.userLocation.latitude.toFixed(4)}, ${context.userLocation.longitude.toFixed(4)}), quindi posso ordinare i risultati per vicinanza.` :
-  'Non ho accesso alla posizione GPS, quindi fornirò risultati generici.'
+  `📍 L'utente ha fornito la posizione GPS (${context.userLocation.latitude.toFixed(4)}, ${context.userLocation.longitude.toFixed(4)}), quindi posso ordinare i risultati per vicinanza.` :
+  '❌ Non ho accesso alla posizione GPS, quindi fornirò risultati generici.'
 }
 
 ${context.restaurants.length > 0 ? 
-  `Il miglior ristorante che posso consigliare è "${context.restaurants[0].name}" a ${context.restaurants[0].city} con rating ${context.restaurants[0].rating || 'non disponibile'}.` :
-  'Non ho trovato ristoranti per questa ricerca.'
+  `⭐ Il miglior ristorante che posso consigliare è "${context.restaurants[0].name}" a ${context.restaurants[0].city} con rating ${context.restaurants[0].rating || 'non disponibile'}.` :
+  '🔍 Non ho trovato ristoranti per questa ricerca.'
 }
 
-Ora formulerò una risposta coinvolgente e dettagliata per l'utente.`,
-            tokensUsed: 156
-          };
-        }
+✍️ Ora formulerò una risposta coinvolgente e dettagliata per l'utente basata sui dati trovati.`,
+          tokensUsed: 156
+        };
         
       } catch (thinkingError) {
         console.error('Error extracting thinking tokens:', thinkingError);
@@ -312,6 +310,13 @@ Ora formulerò una risposta coinvolgente e dettagliata per l'utente.`,
       };
       
       // 4. Crea il messaggio di risposta con thinking tokens
+      console.log('📝 Creating response message...');
+      console.log('💭 AI response has thinking:', !!aiResponse.thinking);
+      if (aiResponse.thinking) {
+        console.log('🧠 Thinking content length:', aiResponse.thinking.content.length);
+        console.log('🔢 Thinking tokens:', aiResponse.thinking.tokensUsed);
+      }
+
       const responseMessage: ChatMessage = {
         id: Date.now().toString(),
         text: aiResponse.text,
@@ -325,6 +330,7 @@ Ora formulerò una risposta coinvolgente e dettagliata per l'utente.`,
         } : undefined
       };
       
+      console.log('✅ Response message created with thinking:', !!responseMessage.thinking);
       return responseMessage;
       
     } catch (error) {
