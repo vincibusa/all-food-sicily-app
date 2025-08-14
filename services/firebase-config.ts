@@ -18,9 +18,14 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase AI
 const ai = getAI(app);
 
-// Initialize Gemini 2.5 Flash model
+// Initialize Gemini 2.5 Flash model with thinking capability
 export const geminiModel = getGenerativeModel(ai, { 
-  model: "gemini-2.5-flash" 
+  model: "gemini-2.5-flash",
+  generationConfig: {
+    thinkingConfig: {
+      thinkingBudget: 1024 // Budget appropriato per query gastronomiche (complessità media)
+    }
+  }
 });
 
 // Export the app instance

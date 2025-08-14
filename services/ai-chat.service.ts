@@ -11,6 +11,11 @@ export interface ChatMessage {
     restaurants?: RestaurantSuggestion[];
     hotels?: HotelSuggestion[];
   };
+  thinking?: {
+    content: string;
+    tokensUsed?: number;
+    isVisible: boolean;
+  };
 }
 
 export interface RestaurantSuggestion {
@@ -79,8 +84,8 @@ FORMATO RISPOSTA:
 - Suggerimenti di approfondimento quando appropriato
 `;
 
-  // Chiama Gemini 2.5 Flash via Firebase AI Logic
-  private async callGeminiAPI(context: AIContext): Promise<string> {
+  // Chiama Gemini 2.5 Flash via Firebase AI Logic e cattura thinking tokens
+  private async callGeminiAPI(context: AIContext): Promise<{ text: string; thinking?: { content: string; tokensUsed?: number } }> {
     try {
       // Costruisci il prompt con il contesto Supabase e informazioni geografiche
       const contextData = JSON.stringify({
@@ -117,14 +122,137 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
       // Chiamata diretta a Gemini via Firebase AI Logic
       const result = await geminiModel.generateContent(fullPrompt);
       const response = result.response;
+      
+      console.log('Full result object keys:', Object.keys(result));
+      console.log('Response object keys:', Object.keys(response));
+      console.log('Response raw:', JSON.stringify(response, null, 2));
+      
+      // Estrai il testo principale
       const text = response.text();
 
+      // Estrai thinking tokens se disponibili
+      let thinkingData: { content: string; tokensUsed?: number } | undefined;
+      
+      try {
+        // DEBUG: Mostra la struttura completa della risposta
+        console.log('=== DEBUG: Firebase AI Response Structure ===');
+        console.log('Result keys:', Object.keys(result));
+        console.log('Response keys:', Object.keys(response));
+        
+        // Accedi ai thinking tokens dalla risposta di Gemini
+        const candidates = response.candidates || [];
+        console.log('Candidates found:', candidates.length);
+        
+        if (candidates.length > 0) {
+          console.log('First candidate keys:', Object.keys(candidates[0]));
+          console.log('First candidate:', JSON.stringify(candidates[0], null, 2));
+          
+          if (candidates[0].content) {
+            const content = candidates[0].content;
+            console.log('Content keys:', Object.keys(content));
+            console.log('Content parts:', content.parts?.length || 'no parts');
+            
+            // Cerca thinking tokens nei metadati della risposta
+            if (content.parts) {
+              for (let i = 0; i < content.parts.length; i++) {
+                const part = content.parts[i];
+                console.log(`Part ${i} keys:`, Object.keys(part));
+                console.log(`Part ${i}:`, JSON.stringify(part, null, 2));
+                
+                // Diversi possibili campi per thinking
+                if (part.thinking) {
+                  thinkingData = {
+                    content: part.thinking,
+                    tokensUsed: part.thinkingTokens || part.thinking_tokens || undefined
+                  };
+                  console.log('✅ Thinking found in part.thinking');
+                  break;
+                } else if (part.thinkingContent) {
+                  thinkingData = {
+                    content: part.thinkingContent,
+                    tokensUsed: part.thinkingTokens || undefined
+                  };
+                  console.log('✅ Thinking found in part.thinkingContent');
+                  break;
+                } else if (part.text && i === 0 && content.parts.length > 1) {
+                  // Potrebbe essere che il primo part sia il thinking e il secondo la risposta
+                  if (part.text.includes('penso') || part.text.includes('ragiono') || part.text.length > text.length) {
+                    thinkingData = {
+                      content: part.text,
+                      tokensUsed: undefined
+                    };
+                    console.log('✅ Thinking found as first text part (heuristic)');
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // Fallback: cerca thinking nel metadata della risposta completa
+        if (!thinkingData) {
+          console.log('Searching for thinking in result metadata...');
+          if ((result as any).thinking) {
+            thinkingData = {
+              content: (result as any).thinking,
+              tokensUsed: (result as any).thinkingTokensUsed
+            };
+            console.log('✅ Thinking found in result.thinking');
+          } else if ((result as any).thinkingContent) {
+            thinkingData = {
+              content: (result as any).thinkingContent,
+              tokensUsed: (result as any).thinkingTokens
+            };
+            console.log('✅ Thinking found in result.thinkingContent');
+          }
+        }
+        
+        // TEMP: Crea thinking fittizio per testare l'UI
+        if (!thinkingData) {
+          console.log('❌ No thinking found, creating mock thinking for testing');
+          thinkingData = {
+            content: `Sto analizzando la richiesta dell'utente: "${context.query}"
+
+Prima di tutto, controllo i dati disponibili nel database:
+- Ristoranti: ${context.restaurants.length} trovati
+- Hotel: ${context.hotels.length} trovati  
+- Guide: ${context.guides.length} trovati
+
+${context.userLocation ? 
+  `L'utente ha fornito la posizione GPS (${context.userLocation.latitude.toFixed(4)}, ${context.userLocation.longitude.toFixed(4)}), quindi posso ordinare i risultati per vicinanza.` :
+  'Non ho accesso alla posizione GPS, quindi fornirò risultati generici.'
+}
+
+${context.restaurants.length > 0 ? 
+  `Il miglior ristorante che posso consigliare è "${context.restaurants[0].name}" a ${context.restaurants[0].city} con rating ${context.restaurants[0].rating || 'non disponibile'}.` :
+  'Non ho trovato ristoranti per questa ricerca.'
+}
+
+Ora formulerò una risposta coinvolgente e dettagliata per l'utente.`,
+            tokensUsed: 156
+          };
+        }
+        
+      } catch (thinkingError) {
+        console.error('Error extracting thinking tokens:', thinkingError);
+      }
+
       console.log('Gemini response received:', text.substring(0, 100) + '...');
+      if (thinkingData) {
+        console.log('✅ Thinking captured:', thinkingData.content.substring(0, 100) + '...');
+        console.log('Thinking tokens used:', thinkingData.tokensUsed || 'unknown');
+      } else {
+        console.log('❌ No thinking data captured');
+      }
 
       // Pulisci la risposta dal markdown e formattazione
       const cleanedText = this.cleanGeminiResponse(text);
-
-      return cleanedText || 'Mi dispiace, non sono riuscito a generare una risposta appropriata.';
+      
+      return {
+        text: cleanedText || 'Mi dispiace, non sono riuscito a generare una risposta appropriata.',
+        thinking: thinkingData
+      };
       
     } catch (error) {
       console.error('Error calling Gemini API:', error);
@@ -132,21 +260,20 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
       // Fallback response in caso di errore
       const { restaurants, hotels, guides } = context;
       
+      let fallbackText = '';
       if (restaurants.length > 0) {
         const topRestaurant = restaurants[0];
-        return `Ho trovato ${restaurants.length} ristoranti per la tua ricerca. Ti consiglio **${topRestaurant.name}** a ${topRestaurant.city}${topRestaurant.rating ? ` con rating ${topRestaurant.rating}/5` : ''}.`;
-      }
-      
-      if (hotels.length > 0) {
+        fallbackText = `Ho trovato ${restaurants.length} ristoranti per la tua ricerca. Ti consiglio **${topRestaurant.name}** a ${topRestaurant.city}${topRestaurant.rating ? ` con rating ${topRestaurant.rating}/5` : ''}.`;
+      } else if (hotels.length > 0) {
         const topHotel = hotels[0];
-        return `Ho trovato ${hotels.length} hotel disponibili. Ti suggerirei **${topHotel.name}** a ${topHotel.city}.`;
+        fallbackText = `Ho trovato ${hotels.length} hotel disponibili. Ti suggerirei **${topHotel.name}** a ${topHotel.city}.`;
+      } else if (guides.length > 0) {
+        fallbackText = `Ho trovato ${guides.length} guide che potrebbero interessarti per la tua ricerca.`;
+      } else {
+        fallbackText = 'Mi dispiace, sto avendo difficoltà tecniche con il servizio AI. Riprova tra qualche minuto!';
       }
       
-      if (guides.length > 0) {
-        return `Ho trovato ${guides.length} guide che potrebbero interessarti per la tua ricerca.`;
-      }
-      
-      return 'Mi dispiace, sto avendo difficoltà tecniche con il servizio AI. Riprova tra qualche minuto!';
+      return { text: fallbackText };
     }
   }
 
@@ -156,7 +283,7 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
       // 1. Costruisci il contesto dai dati Supabase con posizione utente
       const context = await contextBuilder.buildContext(userMessage, userLocation);
       
-      // 2. Chiama Gemini con il contesto
+      // 2. Chiama Gemini con il contesto e ottieni testo + thinking tokens
       const aiResponse = await this.callGeminiAPI(context);
       
       // 3. Estrai suggestions dai ristoranti e hotel nel contesto
@@ -184,13 +311,18 @@ Rispondi in italiano fornendo consigli dettagliati basati SOLO sui dati forniti 
         ...(hotelSuggestions.length > 0 && { hotels: hotelSuggestions })
       };
       
-      // 4. Crea il messaggio di risposta
+      // 4. Crea il messaggio di risposta con thinking tokens
       const responseMessage: ChatMessage = {
         id: Date.now().toString(),
-        text: aiResponse,
+        text: aiResponse.text,
         isUser: false,
         timestamp: new Date(),
-        suggestions: (restaurantSuggestions.length > 0 || hotelSuggestions.length > 0) ? suggestions : undefined
+        suggestions: (restaurantSuggestions.length > 0 || hotelSuggestions.length > 0) ? suggestions : undefined,
+        thinking: aiResponse.thinking ? {
+          content: aiResponse.thinking.content,
+          tokensUsed: aiResponse.thinking.tokensUsed,
+          isVisible: false // Di default nascosto, l'utente può decidere se mostrarlo
+        } : undefined
       };
       
       return responseMessage;

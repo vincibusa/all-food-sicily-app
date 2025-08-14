@@ -20,6 +20,7 @@ import { useLocation } from '../../hooks/useLocation';
 import { aiChatService, ChatMessage, RestaurantSuggestion, HotelSuggestion } from '../../services/ai-chat.service';
 import { RestaurantCard } from '../../components/Home/RestaurantCard';
 import { HotelCard } from '../../components/Home/HotelCard';
+import { ThinkingBubble } from '../../components/Chat/ThinkingBubble';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -76,8 +77,8 @@ export default function ChatScreen() {
         currentLocation = await getCurrentLocation();
       }
 
-      // Chiama il servizio AI con posizione
-      const aiResponse = await aiChatService.sendMessage(textToSend, currentLocation);
+      // Chiama il servizio AI con posizione (converti null a undefined)
+      const aiResponse = await aiChatService.sendMessage(textToSend, currentLocation || undefined);
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -101,6 +102,23 @@ export default function ChatScreen() {
 
   const handleQuickSuggestion = (suggestion: string) => {
     handleSendMessage(suggestion);
+  };
+
+  // Gestisce il toggle della visibilità del thinking per un messaggio specifico
+  const handleToggleThinking = (messageId: string) => {
+    setMessages(prevMessages => 
+      prevMessages.map(message => 
+        message.id === messageId && message.thinking
+          ? {
+              ...message,
+              thinking: {
+                ...message.thinking,
+                isVisible: !message.thinking.isVisible
+              }
+            }
+          : message
+      )
+    );
   };
 
   // Mappa le suggestion ai formati card
@@ -134,6 +152,14 @@ export default function ChatScreen() {
       item.isUser ? styles.userMessage : styles.aiMessage,
       { backgroundColor: item.isUser ? colors.tint : colors.card }
     ]}>
+      {/* Mostra il thinking bubble per messaggi AI con thinking tokens */}
+      {!item.isUser && item.thinking && (
+        <ThinkingBubble
+          thinking={item.thinking}
+          onToggleVisibility={() => handleToggleThinking(item.id)}
+        />
+      )}
+      
       <Text style={[
         styles.messageText,
         { color: item.isUser ? '#FFFFFF' : colors.text }
@@ -259,9 +285,12 @@ export default function ChatScreen() {
         {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={colors.tint} />
-            <Text style={[styles.loadingText, { color: colors.text + '80' }]}>
-              AI sta scrivendo...
-            </Text>
+            <View style={styles.loadingTextContainer}>
+              <MaterialIcons name="psychology" size={16} color={colors.tint} style={styles.loadingIcon} />
+              <Text style={[styles.loadingText, { color: colors.text + '80' }]}>
+                AI sta pensando e scrivendo...
+              </Text>
+            </View>
           </View>
         )}
 
@@ -418,8 +447,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  loadingText: {
+  loadingTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginLeft: 8,
+  },
+  loadingIcon: {
+    marginRight: 6,
+  },
+  loadingText: {
     fontSize: 14,
     fontStyle: 'italic',
   },
