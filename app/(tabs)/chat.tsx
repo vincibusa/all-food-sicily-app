@@ -98,25 +98,35 @@ export default function ChatScreen() {
       // Chiama il servizio AI con posizione (converti null a undefined)
       const aiResponse = await aiChatService.sendMessage(textToSend, currentLocation || undefined);
       console.log('📱 Chat received AI response with thinking:', !!aiResponse.thinking);
+      
+      // Se c'è thinking reale dall'AI, aggiorna il messaggio temporaneo con quello
       if (aiResponse.thinking) {
-        console.log('🧠 Thinking visible:', aiResponse.thinking.isVisible);
+        console.log('🧠 Updating thinking with real AI content');
         console.log('📝 Thinking content preview:', aiResponse.thinking.content.substring(0, 50) + '...');
+        
+        setMessages(prev => prev.map(msg => 
+          msg.id === thinkingMessageId ? {
+            ...msg,
+            thinking: {
+              ...aiResponse.thinking!,
+              isVisible: true
+            }
+          } : msg
+        ));
+        
+        // Mostra il thinking reale per un po' (2 secondi)
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
-      // Calcola durata del thinking e crea un riassunto compatto
-      const elapsedSeconds = Math.max(1, Math.round((Date.now() - thinkingStartTime) / 1000));
-      const aiResponseWithSummary: ChatMessage = aiResponse.thinking ? {
+      // Rimuovi il thinking dalla risposta finale - vogliamo mostrarlo solo durante l'elaborazione
+      const aiResponseFinal: ChatMessage = {
         ...aiResponse,
-        thinking: {
-          content: `Il modello ha pensato per ${elapsedSeconds} secondi`,
-          tokensUsed: aiResponse.thinking.tokensUsed,
-          isVisible: false
-        }
-      } : aiResponse;
+        thinking: undefined // Nessun thinking nella risposta finale
+      };
       
       // Sostituisci il messaggio temporaneo con la risposta finale
       setMessages(prev => prev.map(msg => 
-        msg.id === thinkingMessageId ? aiResponseWithSummary : msg
+        msg.id === thinkingMessageId ? aiResponseFinal : msg
       ));
     } catch (error) {
       console.error('Error sending message:', error);
@@ -188,76 +198,96 @@ export default function ChatScreen() {
     category_name: suggestion.hotel_type?.[0] || 'Hotel'
   });
 
-  const renderMessage = ({ item }: { item: ChatMessage }) => (
-    <View style={[
-      styles.messageContainer,
-      item.isUser ? styles.userMessage : styles.aiMessage,
-      { backgroundColor: item.isUser ? colors.tint : colors.card }
-    ]}>
-      {/* Mostra il thinking bubble per messaggi AI con thinking tokens */}
-      {!item.isUser && item.thinking && (
-        <ThinkingBubble
-          thinking={item.thinking}
-          onToggleVisibility={() => handleToggleThinking(item.id)}
-        />
-      )}
-      
-      <Text style={[
-        styles.messageText,
-        { color: item.isUser ? '#FFFFFF' : colors.text }
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
+    // Non mostrare la card se è AI, sta pensando e non ha testo
+    const isThinkingOnly = !item.isUser && item.thinking?.isVisible && !item.text.trim();
+    
+    return (
+      <View style={[
+        styles.messageContainer,
+        item.isUser ? styles.userMessage : styles.aiMessage,
+        !isThinkingOnly && { 
+          backgroundColor: item.isUser ? colors.tint : colors.background,
+          borderWidth: item.isUser ? 0 : 1,
+          borderColor: item.isUser ? 'transparent' : colors.border,
+          shadowColor: item.isUser ? 'transparent' : '#000',
+          shadowOffset: item.isUser ? { width: 0, height: 0 } : { width: 0, height: 1 },
+          shadowOpacity: item.isUser ? 0 : 0.1,
+          shadowRadius: item.isUser ? 0 : 2,
+          elevation: item.isUser ? 0 : 2,
+        }
       ]}>
-        {item.text}
-      </Text>
-      
-      {/* Render suggestions */}
-      {item.suggestions && (
-        <View style={styles.suggestionsContainer}>
-          {/* Restaurant suggestions */}
-          {item.suggestions.restaurants && item.suggestions.restaurants.length > 0 && (
-            <>
-              <Text style={[styles.suggestionsSectionTitle, { color: colors.text }]}>
-                🍽️ Ristoranti consigliati
-              </Text>
-              <View style={styles.suggestionsGrid}>
-                {item.suggestions.restaurants.map((suggestion) => (
-                  <View key={suggestion.id} style={styles.suggestionCardWrapper}>
-                    <RestaurantCard
-                      item={mapRestaurantSuggestionToCard(suggestion)}
-                    />
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-          
-          {/* Hotel suggestions */}
-          {item.suggestions.hotels && item.suggestions.hotels.length > 0 && (
-            <>
-              <Text style={[styles.suggestionsSectionTitle, { color: colors.text, marginTop: item.suggestions.restaurants ? 16 : 0 }]}>
-                🏨 Hotel consigliati
-              </Text>
-              <View style={styles.suggestionsGrid}>
-                {item.suggestions.hotels.map((suggestion) => (
-                  <View key={suggestion.id} style={styles.suggestionCardWrapper}>
-                    <HotelCard
-                      item={mapHotelSuggestionToCard(suggestion)}
-                    />
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-        </View>
-      )}
-      
-      <Text style={[
-        styles.timestamp,
-        { color: item.isUser ? '#FFFFFF80' : colors.text + '60' }
-      ]}>
-        {item.timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-      </Text>
-    </View>
-  );
+        {/* Mostra il thinking bubble per messaggi AI con thinking tokens */}
+        {!item.isUser && item.thinking && (
+          <ThinkingBubble
+            thinking={item.thinking}
+            onToggleVisibility={() => handleToggleThinking(item.id)}
+          />
+        )}
+        
+        {/* Mostra il testo solo se non è vuoto */}
+        {item.text.trim() && (
+          <Text style={[
+            styles.messageText,
+            { color: item.isUser ? '#FFFFFF' : colors.text }
+          ]}>
+            {item.text}
+          </Text>
+        )}
+        
+        {/* Render suggestions */}
+        {item.suggestions && (
+          <View style={styles.suggestionsContainer}>
+            {/* Restaurant suggestions */}
+            {item.suggestions.restaurants && item.suggestions.restaurants.length > 0 && (
+              <>
+                <Text style={[styles.suggestionsSectionTitle, { color: colors.text }]}>
+                  🍽️ Ristoranti consigliati
+                </Text>
+                <View style={styles.suggestionsGrid}>
+                  {item.suggestions.restaurants.map((suggestion) => (
+                    <View key={suggestion.id} style={styles.suggestionCardWrapper}>
+                      <RestaurantCard
+                        item={mapRestaurantSuggestionToCard(suggestion)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+            
+            {/* Hotel suggestions */}
+            {item.suggestions.hotels && item.suggestions.hotels.length > 0 && (
+              <>
+                <Text style={[styles.suggestionsSectionTitle, { color: colors.text, marginTop: item.suggestions.restaurants ? 16 : 0 }]}>
+                  🏨 Hotel consigliati
+                </Text>
+                <View style={styles.suggestionsGrid}>
+                  {item.suggestions.hotels.map((suggestion) => (
+                    <View key={suggestion.id} style={styles.suggestionCardWrapper}>
+                      <HotelCard
+                        item={mapHotelSuggestionToCard(suggestion)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        )}
+        
+        {/* Mostra timestamp solo se non è thinking-only */}
+        {!isThinkingOnly && (
+          <Text style={[
+            styles.timestamp,
+            { color: item.isUser ? '#FFFFFF80' : colors.text + '60' }
+          ]}>
+            {item.timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   const renderQuickSuggestions = () => (
     <View style={styles.quickSuggestionsContainer}>

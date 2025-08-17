@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { StyleSheet, View, ScrollView, Alert, Dimensions } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSharedValue, Easing, withTiming } from "react-native-reanimated";
 import { useHaptics } from "../../utils/haptics";
@@ -29,6 +29,7 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
+  const [shouldResetFilter, setShouldResetFilter] = useState(false);
 
   // Hook per geolocalizzazione
   const { location: userLocation, getCurrentLocation, calculateDistance } = useLocation();
@@ -179,15 +180,19 @@ export default function Index() {
       setSelectedCategory(undefined);
     } else {
       setSelectedCategory(categoryId);
+      setShouldResetFilter(true); // Flag that we should reset when returning
     }
   };
 
-  // Reset filter selection when returning from navigation
-  useEffect(() => {
-    const resetSelection = () => setSelectedCategory(undefined);
-    // Reset selection when component remounts (e.g., returning from navigation)
-    resetSelection();
-  }, []);
+  // Reset filter selection only when returning from navigation after filter was used
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldResetFilter) {
+        setSelectedCategory(undefined);
+        setShouldResetFilter(false);
+      }
+    }, [shouldResetFilter])
+  );
   
   // Safety timeout - show content after 4 seconds even if images aren't loaded
   useEffect(() => {
