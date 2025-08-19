@@ -60,7 +60,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Chat AI",
+          title: "AllFood AI",
           tabBarIcon: ({ color }) => <MaterialIcons name="smart-toy" size={24} color={color} />,
         }}
       />

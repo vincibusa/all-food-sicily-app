@@ -20,7 +20,6 @@ import { aiChatService, ChatMessage, RestaurantSuggestion, HotelSuggestion } fro
 import { RestaurantCard } from '../../components/Home/RestaurantCard';
 import { HotelCard } from '../../components/Home/HotelCard';
 import { ThinkingBubble } from '../../components/Chat/ThinkingBubble';
-import { AIDisclaimer, AIDisclaimerBanner } from '../../components/Chat/AIDisclaimer';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -32,7 +31,6 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [quickSuggestions, setQuickSuggestions] = useState(aiChatService.getQuickSuggestions());
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
 
@@ -327,7 +325,7 @@ export default function ChatScreen() {
             </View>
             <View style={styles.headerText}>
               <Text style={[styles.headerTitle, { color: colors.text }]}>
-                Chat AI
+                AllFood AI
               </Text>
               <Text style={[styles.headerSubtitle, { color: colors.text + '80' }]}>
                 Il tuo assistente gastronomico siciliano
@@ -343,8 +341,6 @@ export default function ChatScreen() {
           </View>
         </View>
 
-        {/* AI Disclaimer Banner */}
-        <AIDisclaimerBanner onPress={() => setShowDisclaimer(true)} />
 
         {/* Messages List */}
         <FlatList
@@ -359,6 +355,13 @@ export default function ChatScreen() {
         />
 
 {/* Loading rimosso: ora il thinking appare direttamente nei messaggi */}
+
+        {/* AI Disclaimer Simple */}
+        <View style={[styles.simpleDisclaimer, { backgroundColor: colors.background }]}>
+          <Text style={[styles.disclaimerText, { color: colors.text + '70' }]}>
+            AllFood AI potrebbe commettere errori
+          </Text>
+        </View>
 
         {/* Input Area */}
         <View style={[styles.inputContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
@@ -391,11 +394,6 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* AI Disclaimer Modal */}
-      <AIDisclaimer 
-        isVisible={showDisclaimer} 
-        onClose={() => setShowDisclaimer(false)} 
-      />
     </SafeAreaView>
   );
 }
@@ -554,5 +552,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  simpleDisclaimer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  disclaimerText: {
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });
