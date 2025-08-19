@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { PerformanceProvider } from "../context/PerformanceContext";
+import CookieConsent from "../components/CookieConsent";
 
 // Componente wrapper per StatusBar - sempre dark per light theme
 function ThemedStatusBar() {
@@ -42,7 +43,33 @@ export default function RootLayout() {
           }}
         />
         
+        {/* Pagine legali */}
+        <Stack.Screen 
+          name="legal/privacy" 
+          options={{ 
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen 
+          name="legal/terms" 
+          options={{ 
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen 
+          name="legal/coupon-terms" 
+          options={{ 
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
+        
       </Stack>
+      
+      {/* Cookie Consent Banner */}
+      <CookieConsent />
         </ThemeProvider>
       </PerformanceProvider>
     </GestureHandlerRootView>

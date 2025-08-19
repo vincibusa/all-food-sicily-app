@@ -20,6 +20,7 @@ import { aiChatService, ChatMessage, RestaurantSuggestion, HotelSuggestion } fro
 import { RestaurantCard } from '../../components/Home/RestaurantCard';
 import { HotelCard } from '../../components/Home/HotelCard';
 import { ThinkingBubble } from '../../components/Chat/ThinkingBubble';
+import { AIDisclaimer, AIDisclaimerBanner } from '../../components/Chat/AIDisclaimer';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [quickSuggestions, setQuickSuggestions] = useState(aiChatService.getQuickSuggestions());
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
 
@@ -341,6 +343,9 @@ export default function ChatScreen() {
           </View>
         </View>
 
+        {/* AI Disclaimer Banner */}
+        <AIDisclaimerBanner onPress={() => setShowDisclaimer(true)} />
+
         {/* Messages List */}
         <FlatList
           ref={flatListRef}
@@ -385,6 +390,12 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* AI Disclaimer Modal */}
+      <AIDisclaimer 
+        isVisible={showDisclaimer} 
+        onClose={() => setShowDisclaimer(false)} 
+      />
     </SafeAreaView>
   );
 }

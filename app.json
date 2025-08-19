@@ -13,8 +13,8 @@
       "buildNumber": "14",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Questa app ha bisogno di accedere alla tua posizione per mostrarti i ristoranti vicini.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Questa app ha bisogno di accedere alla tua posizione per mostrarti i ristoranti vicini."
+        "NSLocationWhenInUseUsageDescription": "AllFoodSicily utilizza la tua posizione per mostrarti ristoranti e hotel nelle vicinanze. I dati di geolocalizzazione vengono elaborati solo localmente sul dispositivo e non vengono memorizzati sui nostri server. Puoi disabilitare questa funzione nelle impostazioni mantenendo tutte le altre funzionalità dell'app.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "AllFoodSicily utilizza la tua posizione per mostrarti ristoranti e hotel nelle vicinanze. I dati di geolocalizzazione vengono elaborati solo localmente sul dispositivo e non vengono memorizzati sui nostri server. Puoi disabilitare questa funzione nelle impostazioni mantenendo tutte le altre funzionalità dell'app."
       }
     },
     "android": {
@@ -44,8 +44,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Questa app ha bisogno di accedere alla tua posizione per mostrarti i ristoranti vicini.",
-          "locationWhenInUsePermission": "Questa app ha bisogno di accedere alla tua posizione per mostrarti i ristoranti vicini.",
+          "locationAlwaysAndWhenInUsePermission": "AllFoodSicily utilizza la tua posizione per mostrarti ristoranti e hotel nelle vicinanze. I dati di geolocalizzazione vengono elaborati solo localmente sul dispositivo e non vengono memorizzati sui nostri server. Puoi disabilitare questa funzione nelle impostazioni mantenendo tutte le altre funzionalità dell'app.",
+          "locationWhenInUsePermission": "AllFoodSicily utilizza la tua posizione per mostrarti ristoranti e hotel nelle vicinanze. I dati di geolocalizzazione vengono elaborati solo localmente sul dispositivo e non vengono memorizzati sui nostri server. Puoi disabilitare questa funzione nelle impostazioni mantenendo tutte le altre funzionalità dell'app.",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
