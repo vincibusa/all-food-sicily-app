@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, ImageBackground, View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Link } from 'expo-router';
 import Animated from 'react-native-reanimated';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../app/context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
@@ -20,6 +21,7 @@ interface Restaurant {
   category_color?: string;
   latitude?: number;
   longitude?: number;
+  distance?: number; // Distance in kilometers
 }
 
 interface RestaurantCardProps {
@@ -62,6 +64,18 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                   {item.category_name || 'Ristorante'}
                 </Text>
               </View>
+              
+              {/* Distance indicator */}
+              {item.distance !== undefined && (
+                <View style={[styles.distanceIndicator, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
+                  <MaterialIcons name="location-on" size={10} color="white" />
+                  <Text style={[styles.distanceText, textStyles.label('white')]}>
+                    {item.distance < 1 
+                      ? `${Math.round(item.distance * 1000)}m` 
+                      : `${item.distance.toFixed(1)}km`}
+                  </Text>
+                </View>
+              )}
             </ImageBackground>
           </View>
           {/* Container testo senza ombra */}
@@ -81,15 +95,21 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
 const styles = StyleSheet.create({
   restaurantCard: {
-    width: width * 0.55 > 200 ? 200 : width * 0.55, // Same width as other cards
-    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16) + 80, // 16:9 image + text area
-    marginRight: 16,
+    width: width >= 768 
+      ? (width - 64) / 2 - 8 // Tablet: 2 columns with padding
+      : width * 0.55 > 200 ? 200 : width * 0.55, // Phone: horizontal scroll
+    height: width >= 768 
+      ? ((width - 64) / 2 - 8) * (9/16) + 80 // Tablet height
+      : (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16) + 80, // Phone height
+    marginRight: width >= 768 ? 0 : 16,
+    marginBottom: width >= 768 ? 16 : 0,
     borderRadius: 12,
-
   },
   imageContainer: {
     width: '100%',
-    height: (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16), // 16:9 aspect ratio
+    height: width >= 768 
+      ? ((width - 64) / 2 - 8) * (9/16) // Tablet: responsive height
+      : (width * 0.55 > 200 ? 200 : width * 0.55) * (9/16), // Phone: original height
     borderRadius: 12,
 
     ...(Platform.OS === 'ios' ? {
@@ -118,6 +138,22 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 8,
     fontWeight: 'bold',
+  },
+  distanceIndicator: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    gap: 2,
+  },
+  distanceText: {
+    color: 'white',
+    fontSize: 8,
+    fontWeight: '600',
   },
   restaurantInfo: {
     padding: 12,

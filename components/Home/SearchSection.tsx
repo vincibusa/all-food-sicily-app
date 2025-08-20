@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, TextInput, TouchableOpacity, ScrollView, Text, StyleSheet, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, TextInput, TouchableOpacity, ScrollView, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../app/context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
@@ -19,6 +19,7 @@ interface SearchSectionProps {
   onCloseResults: () => void;
   filteredResults: SearchItem[];
   onSelectResult: (item: SearchItem) => void;
+  loading?: boolean;
 }
 
 export const SearchSection: React.FC<SearchSectionProps> = ({
@@ -28,9 +29,12 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
   onCloseResults,
   filteredResults,
   onSelectResult,
+  loading = false,
 }) => {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   return (
     <View style={styles.container}>
@@ -44,23 +48,56 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
       )}
       
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-        <MaterialIcons name="search" size={20} color={colors.text} style={styles.searchIcon} />
+      <View style={[
+        styles.searchContainer, 
+        { 
+          backgroundColor: colors.card,
+          borderColor: isFocused ? colors.primary : colors.border,
+          borderWidth: isFocused ? 2 : 1,
+        }
+      ]}>
+        <MaterialIcons 
+          name="search" 
+          size={20} 
+          color={isFocused ? colors.primary : colors.text} 
+          style={styles.searchIcon} 
+        />
         <TextInput
+          ref={inputRef}
           style={[styles.searchInput, { color: colors.text }]}
           placeholder="Cerca i migliori locali e hotel in sicilia..."
           placeholderTextColor={colors.text + '80'}
           value={searchQuery}
           onChangeText={onSearchChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          accessibilityLabel="Campo di ricerca ristoranti e hotel"
+          accessibilityHint="Digita per cercare ristoranti e hotel in Sicilia"
+          accessibilityRole="searchbox"
+          returnKeyType="search"
+          autoCorrect={false}
+          autoCapitalize="words"
         />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => {
-            onSearchChange('');
-            onCloseResults();
-          }}>
+        {loading && searchQuery.length > 0 ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        ) : searchQuery.length > 0 ? (
+          <TouchableOpacity 
+            onPress={() => {
+              onSearchChange('');
+              onCloseResults();
+              inputRef.current?.blur();
+            }}
+            accessibilityLabel="Cancella ricerca"
+            accessibilityHint="Tocca per cancellare il testo di ricerca"
+            accessibilityRole="button"
+            style={styles.clearButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <MaterialIcons name="clear" size={20} color={colors.text} />
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
       
       {/* Search Results Dropdown */}
@@ -71,15 +108,36 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
           >
-            {filteredResults.slice(0, 5).map((item) => (
+            {filteredResults.slice(0, 5).map((item, index) => (
               <TouchableOpacity
                 key={`${item.type}-${item.id}`}
-                style={[styles.searchResultItem, { borderBottomColor: colors.border }]}
+                style={[
+                  styles.searchResultItem, 
+                  { 
+                    borderBottomColor: colors.border,
+                    borderBottomWidth: index === filteredResults.slice(0, 5).length - 1 ? 0 : 0.5
+                  }
+                ]}
                 onPress={() => {
                   onTap();
                   onSelectResult(item);
+                  inputRef.current?.blur();
                 }}
+                accessibilityLabel={`${item.name}, ${item.type === 'restaurant' ? 'ristorante' : 'hotel'} a ${item.city}`}
+                accessibilityHint="Tocca per visualizzare i dettagli"
+                accessibilityRole="button"
+                activeOpacity={0.7}
               >
+                <View style={[
+                  styles.searchResultIcon,
+                  { backgroundColor: colors.primary + '20' }
+                ]}>
+                  <MaterialIcons 
+                    name={item.type === 'restaurant' ? 'restaurant' : 'hotel'} 
+                    size={18} 
+                    color={colors.primary} 
+                  />
+                </View>
                 <View style={styles.searchResultContent}>
                   <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>
                     {item.name || 'Nome non disponibile'}
@@ -146,6 +204,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
   },
+  clearButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  loadingContainer: {
+    padding: 8,
+    marginLeft: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   searchResultsContainer: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 78 : 50,
@@ -168,8 +236,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    paddingVertical: 16,
+    minHeight: 56,
+  },
+  searchResultIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   searchResultContent: {
     flex: 1,

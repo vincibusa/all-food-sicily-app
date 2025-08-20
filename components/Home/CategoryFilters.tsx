@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   categoryButton: {
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -213,8 +213,8 @@ const styles = StyleSheet.create({
     }),
   },
   iconContainer: {
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',

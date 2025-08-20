@@ -118,6 +118,8 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
         loadingEnabled={true}
         loadingIndicatorColor={colors.primary}
         loadingBackgroundColor={colors.background}
+        accessibilityLabel="Mappa interattiva con ristoranti e hotel"
+        accessibilityHint="Tocca sui marker per visualizzare i dettagli dei locali"
       >
         {/* Marker per i ristoranti */}
         {validRestaurants.map((restaurant) => (
@@ -151,6 +153,9 @@ export const RestaurantMapView: React.FC<RestaurantMapProps> = ({
         <TouchableOpacity
           style={[styles.locationFab, { backgroundColor: colors.card }]}
           onPress={centerOnUserLocation}
+          accessibilityLabel="Centra mappa sulla mia posizione"
+          accessibilityHint="Tocca per centrare la mappa sulla tua posizione attuale"
+          accessibilityRole="button"
         >
           <MaterialIcons 
             name="my-location" 

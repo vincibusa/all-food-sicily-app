@@ -55,12 +55,6 @@ interface UseHomeDataReturn {
   loading: boolean;
   error: string | null;
   loadData: (forceRefresh?: boolean) => Promise<void>;
-  totalImages: number;
-  loadedImages: Set<string>;
-  setLoadedImages: (images: Set<string>) => void;
-  handleImageLoaded: (uri: string) => void;
-  handleImageError: (uri: string) => void;
-  allImagesLoaded: boolean;
 }
 
 export const useHomeData = (): UseHomeDataReturn => {
@@ -70,18 +64,6 @@ export const useHomeData = (): UseHomeDataReturn => {
   const [allHotels, setAllHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
-  const [totalImages, setTotalImages] = useState(0);
-
-  const handleImageLoaded = (uri: string) => {
-    setLoadedImages(prev => new Set([...prev, uri]));
-  };
-  
-  const handleImageError = (uri: string) => {
-    handleImageLoaded(`error-${uri}`);
-  };
-  
-  const allImagesLoaded = loadedImages.size >= totalImages && totalImages > 0;
 
   const loadData = async (forceRefresh: boolean = false) => {
     try {
@@ -142,14 +124,6 @@ export const useHomeData = (): UseHomeDataReturn => {
       setAllRestaurants(allRestaurantsTransformed);
       setAllHotels(allHotelsTransformed);
       
-      // Count total images to load
-      const validGuideImages = guidesDataTransformed.filter((g: Guide) => g.featured_image).length;
-      const validRestaurantImages = allRestaurantsTransformed.slice(0, 3).filter((r: Restaurant) => r.featured_image).length;
-      const validHotelImages = allHotelsTransformed.slice(0, 3).filter((h: Hotel) => h.featured_image).length;
-      const totalImgs = validGuideImages + validRestaurantImages + validHotelImages;
-      setTotalImages(totalImgs);
-      setLoadedImages(new Set()); // Reset loaded images
-      
     } catch (error) {
       setError('Impossibile caricare i dati. Riprova più tardi.');
     } finally {
@@ -164,11 +138,5 @@ export const useHomeData = (): UseHomeDataReturn => {
     loading,
     error,
     loadData,
-    totalImages,
-    loadedImages,
-    setLoadedImages,
-    handleImageLoaded,
-    handleImageError,
-    allImagesLoaded,
   };
 };

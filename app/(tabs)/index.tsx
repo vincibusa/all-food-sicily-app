@@ -42,12 +42,6 @@ export default function Index() {
     loading,
     error,
     loadData,
-    totalImages,
-    loadedImages,
-    setLoadedImages,
-    handleImageLoaded,
-    handleImageError,
-    allImagesLoaded,
   } = useHomeData();
   
 
@@ -104,18 +98,16 @@ export default function Index() {
       .sort((a, b) => a.distance - b.distance);
   };
 
-  // Ottieni i 3 ristoranti più vicini
+  // Ottieni i 3 ristoranti più vicini (keeping distance for display)
   const nearestRestaurants = userLocation 
     ? sortByDistance(allRestaurants, userLocation.latitude, userLocation.longitude)
         .slice(0, 3)
-        .map(({ distance, ...item }) => item)
     : allRestaurants.slice(0, 3);
 
-  // Ottieni i 3 hotel più vicini  
+  // Ottieni i 3 hotel più vicini (keeping distance for display)
   const nearestHotels = userLocation
     ? sortByDistance(allHotels, userLocation.latitude, userLocation.longitude)
         .slice(0, 3)
-        .map(({ distance, ...item }) => item)
     : allHotels.slice(0, 3);
 
 
@@ -194,20 +186,6 @@ export default function Index() {
     }, [shouldResetFilter])
   );
   
-  // Safety timeout - show content after 4 seconds even if images aren't loaded
-  useEffect(() => {
-    if (totalImages > 0 && !allImagesLoaded) {
-      const timeout = setTimeout(() => {
-        const timeoutImages = [];
-        for (let i = 0; i < totalImages; i++) {
-          timeoutImages.push(`timeout-${i}`);
-        }
-        setLoadedImages(new Set(timeoutImages));
-      }, 4000);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [totalImages, allImagesLoaded]);
 
   // Enhanced refresh hook per homepage
   const refreshState = useEnhancedRefresh({
@@ -235,8 +213,6 @@ export default function Index() {
     return (
       <GuideCard
         item={item}
-        onImageLoaded={handleImageLoaded}
-        onImageError={handleImageError}
         animationProps={{
           entering: staggeredAnimations[index]
         }}
@@ -249,8 +225,6 @@ export default function Index() {
     return (
       <RestaurantCard
         item={item}
-        onImageLoaded={handleImageLoaded}
-        onImageError={handleImageError}
         animationProps={{
           entering: staggeredAnimations[index]
         }}
@@ -263,8 +237,6 @@ export default function Index() {
     return (
       <HotelCard
         item={item}
-        onImageLoaded={handleImageLoaded}
-        onImageError={handleImageError}
         animationProps={{
           entering: staggeredAnimations[index]
         }}
@@ -316,6 +288,7 @@ export default function Index() {
           onCloseResults={() => setShowSearchResults(false)}
           filteredResults={filteredResults}
           onSelectResult={handleSearchResultSelect}
+          loading={loading}
         />
         
         {/* Category Filters */}
@@ -329,7 +302,7 @@ export default function Index() {
         <View style={styles.mapContainer}>
           <RestaurantMapView
             restaurants={mapItems}
-            height={width * 0.4}
+            height={width > 768 ? Math.min(width * 0.3, 300) : width * 0.4}
             showLocationButton={true}
             onMarkerPress={(item) => {
               onTap();
@@ -358,7 +331,6 @@ export default function Index() {
         linkHref="/(tabs)/guide"
         loading={loading}
         error={error ? "Errore nel caricamento delle guide" : null}
-        allImagesLoaded={allImagesLoaded}
             data={guides}
         renderItem={renderGuideItem}
             keyExtractor={(item) => item.id}
@@ -377,7 +349,6 @@ export default function Index() {
         linkHref="/ristoranti"
         loading={loading}
         error={error ? "Errore nel caricamento dei ristoranti" : null}
-        allImagesLoaded={allImagesLoaded}
             data={nearestRestaurants}
         renderItem={renderRestaurantItem}
             keyExtractor={(item) => item.id}
@@ -396,7 +367,6 @@ export default function Index() {
         linkHref="/(tabs)/hotel"
         loading={loading}
         error={error ? "Errore nel caricamento degli hotel" : null}
-        allImagesLoaded={allImagesLoaded}
             data={nearestHotels}
         renderItem={renderHotelItem}
             keyExtractor={(item) => item.id}
@@ -430,12 +400,12 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     marginBottom: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: width > 768 ? Math.min(width * 0.1, 40) : 16,
     paddingTop: 10,
     position: 'relative',
   },
   mapContainer: {
-    height: width * 0.4,
+    height: width > 768 ? Math.min(width * 0.3, 300) : width * 0.4,
     borderRadius: 12,
     overflow: 'hidden',
   },

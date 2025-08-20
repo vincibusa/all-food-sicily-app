@@ -255,8 +255,127 @@ export const BorderRadiusTokens = {
   full: 9999,
 } as const;
 
+// ==========================================
+// 🎯 COMPONENT TOKENS - Specific components
+// ==========================================
+
+export const ComponentTokens = {
+  button: {
+    height: {
+      small: 36,
+      medium: 48,
+      large: 56,
+    },
+    padding: {
+      horizontal: SpacingTokens[4],
+      vertical: SpacingTokens[3],
+    },
+    borderRadius: BorderRadiusTokens.md,
+    fontSize: {
+      small: TypographyTokens.fontSize.sm,
+      medium: TypographyTokens.fontSize.base,
+      large: TypographyTokens.fontSize.lg,
+    },
+  },
+  
+  card: {
+    padding: SpacingTokens[4],
+    borderRadius: BorderRadiusTokens.md,
+    shadow: {
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+  },
+  
+  searchBar: {
+    height: 48,
+    borderRadius: BorderRadiusTokens.md,
+    padding: SpacingTokens[4],
+    fontSize: TypographyTokens.fontSize.base,
+  },
+  
+  categoryFilter: {
+    size: 64, // Touch target for accessibility
+    borderRadius: BorderRadiusTokens.md,
+    iconSize: 20,
+    spacing: SpacingTokens[2],
+  },
+  
+  map: {
+    height: {
+      small: 160,
+      medium: 200,
+      large: 240,
+    },
+    borderRadius: BorderRadiusTokens.md,
+  },
+} as const;
+
+// ==========================================
+// ♿ ACCESSIBILITY TOKENS - WCAG compliance
+// ==========================================
+
+export const AccessibilityTokens = {
+  touchTarget: {
+    minimum: 44, // iOS minimum
+    recommended: 48, // Material Design recommendation
+    comfortable: 56, // Large touch target
+  },
+  
+  fontSize: {
+    minimum: 12, // Minimum readable size
+    body: 16, // Standard body text
+    large: 18, // Large text for accessibility
+  },
+  
+  contrast: {
+    minimum: 3.0, // WCAG AA for large text
+    enhanced: 4.5, // WCAG AA for normal text
+    maximum: 7.0, // WCAG AAA
+  },
+  
+  focus: {
+    ringWidth: 2,
+    ringColor: BrandColors.red[600],
+    ringOffset: 2,
+  },
+  
+  spacing: {
+    clickable: SpacingTokens[3], // Minimum spacing between clickable elements
+    comfortable: SpacingTokens[4], // Comfortable spacing
+  },
+} as const;
+
+// ==========================================
+// 📱 RESPONSIVE TOKENS - Breakpoints
+// ==========================================
+
+export const ResponsiveTokens = {
+  breakpoints: {
+    sm: 480,  // Small phones
+    md: 768,  // Tablets
+    lg: 1024, // Large tablets
+    xl: 1280, // Desktop
+  },
+  
+  grid: {
+    columns: {
+      sm: 1,
+      md: 2,
+      lg: 3,
+      xl: 4,
+    },
+    gap: SpacingTokens[4],
+  },
+} as const;
+
 // Type definitions for better TypeScript support
 export type BrandColorKey = keyof typeof BrandColors;
 export type NeutralColorKey = keyof typeof NeutralColors;
 export type SemanticColorKey = keyof typeof SemanticColors;
 export type ThemeMode = 'light';
+export type ComponentTokenKey = keyof typeof ComponentTokens;
+export type AccessibilityTokenKey = keyof typeof AccessibilityTokens;

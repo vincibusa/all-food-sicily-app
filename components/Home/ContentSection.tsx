@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, Dimensions } from 'react-native';
 import { Link } from 'expo-router';
 import Animated from 'react-native-reanimated';
 import { useTheme } from '../../app/context/ThemeContext';
@@ -8,13 +8,14 @@ import { useTextStyles } from '../../hooks/useAccessibleText';
 import { InlineLoading } from '../LoadingStates';
 import { SkeletonGuideCard, SkeletonRestaurantCard, SkeletonHotelCard } from '../skeleton/SkeletonCards';
 
+const { width } = Dimensions.get('window');
+
 interface ContentSectionProps {
   title: string;
   linkText: string;
   linkHref: string;
   loading: boolean;
   error?: string | null;
-  allImagesLoaded: boolean;
   data: any[];
   renderItem: ({ item, index }: { item: any; index: number }) => React.ReactElement;
   keyExtractor: (item: any) => string;
@@ -30,7 +31,6 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
   linkHref,
   loading,
   error,
-  allImagesLoaded,
   data,
   renderItem,
   keyExtractor,
@@ -47,6 +47,11 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
     skeletonComponent === 'guide' ? SkeletonGuideCard : 
     skeletonComponent === 'hotel' ? SkeletonHotelCard : 
     SkeletonRestaurantCard;
+
+  // Show more items on tablets
+  const isTablet = width >= 768;
+  const numColumns = isTablet ? 2 : 1;
+  const showVerticalList = isTablet && data.length > 3;
 
   return (
     <Animated.View style={styles.section} {...animationProps}>
@@ -74,17 +79,18 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
         />
       ) : error ? (
         <InlineLoading title={error} />
-      ) : !allImagesLoaded ? (
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={[1, 2, 3]}
-          keyExtractor={(item) => item.toString()}
-          renderItem={() => <SkeletonComponent />}
-          contentContainerStyle={contentContainerStyle}
-        />
       ) : data.length === 0 ? (
         <InlineLoading title={emptyStateTitle || 'Nessun elemento disponibile al momento'} />
+      ) : showVerticalList ? (
+        <FlatList
+          data={data.slice(0, 6)} // Show max 6 items on tablet
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          numColumns={numColumns}
+          contentContainerStyle={[contentContainerStyle, { paddingHorizontal: 16 }]}
+          columnWrapperStyle={isTablet ? styles.row : undefined}
+          showsVerticalScrollIndicator={false}
+        />
       ) : (
         <FlatList
           horizontal
@@ -116,5 +122,9 @@ const styles = StyleSheet.create({
   },
   sectionLink: {
     // Dynamic font size and weight handled by useTextStyles
+  },
+  row: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
   },
 });
