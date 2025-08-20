@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Alert, Platform } from "react-native";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Alert, Platform, Dimensions } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
@@ -16,6 +16,11 @@ import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
 import { RestaurantMapView } from '../../components/MapView';
 import { useLocation } from "../../hooks/useLocation";
+import { SearchSection } from '../../components/Home';
+import { useDesignTokens } from '../../hooks/useDesignTokens';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
 
 interface Hotel extends ListItem {
   description: string;
@@ -39,6 +44,7 @@ export default function HotelScreen() {
   const { onTap } = useHaptics();
   const router = useRouter();
   const { location: userLocation, getCurrentLocation, calculateDistance } = useLocation();
+  const tokens = useDesignTokens();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('Tutte');
   const [selectedHotelType, setSelectedHotelType] = useState('Tutti');
@@ -51,6 +57,8 @@ export default function HotelScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [isMapView, setIsMapView] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(20);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -66,6 +74,7 @@ export default function HotelScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       // Use hotelService directly instead of apiClient
       const allHotels = await hotelService.getAllHotels();
@@ -120,8 +129,8 @@ export default function HotelScreen() {
       ]);
 
     } catch (error) {
-      // Error loading data
-      Alert.alert('Errore', 'Impossibile caricare gli hotel');
+      console.error('Error loading hotels:', error);
+      setError('Impossibile caricare gli hotel. Verifica la connessione internet e riprova.');
     } finally {
       setLoading(false);
     }
@@ -143,20 +152,20 @@ export default function HotelScreen() {
   });
 
 
-  const handleCitySelect = (cityName: string) => {
+  const handleCitySelect = useCallback((cityName: string) => {
     setSelectedCity(cityName);
     setDisplayLimit(20); // Reset pagination
-  };
+  }, []);
 
-  const handleHotelTypeSelect = (typeName: string) => {
+  const handleHotelTypeSelect = useCallback((typeName: string) => {
     setSelectedHotelType(typeName);
     setDisplayLimit(20); // Reset pagination
-  };
+  }, []);
 
-  const handleStarRatingSelect = (rating: string) => {
+  const handleStarRatingSelect = useCallback((rating: string) => {
     setSelectedStarRating(rating);
     setDisplayLimit(20); // Reset pagination
-  };
+  }, []);
 
   const handleLocationRequest = () => {
     Alert.alert(
@@ -174,58 +183,99 @@ export default function HotelScreen() {
     );
   };
 
-  // Funzione per ordinare per distanza
-  const sortByDistance = (items: ListItem[], userLat: number, userLng: number) => {
+  // Funzione per ordinare per distanza - memoized
+  const sortByDistance = useCallback((items: ListItem[], userLat: number, userLng: number) => {
     return items
       .filter(item => item.latitude && item.longitude)
       .map(item => ({
         ...item,
         distance: calculateDistance(userLat, userLng, Number(item.latitude), Number(item.longitude))
       }))
-      .sort((a, b) => a.distance - b.distance)
-      .map(({ distance, ...item }) => item as ListItem);
-  };
+      .sort((a, b) => a.distance - b.distance);
+  }, [calculateDistance]);
 
-  // Client-side filter for search query, city, hotel type, and star rating
-  let filteredHotels = hotels.filter(hotel => {
-    // Search query filter
-    const matchesSearch = !searchQuery.trim() || (
-      hotel.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.province?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.hotel_type?.some((type: string) => type?.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+  // Client-side filter for search query, city, hotel type, and star rating - memoized
+  const filteredHotels = useMemo(() => {
+    let filtered = hotels.filter(hotel => {
+      // Search query filter
+      const matchesSearch = !searchQuery.trim() || (
+        hotel.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        hotel.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        hotel.province?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        hotel.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        hotel.hotel_type?.some((type: string) => type?.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
 
-    // City filter
-    const matchesCity = selectedCity === 'Tutte' || hotel.city === selectedCity;
+      // City filter
+      const matchesCity = selectedCity === 'Tutte' || hotel.city === selectedCity;
 
-    // Hotel type filter
-    const matchesHotelType = selectedHotelType === 'Tutti' || 
-      hotel.hotel_type?.some((type: string) => {
-        const formattedType = type.charAt(0).toUpperCase() + type.slice(1).replace('&', ' & ');
-        return formattedType === selectedHotelType;
-      });
+      // Hotel type filter
+      const matchesHotelType = selectedHotelType === 'Tutti' || 
+        hotel.hotel_type?.some((type: string) => {
+          const formattedType = type.charAt(0).toUpperCase() + type.slice(1).replace('&', ' & ');
+          return formattedType === selectedHotelType;
+        });
 
-    // Star rating filter
-    const matchesStarRating = selectedStarRating === 'Tutte' || 
-      hotel.star_rating?.toString() === selectedStarRating.replace(' stelle', '');
-    
-    return matchesSearch && matchesCity && matchesHotelType && matchesStarRating;
-  });
+      // Star rating filter
+      const matchesStarRating = selectedStarRating === 'Tutte' || 
+        hotel.star_rating?.toString() === selectedStarRating.replace(' stelle', '');
+      
+      return matchesSearch && matchesCity && matchesHotelType && matchesStarRating;
+    });
 
-  // Ordina per distanza se abbiamo la posizione dell'utente
-  if (userLocation) {
-    filteredHotels = sortByDistance(filteredHotels, userLocation.latitude, userLocation.longitude);
-  }
+    // Ordina per distanza se abbiamo la posizione dell'utente
+    if (userLocation) {
+      filtered = sortByDistance(filtered, userLocation.latitude, userLocation.longitude);
+    }
+
+    return filtered;
+  }, [hotels, searchQuery, selectedCity, selectedHotelType, selectedStarRating, userLocation, sortByDistance]);
 
   // Display hotels with pagination
   const displayedHotels = filteredHotels.slice(0, displayLimit);
   const hasMoreHotels = filteredHotels.length > displayLimit;
 
-  const loadMoreHotels = () => {
+  const loadMoreHotels = useCallback(() => {
     setDisplayLimit(prev => prev + 20);
-  };
+  }, []);
+
+  // Handle search input changes
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
+    setShowSearchResults(text.trim().length > 0);
+    setDisplayLimit(20); // Reset pagination when searching
+  }, []);
+
+  // Create search results for SearchSection dropdown - memoized
+  const searchResults = useMemo(() => {
+    return searchQuery.trim().length > 0 
+      ? hotels.filter(hotel => {
+          if (!hotel) return false;
+          const query = searchQuery.toLowerCase();
+          return (
+            (hotel.title && hotel.title.toLowerCase().includes(query)) ||
+            (hotel.city && hotel.city.toLowerCase().includes(query)) ||
+            (hotel.province && hotel.province.toLowerCase().includes(query)) ||
+            (hotel.hotel_type && hotel.hotel_type.some(type => type.toLowerCase().includes(query)))
+          );
+        }).slice(0, 5).map(hotel => ({
+          ...hotel,
+          name: hotel.title || hotel.name,
+          type: 'hotel' as const
+        }))
+      : [];
+  }, [searchQuery, hotels]);
+
+  // Handle search result selection
+  const handleSearchResultSelect = useCallback((item: any) => {
+    if (!item.id || !item.name) return;
+    
+    setSearchQuery(item.name);
+    setShowSearchResults(false);
+    
+    // Navigate to hotel detail
+    router.push(`/hotel/${item.id}`);
+  }, [router]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
@@ -233,28 +283,49 @@ export default function HotelScreen() {
         {/* Search Bar e Filtri - Solo in vista lista */}
         {!isMapView && (
           <>
-            {/* Search Bar */}
-            <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-              <FontAwesome name="search" size={16} color={colors.text + '60'} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Cerca hotel, città, tipologie..."
-                placeholderTextColor={colors.text + '60'}
-                value={searchQuery}
-                onChangeText={(text) => {
-                  setSearchQuery(text);
-                  setDisplayLimit(20);
-                }}
+            {/* Enhanced Search Section */}
+            <View style={styles.searchSection}>
+              <SearchSection
+                searchQuery={searchQuery}
+                onSearchChange={handleSearchChange}
+                showSearchResults={showSearchResults}
+                onCloseResults={() => setShowSearchResults(false)}
+                filteredResults={searchResults}
+                onSelectResult={handleSearchResultSelect}
+                loading={loading}
               />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => {
-                  onTap();
-                  setSearchQuery('');
-                }}>
-                  <FontAwesome name="times" size={16} color={colors.text + '60'} />
-                </TouchableOpacity>
-              )}
             </View>
+
+            {/* Error Banner */}
+            {error && (
+              <View style={[
+                styles.errorBanner, 
+                { 
+                  backgroundColor: tokens.colors.semantic.error.background,
+                  borderColor: tokens.colors.semantic.error.light 
+                },
+                tokens.helpers.cardShadow('low')
+              ]}>
+                <MaterialIcons name="error-outline" size={20} color={tokens.colors.semantic.error.light} />
+                <Text style={[styles.errorText, { color: tokens.colors.semantic.error.light }]}>{error}</Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    onTap();
+                    setError(null);
+                    loadData();
+                  }}
+                  style={[
+                    styles.retryButton,
+                    tokens.helpers.buttonStyles('tertiary', 'small')
+                  ]}
+                  accessibilityLabel="Riprova a caricare"
+                  accessibilityHint="Tocca per riprovare a caricare gli hotel"
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.retryText, { color: tokens.colors.semantic.error.light }]}>Riprova</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Filtri */}
             <AdvancedFilters
@@ -298,35 +369,77 @@ export default function HotelScreen() {
               <View style={styles.activeFiltersSection}>
                 <View style={styles.activeFiltersContainer}>
                   {selectedCity && selectedCity !== 'Tutte' && (
-                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <View style={[
+                      styles.activeFilter, 
+                      { backgroundColor: colors.primary + '20' },
+                      { borderRadius: tokens.radius.small }
+                    ]}>
                       <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
-                      <TouchableOpacity onPress={() => {
-                        onTap();
-                        setSelectedCity('Tutte');
-                      }}>
-                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      <TouchableOpacity 
+                        onPress={() => {
+                          onTap();
+                          setSelectedCity('Tutte');
+                        }}
+                        accessibilityLabel={`Rimuovi filtro città ${selectedCity}`}
+                        accessibilityHint="Tocca per rimuovere il filtro città applicato"
+                        accessibilityRole="button"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[
+                          styles.closeButton,
+                          tokens.helpers.touchTarget('minimum')
+                        ]}
+                      >
+                        <MaterialIcons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}
                   {selectedHotelType && selectedHotelType !== 'Tutti' && (
-                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <View style={[
+                      styles.activeFilter, 
+                      { backgroundColor: colors.primary + '20' },
+                      { borderRadius: tokens.radius.small }
+                    ]}>
                       <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedHotelType}</Text>
-                      <TouchableOpacity onPress={() => {
-                        onTap();
-                        setSelectedHotelType('Tutti');
-                      }}>
-                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      <TouchableOpacity 
+                        onPress={() => {
+                          onTap();
+                          setSelectedHotelType('Tutti');
+                        }}
+                        accessibilityLabel={`Rimuovi filtro tipo hotel ${selectedHotelType}`}
+                        accessibilityHint="Tocca per rimuovere il filtro tipo hotel applicato"
+                        accessibilityRole="button"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[
+                          styles.closeButton,
+                          tokens.helpers.touchTarget('minimum')
+                        ]}
+                      >
+                        <MaterialIcons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}
                   {selectedStarRating && selectedStarRating !== 'Tutte' && (
-                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <View style={[
+                      styles.activeFilter, 
+                      { backgroundColor: colors.primary + '20' },
+                      { borderRadius: tokens.radius.small }
+                    ]}>
                       <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedStarRating}</Text>
-                      <TouchableOpacity onPress={() => {
-                        onTap();
-                        setSelectedStarRating('Tutte');
-                      }}>
-                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      <TouchableOpacity 
+                        onPress={() => {
+                          onTap();
+                          setSelectedStarRating('Tutte');
+                        }}
+                        accessibilityLabel={`Rimuovi filtro stelle ${selectedStarRating}`}
+                        accessibilityHint="Tocca per rimuovere il filtro stelle applicato"
+                        accessibilityRole="button"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[
+                          styles.closeButton,
+                          tokens.helpers.touchTarget('minimum')
+                        ]}
+                      >
+                        <MaterialIcons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -356,29 +469,45 @@ export default function HotelScreen() {
             {/* Header mappa con controlli */}
             <View style={[styles.mapHeader, { backgroundColor: colors.card }]}>
               <TouchableOpacity
-                style={[styles.mapControlButton, { backgroundColor: colors.primary }]}
+                style={[
+                  styles.mapControlButton, 
+                  { backgroundColor: colors.primary },
+                  tokens.helpers.buttonStyles('primary', 'medium'),
+                  tokens.helpers.touchTarget('recommended')
+                ]}
                 onPress={() => {
                   onTap();
                   setIsMapView(false);
                 }}
+                accessibilityLabel="Torna alla vista lista hotel"
+                accessibilityHint="Tocca per tornare alla visualizzazione a lista degli hotel"
+                accessibilityRole="button"
               >
                 <MaterialIcons name="list" size={20} color="white" />
                 <Text style={styles.mapControlText}>Lista</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.mapControlButton, { 
-                  backgroundColor: Platform.OS === 'android' 
-                    ? colors.primary + '20' 
-                    : colors.primary + '10',
-                  borderColor: colors.primary,
-                  borderWidth: 1
-                }]}
+                style={[
+                  styles.mapControlButton, 
+                  { 
+                    backgroundColor: Platform.OS === 'android' 
+                      ? colors.primary + '20' 
+                      : colors.primary + '10',
+                    borderColor: colors.primary,
+                    borderWidth: 1
+                  },
+                  tokens.helpers.buttonStyles('secondary', 'medium'),
+                  tokens.helpers.touchTarget('recommended')
+                ]}
                 onPress={() => {
                   onTap();
                   setIsMapView(false);
                   setShowFilters(true);
                 }}
+                accessibilityLabel="Apri filtri hotel"
+                accessibilityHint="Tocca per aprire i filtri e tornare alla vista lista"
+                accessibilityRole="button"
               >
                 <MaterialIcons name="filter-list" size={20} color={colors.primary} />
                 <Text style={[styles.mapControlText, { color: colors.primary }]}>Filtri</Text>
@@ -399,12 +528,15 @@ export default function HotelScreen() {
           <FlatList
             data={displayedHotels}
             keyExtractor={(item) => item.id}
+            numColumns={isTablet ? 2 : 1}
+            key={isTablet ? 'tablet' : 'phone'} // Force re-render when orientation changes
             contentContainerStyle={styles.listContainer}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
             onScroll={refreshState.onScroll}
             onScrollEndDrag={refreshState.onScrollEndDrag}
             scrollEventThrottle={16}
+            columnWrapperStyle={isTablet ? styles.tabletRow : undefined}
             ListEmptyComponent={
               loading ? (
                 <View style={styles.listContainer}>
@@ -430,25 +562,34 @@ export default function HotelScreen() {
                 </View>
               )
             }
-            renderItem={({ item: hotel }) => (
-              <HotelListCard
-                item={hotel}
-                onPress={() => {
-                  onTap();
-                  router.push(`/hotel/${hotel.id}`);
-                }}
-
-              />
+            renderItem={({ item: hotel, index }) => (
+              <View style={isTablet ? styles.tabletCardContainer : undefined}>
+                <HotelListCard
+                  item={hotel}
+                  onPress={() => {
+                    onTap();
+                    router.push(`/hotel/${hotel.id}`);
+                  }}
+                />
+              </View>
             )}
             ListFooterComponent={
               hasMoreHotels ? (
                 <View style={styles.loadMoreContainer}>
                   <TouchableOpacity
-                    style={[styles.loadMoreButton, { backgroundColor: colors.primary }]}
+                    style={[
+                      styles.loadMoreButton, 
+                      { backgroundColor: colors.primary },
+                      tokens.helpers.buttonStyles('primary', 'medium'),
+                      tokens.helpers.cardShadow('medium')
+                    ]}
                     onPress={() => {
                       onTap();
                       loadMoreHotels();
                     }}
+                    accessibilityLabel={`Carica altri ${Math.min(20, filteredHotels.length - displayLimit)} hotel`}
+                    accessibilityHint="Tocca per caricare più risultati hotel nella lista"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.loadMoreText}>
                       Carica altri {Math.min(20, filteredHotels.length - displayLimit)} hotel
@@ -477,6 +618,14 @@ const styles = StyleSheet.create({
   },
   filtersSection: {
     marginBottom: 8,
+  },
+  searchSection: {
+    paddingHorizontal: isTablet ? 32 : 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    maxWidth: isTablet ? 800 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -611,12 +760,18 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   resultsCountSection: {
-    marginHorizontal: 16,
+    marginHorizontal: isTablet ? 32 : 16,
     marginBottom: 8,
+    maxWidth: isTablet ? 800 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   activeFiltersSection: {
-    marginHorizontal: 16,
+    marginHorizontal: isTablet ? 32 : 16,
     marginBottom: 8,
+    maxWidth: isTablet ? 800 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   activeFiltersContainer: {
     flexDirection: 'row',
@@ -643,14 +798,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 6,
   },
+  closeButton: {
+    padding: 4,
+    minWidth: 24,
+    minHeight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  errorText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  retryButton: {
+    marginLeft: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  retryText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   resultsText: {
     fontSize: 14,
     marginHorizontal: 16,
     marginBottom: 8,
   },
   listContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: isTablet ? 32 : 16,
     paddingTop: 16,
+    maxWidth: isTablet ? 1200 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   centerContainer: {
     flex: 1,
@@ -725,5 +914,15 @@ const styles = StyleSheet.create({
   endOfListText: {
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  // Tablet-specific styles
+  tabletRow: {
+    justifyContent: 'space-between',
+    paddingHorizontal: isTablet ? 8 : 0,
+  },
+  tabletCardContainer: {
+    flex: 1,
+    marginHorizontal: 8,
+    maxWidth: isTablet ? (screenWidth - 96) / 2 : '100%', // Account for padding and margins
   },
 });

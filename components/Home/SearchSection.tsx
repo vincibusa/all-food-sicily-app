@@ -73,7 +73,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
           onBlur={() => setIsFocused(false)}
           accessibilityLabel="Campo di ricerca ristoranti e hotel"
           accessibilityHint="Digita per cercare ristoranti e hotel in Sicilia"
-          accessibilityRole="searchbox"
+
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="words"
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   searchResultsContainer: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? 78 : 50,
+    top: Platform.OS === 'android' ? 78 : 70,
     left: 0,
     right: 0,
     maxHeight: 200,

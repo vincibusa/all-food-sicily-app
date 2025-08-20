@@ -24,6 +24,7 @@ interface Hotel {
   hotel_type?: string[];
   latitude?: number;
   longitude?: number;
+  distance?: number; // Distance in kilometers
 }
 
 interface HotelListCardProps {
@@ -46,6 +47,15 @@ export const HotelListCard: React.FC<HotelListCardProps> = ({
     if (!rating) return '0.0';
     const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
     return isNaN(numRating) ? '0.0' : numRating.toFixed(1);
+  };
+
+  // Format distance
+  const formatDistance = (distance?: number) => {
+    if (!distance) return null;
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${distance.toFixed(1)}km`;
   };
 
   // Format price range
@@ -128,6 +138,14 @@ export const HotelListCard: React.FC<HotelListCardProps> = ({
             <Text style={[styles.locationText, textStyles.caption(colors.text + '80')]} numberOfLines={1}>
               {item.city}, {item.province}
             </Text>
+            {item.distance && (
+              <View style={styles.distanceContainer}>
+                <MaterialIcons name="near-me" size={12} color={colors.primary} />
+                <Text style={[styles.distanceText, { color: colors.primary }]}>
+                  {formatDistance(item.distance)}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Hotel types tags */}
@@ -240,11 +258,27 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
   locationText: {
     fontSize: 12,
     marginLeft: 4,
+    flex: 1,
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  distanceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 2,
   },
   tagsContainer: {
     flexDirection: 'row',

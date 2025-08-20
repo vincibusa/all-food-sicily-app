@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Alert, Platform } from "react-native";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Alert, Platform, Dimensions } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
@@ -20,6 +20,11 @@ import { useEnhancedRefresh } from "../../hooks/useEnhancedRefresh";
 import { MinimalRefreshIndicator } from "../../components/RefreshIndicator";
 import { RestaurantMapView } from '../../components/MapView';
 import { useLocation } from "../../hooks/useLocation";
+import { SearchSection } from '../../components/Home';
+import { useDesignTokens } from '../../hooks/useDesignTokens';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
 
 interface Restaurant extends ListItem {
   description: string;
@@ -46,6 +51,7 @@ export default function RistorantiScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const router = useRouter();
+  const tokens = useDesignTokens();
   const { category, hasOffers, couponType } = useLocalSearchParams<{ category?: string; hasOffers?: string; couponType?: string }>();
   const { location: userLocation, getCurrentLocation, calculateDistance } = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +68,8 @@ export default function RistorantiScreen() {
   const [displayLimit, setDisplayLimit] = useState(20); // Show 20 items initially
   const [restaurantsWithOffers, setRestaurantsWithOffers] = useState<string[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -164,6 +172,7 @@ export default function RistorantiScreen() {
   const loadData = async (categoryId?: string) => {
     try {
       setLoading(true);
+      setError(null);
       
       // Load all restaurants with pagination
       let allRestaurants = [];
@@ -252,8 +261,8 @@ export default function RistorantiScreen() {
         }))
       ]);
     } catch (error) {
-      // Error loading data
-      Alert.alert('Errore', 'Impossibile caricare i ristoranti');
+      console.error('Error loading restaurants:', error);
+      setError('Impossibile caricare i ristoranti. Verifica la connessione internet e riprova.');
     } finally {
       setLoading(false);
     }
@@ -310,59 +319,102 @@ export default function RistorantiScreen() {
     );
   };
 
-  // Funzione per ordinare per distanza
-  const sortByDistance = (items: ListItem[], userLat: number, userLng: number) => {
+  // Funzione per ordinare per distanza - memoized
+  const sortByDistance = useCallback((items: ListItem[], userLat: number, userLng: number) => {
     return items
       .filter(item => item.latitude && item.longitude)
       .map(item => ({
         ...item,
         distance: calculateDistance(userLat, userLng, Number(item.latitude), Number(item.longitude))
       }))
-      .sort((a, b) => a.distance - b.distance)
-      .map(({ distance, ...item }) => item as ListItem);
-  };
+      .sort((a, b) => a.distance - b.distance);
+  }, [calculateDistance]);
   
-  // Determina se la categoria selezionata è un'offerta
-  const isOfferCategory = ['Offerte', 'Fino al 50%', 'Prendi 2 Paghi 1', 'Special', 'Promo', 'Free'].includes(selectedCategory);
+  // Determina se la categoria selezionata è un'offerta - memoized
+  const isOfferCategory = useMemo(() => {
+    return ['Offerte', 'Fino al 50%', 'Prendi 2 Paghi 1', 'Special', 'Promo', 'Free'].includes(selectedCategory);
+  }, [selectedCategory]);
 
-  // Filtro client-side per search query, città, tipo di cucina e offerte
-  let filteredRestaurants = restaurants.filter(restaurant => {
-    // Search query filter
-    const matchesSearch = !searchQuery.trim() || (
-      restaurant.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.province?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.cuisine_type?.some((cuisine: string) => cuisine?.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+  // Filtro client-side per search query, città, tipo di cucina e offerte - memoized
+  const filteredRestaurants = useMemo(() => {
+    let filtered = restaurants.filter(restaurant => {
+      // Search query filter
+      const matchesSearch = !searchQuery.trim() || (
+        restaurant.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        restaurant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        restaurant.province?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        restaurant.category?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        restaurant.cuisine_type?.some((cuisine: string) => cuisine?.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
 
-    // City filter
-    const matchesCity = selectedCity === 'Tutte' || restaurant.city === selectedCity;
+      // City filter
+      const matchesCity = selectedCity === 'Tutte' || restaurant.city === selectedCity;
 
-    // Cuisine type filter
-    const matchesCuisine = selectedCuisine === 'Tutte' || 
-      restaurant.cuisine_type?.some((cuisine: string) => {
-        const formattedCuisine = cuisine.charAt(0).toUpperCase() + cuisine.slice(1).replace('-', ' ');
-        return formattedCuisine === selectedCuisine;
-      });
+      // Cuisine type filter
+      const matchesCuisine = selectedCuisine === 'Tutte' || 
+        restaurant.cuisine_type?.some((cuisine: string) => {
+          const formattedCuisine = cuisine.charAt(0).toUpperCase() + cuisine.slice(1).replace('-', ' ');
+          return formattedCuisine === selectedCuisine;
+        });
 
-    // Offers filter - mostra solo ristoranti con coupon attivi del tipo specificato
-    const matchesOffers = !isOfferCategory || restaurantsWithOffers.includes(restaurant.id);
-    
-    return matchesSearch && matchesCity && matchesCuisine && matchesOffers;
-  });
+      // Offers filter - mostra solo ristoranti con coupon attivi del tipo specificato
+      const matchesOffers = !isOfferCategory || restaurantsWithOffers.includes(restaurant.id);
+      
+      return matchesSearch && matchesCity && matchesCuisine && matchesOffers;
+    });
 
-  // Ordina per distanza se abbiamo la posizione dell'utente
-  if (userLocation) {
-    filteredRestaurants = sortByDistance(filteredRestaurants, userLocation.latitude, userLocation.longitude);
-  }
+    // Ordina per distanza se abbiamo la posizione dell'utente
+    if (userLocation) {
+      filtered = sortByDistance(filtered, userLocation.latitude, userLocation.longitude);
+    }
+
+    return filtered;
+  }, [restaurants, searchQuery, selectedCity, selectedCuisine, isOfferCategory, restaurantsWithOffers, userLocation, sortByDistance]);
+
 
   // Display restaurants with pagination
   const displayedRestaurants = filteredRestaurants.slice(0, displayLimit);
   const hasMoreRestaurants = filteredRestaurants.length > displayLimit;
 
-  const loadMoreRestaurants = () => {
+  const loadMoreRestaurants = useCallback(() => {
     setDisplayLimit(prev => prev + 20);
+  }, []);
+
+  // Handle search input changes
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
+    setShowSearchResults(text.trim().length > 0);
+    setDisplayLimit(20); // Reset pagination when searching
+  }, []);
+
+  // Create search results for SearchSection dropdown
+  const searchResults = searchQuery.trim().length > 0 
+    ? restaurants.filter(restaurant => {
+        if (!restaurant) return false;
+        const query = searchQuery.toLowerCase();
+        return (
+          (restaurant.title && restaurant.title.toLowerCase().includes(query)) ||
+          (restaurant.city && restaurant.city.toLowerCase().includes(query)) ||
+          (restaurant.province && restaurant.province.toLowerCase().includes(query)) ||
+          (restaurant.category?.name && restaurant.category.name.toLowerCase().includes(query)) ||
+          (restaurant.cuisine_type && restaurant.cuisine_type.some(cuisine => cuisine.toLowerCase().includes(query)))
+        );
+      }).slice(0, 5).map(restaurant => ({
+        ...restaurant,
+        name: restaurant.title || restaurant.name,
+        type: 'restaurant' as const
+      }))
+    : [];
+
+  // Handle search result selection
+  const handleSearchResultSelect = (item: any) => {
+    if (!item.id || !item.name) return;
+    
+    setSearchQuery(item.name);
+    setShowSearchResults(false);
+    
+    // Navigate to restaurant detail
+    router.push(`/ristoranti/${item.id}`);
   };
 
 
@@ -372,28 +424,49 @@ export default function RistorantiScreen() {
         {/* Search Bar e Filtri - Solo in vista lista */}
         {!isMapView && (
           <>
-            {/* Search Bar */}
-            <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-              <FontAwesome name="search" size={16} color={colors.text + '60'} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Cerca ristoranti, città, categorie..."
-                placeholderTextColor={colors.text + '60'}
-                value={searchQuery}
-                onChangeText={(text) => {
-                  setSearchQuery(text);
-                  setDisplayLimit(20); // Reset pagination when searching
-                }}
+            {/* Enhanced Search Section */}
+            <View style={styles.searchSection}>
+              <SearchSection
+                searchQuery={searchQuery}
+                onSearchChange={handleSearchChange}
+                showSearchResults={showSearchResults}
+                onCloseResults={() => setShowSearchResults(false)}
+                filteredResults={searchResults}
+                onSelectResult={handleSearchResultSelect}
+                loading={loading || loadingOffers}
               />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => {
-                  onTap();
-                  setSearchQuery('');
-                }}>
-                  <FontAwesome name="times" size={16} color={colors.text + '60'} />
-                </TouchableOpacity>
-              )}
             </View>
+
+            {/* Error Banner */}
+            {error && (
+              <View style={[
+                styles.errorBanner, 
+                { 
+                  backgroundColor: tokens.colors.semantic.error.background,
+                  borderColor: tokens.colors.semantic.error.light 
+                },
+                tokens.helpers.cardShadow('low')
+              ]}>
+                <MaterialIcons name="error-outline" size={20} color={tokens.colors.semantic.error.light} />
+                <Text style={[styles.errorText, { color: tokens.colors.semantic.error.light }]}>{error}</Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    onTap();
+                    setError(null);
+                    loadData();
+                  }}
+                  style={[
+                    styles.retryButton,
+                    tokens.helpers.buttonStyles('tertiary', 'small')
+                  ]}
+                  accessibilityLabel="Riprova a caricare"
+                  accessibilityHint="Tocca per riprovare a caricare i ristoranti"
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.retryText, { color: tokens.colors.semantic.error.light }]}>Riprova</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Filtri */}
             <AdvancedFilters
@@ -437,35 +510,77 @@ export default function RistorantiScreen() {
               <View style={styles.activeFiltersSection}>
                 <View style={styles.activeFiltersContainer}>
                   {selectedCity && selectedCity !== 'Tutte' && (
-                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <View style={[
+                      styles.activeFilter, 
+                      { backgroundColor: colors.primary + '20' },
+                      { borderRadius: tokens.radius.small }
+                    ]}>
                       <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCity}</Text>
-                      <TouchableOpacity onPress={() => {
-                        onTap();
-                        setSelectedCity('Tutte');
-                      }}>
-                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      <TouchableOpacity 
+                        onPress={() => {
+                          onTap();
+                          setSelectedCity('Tutte');
+                        }}
+                        accessibilityLabel={`Rimuovi filtro città ${selectedCity}`}
+                        accessibilityHint="Tocca per rimuovere il filtro città applicato"
+                        accessibilityRole="button"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[
+                          styles.closeButton,
+                          tokens.helpers.touchTarget('minimum')
+                        ]}
+                      >
+                        <MaterialIcons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}
                   {selectedCategory && selectedCategory !== 'Tutti' && (
-                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <View style={[
+                      styles.activeFilter, 
+                      { backgroundColor: colors.primary + '20' },
+                      { borderRadius: tokens.radius.small }
+                    ]}>
                       <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCategory}</Text>
-                      <TouchableOpacity onPress={() => {
-                        onTap();
-                        setSelectedCategory('Tutti');
-                      }}>
-                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      <TouchableOpacity 
+                        onPress={() => {
+                          onTap();
+                          setSelectedCategory('Tutti');
+                        }}
+                        accessibilityLabel={`Rimuovi filtro categoria ${selectedCategory}`}
+                        accessibilityHint="Tocca per rimuovere il filtro categoria applicato"
+                        accessibilityRole="button"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[
+                          styles.closeButton,
+                          tokens.helpers.touchTarget('minimum')
+                        ]}
+                      >
+                        <MaterialIcons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}
                   {selectedCuisine && selectedCuisine !== 'Tutte' && (
-                    <View style={[styles.activeFilter, { backgroundColor: colors.primary + '20' }]}>
+                    <View style={[
+                      styles.activeFilter, 
+                      { backgroundColor: colors.primary + '20' },
+                      { borderRadius: tokens.radius.small }
+                    ]}>
                       <Text style={[styles.activeFilterText, { color: colors.primary }]}>{selectedCuisine}</Text>
-                      <TouchableOpacity onPress={() => {
-                        onTap();
-                        setSelectedCuisine('Tutte');
-                      }}>
-                        <MaterialIcons name="close" size={14} color={colors.primary} />
+                      <TouchableOpacity 
+                        onPress={() => {
+                          onTap();
+                          setSelectedCuisine('Tutte');
+                        }}
+                        accessibilityLabel={`Rimuovi filtro cucina ${selectedCuisine}`}
+                        accessibilityHint="Tocca per rimuovere il filtro tipo cucina applicato"
+                        accessibilityRole="button"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[
+                          styles.closeButton,
+                          tokens.helpers.touchTarget('minimum')
+                        ]}
+                      >
+                        <MaterialIcons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -495,11 +610,19 @@ export default function RistorantiScreen() {
             {/* Header mappa con controlli */}
             <View style={[styles.mapHeader, { backgroundColor: colors.card }]}>
               <TouchableOpacity
-                style={[styles.mapControlButton, { backgroundColor: colors.primary }]}
+                style={[
+                  styles.mapControlButton, 
+                  { backgroundColor: colors.primary },
+                  tokens.helpers.buttonStyles('primary', 'medium'),
+                  tokens.helpers.touchTarget('recommended')
+                ]}
                 onPress={() => {
                   onTap();
                   setIsMapView(false);
                 }}
+                accessibilityLabel="Torna alla vista lista ristoranti"
+                accessibilityHint="Tocca per tornare alla visualizzazione a lista dei ristoranti"
+                accessibilityRole="button"
               >
                 <MaterialIcons name="list" size={20} color="white" />
                 <Text style={styles.mapControlText}>Lista</Text>
@@ -518,6 +641,9 @@ export default function RistorantiScreen() {
                   setIsMapView(false);
                   setShowFilters(true);
                 }}
+                accessibilityLabel="Apri filtri ristoranti"
+                accessibilityHint="Tocca per aprire i filtri e tornare alla vista lista"
+                accessibilityRole="button"
               >
                 <MaterialIcons name="filter-list" size={20} color={colors.primary} />
                 <Text style={[styles.mapControlText, { color: colors.primary }]}>Filtri</Text>
@@ -538,12 +664,15 @@ export default function RistorantiScreen() {
           <FlatList
             data={displayedRestaurants}
             keyExtractor={(item) => item.id}
+            numColumns={isTablet ? 2 : 1}
+            key={isTablet ? 'tablet' : 'phone'} // Force re-render when orientation changes
             contentContainerStyle={styles.listContainer}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
             onScroll={refreshState.onScroll}
             onScrollEndDrag={refreshState.onScrollEndDrag}
             scrollEventThrottle={16}
+            columnWrapperStyle={isTablet ? styles.tabletRow : undefined}
             ListEmptyComponent={
               loading || loadingOffers ? (
                 <View style={styles.listContainer}>
@@ -580,26 +709,34 @@ export default function RistorantiScreen() {
               )
             }
             renderItem={({ item: restaurant, index }) => (
-              <RestaurantListCard
-                item={restaurant}
-          
-                onPress={() => {
-                  onTap();
-                  // Navigazione al dettaglio del ristorante
-                  router.push(`/ristoranti/${restaurant.id}`);
-                }}
-         
-              />
+              <View style={isTablet ? styles.tabletCardContainer : undefined}>
+                <RestaurantListCard
+                  item={restaurant}
+                  onPress={() => {
+                    onTap();
+                    // Navigazione al dettaglio del ristorante
+                    router.push(`/ristoranti/${restaurant.id}`);
+                  }}
+                />
+              </View>
             )}
             ListFooterComponent={
               hasMoreRestaurants ? (
                 <View style={styles.loadMoreContainer}>
                   <TouchableOpacity
-                    style={[styles.loadMoreButton, { backgroundColor: colors.primary }]}
+                    style={[
+                      styles.loadMoreButton, 
+                      { backgroundColor: colors.primary },
+                      tokens.helpers.buttonStyles('primary', 'medium'),
+                      tokens.helpers.cardShadow('medium')
+                    ]}
                     onPress={() => {
                       onTap();
                       loadMoreRestaurants();
                     }}
+                    accessibilityLabel={`Carica altri ${Math.min(20, filteredRestaurants.length - displayLimit)} ristoranti`}
+                    accessibilityHint="Tocca per caricare più risultati ristoranti nella lista"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.loadMoreText}>
                       Carica altri {Math.min(20, filteredRestaurants.length - displayLimit)} ristoranti
@@ -628,6 +765,14 @@ const styles = StyleSheet.create({
   },
   filtersSection: {
     marginBottom: 8,
+  },
+  searchSection: {
+    paddingHorizontal: isTablet ? 32 : 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    maxWidth: isTablet ? 800 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -762,12 +907,18 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   resultsCountSection: {
-    marginHorizontal: 16,
+    marginHorizontal: isTablet ? 32 : 16,
     marginBottom: 8,
+    maxWidth: isTablet ? 800 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   activeFiltersSection: {
-    marginHorizontal: 16,
+    marginHorizontal: isTablet ? 32 : 16,
     marginBottom: 8,
+    maxWidth: isTablet ? 800 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   activeFiltersContainer: {
     flexDirection: 'row',
@@ -794,14 +945,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 6,
   },
+  closeButton: {
+    padding: 4,
+    minWidth: 24,
+    minHeight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  errorText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  retryButton: {
+    marginLeft: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  retryText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   resultsText: {
     fontSize: 14,
     marginHorizontal: 16,
     marginBottom: 8,
   },
   listContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: isTablet ? 32 : 16,
     paddingTop: 16,
+    maxWidth: isTablet ? 1200 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   centerContainer: {
     flex: 1,
@@ -876,5 +1061,15 @@ const styles = StyleSheet.create({
   endOfListText: {
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  // Tablet-specific styles
+  tabletRow: {
+    justifyContent: 'space-between',
+    paddingHorizontal: isTablet ? 8 : 0,
+  },
+  tabletCardContainer: {
+    flex: 1,
+    marginHorizontal: 8,
+    maxWidth: isTablet ? (screenWidth - 96) / 2 : '100%', // Account for padding and margins
   },
 }); 
