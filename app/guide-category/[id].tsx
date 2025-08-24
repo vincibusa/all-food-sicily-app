@@ -8,6 +8,7 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -16,6 +17,8 @@ import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { guideService, GuideSection } from '../../services/guide.service';
+import { LightboxModal } from '../../components/LightboxModal';
+import { useDesignTokens } from '../../hooks/useDesignTokens';
 
 const categoryContent = {
   'guida': {
@@ -159,10 +162,21 @@ export default function GuideCategoryScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const textStyles = useTextStyles();
+  const tokens = useDesignTokens();
   
   const [section, setSection] = useState<GuideSection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    content: true,
+    gallery: false,
+  });
+  
+  // Lightbox state
+  const [lightboxVisible, setLightboxVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Fallback al contenuto statico se non c'è guideId
   const category: StaticContent = categoryContent[id as keyof typeof categoryContent];
@@ -204,6 +218,34 @@ export default function GuideCategoryScreen() {
     color: category.color,
     icon: category.icon
   } : category;
+  
+  const toggleSection = (sectionName: keyof typeof expandedSections) => {
+    onTap();
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionName]: !prev[sectionName]
+    }));
+  };
+  
+  const openLightbox = (index: number) => {
+    onTap();
+    setCurrentImageIndex(index);
+    setLightboxVisible(true);
+  };
+  
+  const handleShare = async () => {
+    if (!displayData) return;
+    onTap();
+    
+    try {
+      await Share.share({
+        message: `Scopri questa sezione su AllFood Sicily: ${displayData.title}`,
+        title: displayData.title,
+      });
+    } catch (error) {
+      // Error sharing
+    }
+  };
 
   if (loading) {
     return (
@@ -266,21 +308,67 @@ export default function GuideCategoryScreen() {
     onTap();
     router.back();
   };
+  
+  // Collapsible Section Component
+  const CollapsibleSection = ({ 
+    title, 
+    isExpanded, 
+    onToggle, 
+    children, 
+    icon 
+  }: { 
+    title: string; 
+    isExpanded: boolean; 
+    onToggle: () => void; 
+    children: React.ReactNode;
+    icon: string;
+  }) => (
+    <Animated.View entering={FadeInDown} style={styles.collapsibleSection}>
+      <TouchableOpacity 
+        style={[styles.sectionHeader, { backgroundColor: colors.card }]} 
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}, ${isExpanded ? 'espansa' : 'compressa'}`}
+      >
+        <View style={styles.sectionHeaderLeft}>
+          <MaterialIcons name={icon as any} size={24} color={colors.primary} />
+          <Text style={[styles.sectionHeaderTitle, textStyles.subtitle(colors.text)]}>
+            {title}
+          </Text>
+        </View>
+        <MaterialIcons 
+          name={isExpanded ? 'expand-less' : 'expand-more'} 
+          size={24} 
+          color={colors.text} 
+        />
+      </TouchableOpacity>
+      {isExpanded && (
+        <Animated.View entering={FadeInDown} style={styles.sectionContent}>
+          {children}
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, tokens.helpers.touchTarget('minimum')]}
           onPress={handleBackPress}
         >
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, textStyles.subtitle(colors.text)]}>
-          {category.title}
+          {displayData?.title || category?.title}
         </Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity
+          style={[styles.shareButton, tokens.helpers.touchTarget('minimum')]}
+          onPress={handleShare}
+        >
+          <MaterialIcons name="share" size={24} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -303,48 +391,73 @@ export default function GuideCategoryScreen() {
           </View>
         </Animated.View>
 
-        {/* Content */}
+        {/* Title */}
         <Animated.View 
-          style={styles.contentSection}
+          style={styles.titleSection}
           entering={FadeInDown.delay(200)}
         >
           <Text style={[styles.categoryTitle, textStyles.title(colors.text)]}>
             {displayData.title}
           </Text>
-          
+        </Animated.View>
+
+        {/* Content Section */}
+        <CollapsibleSection
+          title="Descrizione"
+          isExpanded={expandedSections.content}
+          onToggle={() => toggleSection('content')}
+          icon="description"
+        >
           <Text style={[styles.categoryContent, textStyles.body(colors.text)]}>
             {displayData.content}
           </Text>
-        </Animated.View>
+        </CollapsibleSection>
 
-        {/* Gallery se disponibile */}
+        {/* Gallery Section */}
         {displayData.gallery && displayData.gallery?.length > 0 && (
-          <Animated.View 
-            style={styles.gallerySection}
-            entering={FadeInDown.delay(300)}
+          <CollapsibleSection
+            title="Galleria"
+            isExpanded={expandedSections.gallery}
+            onToggle={() => toggleSection('gallery')}
+            icon="photo-library"
           >
-            <Text style={[styles.galleryTitle, textStyles.subtitle(colors.text)]}>
-              Galleria
-            </Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.galleryScroll}
-            >
-              {displayData.gallery?.map((imageUrl: string, index: number) => (
-                <Image
+            <View style={styles.modernGallery}>
+              {displayData.gallery?.slice(0, 6).map((imageUrl: string, index: number) => (
+                <TouchableOpacity
                   key={index}
-                  source={{ uri: imageUrl }}
-                  style={styles.galleryImage}
-                />
+                  style={styles.galleryImageContainer}
+                  onPress={() => openLightbox(index)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Visualizza immagine ${index + 1} di ${displayData.gallery?.length}`}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.modernGalleryImage}
+                  />
+                  {index === 5 && displayData.gallery && displayData.gallery.length > 6 && (
+                    <View style={styles.morePhotosOverlay}>
+                      <Text style={styles.morePhotosText}>+{displayData.gallery.length - 6}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
               ))}
-            </ScrollView>
-          </Animated.View>
+            </View>
+          </CollapsibleSection>
         )}
 
         {/* Bottom padding */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+      
+      {/* Lightbox Modal */}
+      {displayData.gallery && displayData.gallery.length > 0 && (
+        <LightboxModal
+          visible={lightboxVisible}
+          images={displayData.gallery}
+          initialIndex={currentImageIndex}
+          onClose={() => setLightboxVisible(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -374,8 +487,10 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  placeholder: {
-    width: 40,
+  shareButton: {
+    padding: 8,
+    minWidth: 40,
+    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -402,9 +517,40 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  contentSection: {
+  titleSection: {
     padding: 20,
     marginTop: 10,
+  },
+  collapsibleSection: {
+    marginBottom: 20,
+    marginHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    minHeight: 48,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sectionHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  sectionContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   categoryTitle: {
     fontSize: 28,
@@ -475,22 +621,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  gallerySection: {
-    padding: 20,
+  modernGallery: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  galleryTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 16,
+  galleryImageContainer: {
+    position: 'relative',
+    width: '31%',
+    aspectRatio: 1,
   },
-  galleryScroll: {
-    paddingRight: 20,
-  },
-  galleryImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 12,
-    marginRight: 16,
+  modernGalleryImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
     backgroundColor: '#f0f0f0',
+  },
+  morePhotosOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  morePhotosText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

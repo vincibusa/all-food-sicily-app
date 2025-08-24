@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from './context/ThemeContext';
 import { useHaptics } from '../utils/haptics';
 import { useTextStyles } from '../hooks/useAccessibleText';
+import { useDesignTokens } from '../hooks/useDesignTokens';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { guideService } from '../services/guide.service';
 import { restaurantService, Restaurant } from '../services/restaurant.service';
@@ -78,6 +79,7 @@ export default function GuideSearchScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const textStyles = useTextStyles();
+  const tokens = useDesignTokens();
   const { guideId } = useLocalSearchParams<{ guideId?: string }>();
 
   // Stati per il form
@@ -391,10 +393,13 @@ export default function GuideSearchScreen() {
             {
               backgroundColor: isSelected ? item.color : colors.card,
               borderColor: isSelected ? item.color : colors.border,
-            }
+            },
+            tokens.helpers.touchTarget('comfortable')
           ]}
           onPress={() => handlePrizeToggle(item.id)}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.name}, ${isSelected ? 'selezionato' : 'non selezionato'}, tocca per ${isSelected ? 'deselezionare' : 'selezionare'}`}
         >
           <MaterialIcons
             name={item.icon as any}
@@ -439,7 +444,12 @@ export default function GuideSearchScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+        <TouchableOpacity 
+          style={[styles.backButton, tokens.helpers.touchTarget('minimum')]} 
+          onPress={handleBackPress}
+          accessibilityRole="button"
+          accessibilityLabel="Torna indietro"
+        >
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, textStyles.title(colors.text)]}>
@@ -457,9 +467,11 @@ export default function GuideSearchScreen() {
         >
           {/* Pulsante Cerca a sinistra */}
           <TouchableOpacity
-            style={[styles.searchButton, { backgroundColor: colors.primary }]}
+            style={[styles.searchButton, { backgroundColor: colors.primary }, tokens.helpers.touchTarget('minimum')]}
             onPress={handleSearch}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Cerca locali"
           >
             <MaterialIcons 
               name={loading ? "hourglass-empty" : "search"} 
@@ -479,7 +491,9 @@ export default function GuideSearchScreen() {
           {searchQuery.length > 0 && (
             <TouchableOpacity 
               onPress={() => setSearchQuery('')}
-              style={styles.clearButton}
+              style={[styles.clearButton, tokens.helpers.touchTarget('minimum')]}
+              accessibilityRole="button"
+              accessibilityLabel="Cancella ricerca"
             >
               <MaterialIcons name="clear" size={20} color={colors.text + '60'} />
             </TouchableOpacity>
@@ -507,13 +521,16 @@ export default function GuideSearchScreen() {
                         {
                           backgroundColor: selectedCity === item.id ? colors.primary : colors.card,
                           borderColor: selectedCity === item.id ? colors.primary : colors.border,
-                        }
+                        },
+                        tokens.helpers.touchTarget('comfortable')
                       ]}
                       onPress={() => {
                         onTap();
                         setSelectedCity(item.id);
                       }}
                       activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Filtra per ${item.name}, ${selectedCity === item.id ? 'selezionato' : 'non selezionato'}`}
                     >
                       <MaterialIcons 
                         name={item.id === '' ? "public" : "place"} 
@@ -624,9 +641,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   backButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 8,
   },
   headerTitle: {
     fontSize: 20,
@@ -662,18 +685,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   clearButton: {
-    padding: 4,
-    marginRight: 8,
+    padding: 8,
+    marginRight: 4,
+    borderRadius: 8,
   },
   searchButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -692,7 +716,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -701,6 +725,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: 8,
     minWidth: 120,
+    minHeight: 48,
   },
   cityItemText: {
     fontWeight: '600',
@@ -739,8 +764,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   prizeItem: {
-    width: 80,
-    height: 80,
+    width: 88,
+    height: 88,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../../utils/haptics';
 import { useTextStyles } from '../../hooks/useAccessibleText';
+import { useDesignTokens } from '../../hooks/useDesignTokens';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { guideService, GuideAward } from '../../services/guide.service';
 
@@ -26,6 +27,7 @@ export default function GuideAwardsScreen() {
   const { colors } = useTheme();
   const { onTap } = useHaptics();
   const textStyles = useTextStyles();
+  const tokens = useDesignTokens();
   const { id: guideId } = useLocalSearchParams<{ id: string }>();
   
   const [awards, setAwards] = useState<Award[]>([]);
@@ -74,9 +76,11 @@ export default function GuideAwardsScreen() {
       style={styles.awardCardWrapper}
     >
       <TouchableOpacity
-        style={[styles.awardCard, { backgroundColor: colors.card }]}
+        style={[styles.awardCard, { backgroundColor: colors.card }, tokens.helpers.touchTarget('comfortable')]}
         onPress={() => handleRestaurantPress(item.restaurant?.id || '')}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Premio ${item.title} per ${item.restaurant?.name}, Anno ${item.year}, tocca per vedere il ristorante`}
       >
         {/* Award Header */}
         <View style={styles.awardHeader}>
@@ -169,11 +173,13 @@ export default function GuideAwardsScreen() {
             {error}
           </Text>
           <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+            style={[styles.retryButton, { backgroundColor: colors.primary }, tokens.helpers.touchTarget('recommended')]}
             onPress={() => {
               onTap();
               loadAwards();
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Riprova a caricare i premi"
           >
             <Text style={styles.retryButtonText}>Riprova</Text>
           </TouchableOpacity>
@@ -186,7 +192,12 @@ export default function GuideAwardsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+        <TouchableOpacity 
+          style={[styles.backButton, tokens.helpers.touchTarget('minimum')]} 
+          onPress={handleBackPress}
+          accessibilityRole="button"
+          accessibilityLabel="Torna indietro"
+        >
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, textStyles.title(colors.text)]}>
@@ -236,9 +247,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   backButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 8,
   },
   headerTitle: {
     fontSize: 20,
@@ -254,7 +271,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -324,13 +341,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   awardCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
+    minHeight: 48,
   },
   awardHeader: {
     flexDirection: 'row',
@@ -338,9 +356,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   awardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -362,14 +380,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   restaurantSection: {
     flexDirection: 'row',
     marginBottom: 16,
   },
   restaurantImage: {
-    width: 80,
-    height: 80,
+    width: 72,
+    height: 72,
     borderRadius: 12,
     marginRight: 16,
     backgroundColor: '#f0f0f0',
@@ -430,6 +453,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bottomPadding: {
-    height: 40,
+    height: 32,
   },
 });
