@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bacienz.allfoodsicily",
-      "buildNumber": "14",
+      "buildNumber": "15",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "AllFoodSicily utilizza la tua posizione per mostrarti ristoranti e hotel nelle vicinanze. I dati di geolocalizzazione vengono elaborati solo localmente sul dispositivo e non vengono memorizzati sui nostri server. Puoi disabilitare questa funzione nelle impostazioni mantenendo tutte le altre funzionalità dell'app.",

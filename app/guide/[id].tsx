@@ -401,6 +401,7 @@ export default function GuideDetailScreen() {
               )}
             </View>
           </CollapsibleSection>
+        </View>
         </ScrollView>
         
         {/* Lightbox Modal */}
